@@ -69,13 +69,21 @@ export const SlotBar: React.FC = () => {
               <motion.div
                 key={block.id}
                 layout
-                initial={{ scale: 0, y: -50 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0, opacity: 0 }}
+                initial={{ scale: 0.5, y: -100, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0, y: -20 }}
                 transition={{
                   type: "spring",
-                  stiffness: 500,
-                  damping: 30,
+                  stiffness: 400,
+                  damping: 25,
+                  mass: 0.8,
+                  // Bezier curve effect for flying animation
+                  y: {
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 20,
+                  },
+                  opacity: { duration: 0.2 },
                 }}
                 className="flex items-center justify-center rounded-lg border-2 border-white/50 shadow-md"
                 style={{

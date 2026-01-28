@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { FruitBlock, FruitType, GameState, HistoryEntry, ALL_FRUITS } from '@/types/game';
+import { getAudioController } from '@/hooks/useAudio';
 
 const BLOCK_SIZE = 48;
 const GRID_COLS = 8;
@@ -9,7 +10,7 @@ const MAX_SLOTS = 7;
 // Generate unique ID
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-// Check if two blocks overlap
+// Check if two blocks overlap (pixel-level overlap detection)
 const blocksOverlap = (a: FruitBlock, b: FruitBlock): boolean => {
   const aLeft = a.x * BLOCK_SIZE;
   const aRight = aLeft + BLOCK_SIZE;
@@ -24,15 +25,24 @@ const blocksOverlap = (a: FruitBlock, b: FruitBlock): boolean => {
   return !(aRight <= bLeft || bRight <= aLeft || aBottom <= bTop || bBottom <= aTop);
 };
 
-// Generate level data
+// Generate level data with "Hell Algorithm"
+// Key: Total count of each fruit type must be divisible by 3
+// Level 1: Simple layers (Z < 3), minimal overlap
+// Level 2+: Many layers, intentionally allows unsolvable states
 const generateLevel = (level: number): FruitBlock[] => {
   const blocks: FruitBlock[] = [];
   
-  // Level 1: Simple, few layers
-  // Level 2+: More complex, many layers
-  const numFruitTypes = level === 1 ? 6 : Math.min(8 + level, 14);
-  const maxZ = level === 1 ? 3 : Math.min(10 + level * 5, 30);
-  const blocksPerType = level === 1 ? 6 : 9; // Must be divisible by 3
+  // Level difficulty scaling
+  const numFruitTypes = level === 1 ? 6 : Math.min(6 + level, 14);
+  const maxZ = level === 1 ? 2 : Math.min(15 + level * 5, 50);
+  
+  // Ensure each fruit count is divisible by 3 (3, 6, or 9 per type)
+  const getBlocksPerType = (lvl: number): number => {
+    if (lvl === 1) return 6; // 6 blocks per type for level 1
+    if (lvl <= 3) return 6;
+    if (lvl <= 6) return 9;
+    return Math.random() > 0.5 ? 9 : 6; // Mix for harder levels
+  };
   
   // Select random fruit types
   const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
@@ -40,16 +50,32 @@ const generateLevel = (level: number): FruitBlock[] => {
   
   // Generate blocks for each fruit type
   selectedFruits.forEach((fruitType) => {
+    const blocksPerType = getBlocksPerType(level);
+    
     for (let i = 0; i < blocksPerType; i++) {
-      const x = Math.floor(Math.random() * GRID_COLS);
-      const y = Math.floor(Math.random() * GRID_ROWS);
-      const z = Math.floor(Math.random() * maxZ);
+      let x: number, y: number, z: number;
+      
+      if (level === 1) {
+        // Level 1: More spread out, less overlap
+        x = Math.floor(Math.random() * GRID_COLS);
+        y = Math.floor(Math.random() * GRID_ROWS);
+        z = Math.floor(Math.random() * maxZ);
+      } else {
+        // Level 2+: Clustered, more overlapping (The "Hell" aspect)
+        // Allow fractional positions for organic feel
+        x = Math.floor(Math.random() * GRID_COLS) + (Math.random() * 0.6 - 0.3);
+        y = Math.floor(Math.random() * GRID_ROWS) + (Math.random() * 0.6 - 0.3);
+        z = Math.floor(Math.random() * maxZ);
+        
+        // Intentionally create more overlap in harder levels
+        // This creates the "dead end" scenarios per spec
+      }
       
       blocks.push({
         id: generateId(),
         type: fruitType,
-        x: x + (Math.random() * 0.5 - 0.25), // Slight offset for organic feel
-        y: y + (Math.random() * 0.5 - 0.25),
+        x,
+        y,
         z,
         status: 'onMap',
         isLocked: false,
@@ -57,7 +83,7 @@ const generateLevel = (level: number): FruitBlock[] => {
     }
   });
   
-  // Sort by z for proper rendering
+  // Sort by z for proper rendering (lower z first)
   return blocks.sort((a, b) => a.z - b.z);
 };
 
@@ -175,6 +201,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
     
     if (matchedType) {
+      // Play match sound
+      const audio = getAudioController();
+      audio?.playMatchSound();
+      
       // Remove matched blocks from slots
       let removed = 0;
       finalSlots = newSlots.filter(s => {
@@ -191,6 +221,10 @@ export const useGameStore = create<GameState>((set, get) => ({
           ? { ...b, status: 'removed' as const }
           : b
       );
+    } else {
+      // Play click sound
+      const audio = getAudioController();
+      audio?.playClickSound();
     }
     
     // Recalculate lock status
@@ -199,13 +233,68 @@ export const useGameStore = create<GameState>((set, get) => ({
     // Calculate remaining
     const remaining = blocksWithLock.filter(b => b.status === 'onMap').length;
     
+    // Try to return tempCache blocks back to slots if there's space
+    let returnedSlots = finalSlots;
+    let returnedTempCache = state.tempCache;
+    
+    // Only return blocks if we have tempCache and enough space
+    if (state.tempCache.length > 0 && finalSlots.length + state.tempCache.length <= MAX_SLOTS) {
+      // Return temp blocks to slots
+      returnedSlots = [
+        ...finalSlots,
+        ...state.tempCache.map(b => ({ ...b, status: 'inSlot' as const }))
+      ];
+      returnedTempCache = [];
+      
+      // Check for new matches after returning
+      const newTypeCount: Record<string, number> = {};
+      returnedSlots.forEach(s => {
+        newTypeCount[s.type] = (newTypeCount[s.type] || 0) + 1;
+      });
+      
+      for (const [type, count] of Object.entries(newTypeCount)) {
+        if (count >= 3) {
+          const newMatchType = type as FruitType;
+          let newRemoved = 0;
+          returnedSlots = returnedSlots.filter(s => {
+            if (s.type === newMatchType && newRemoved < 3) {
+              newRemoved++;
+              return false;
+            }
+            return true;
+          });
+          // Play match sound for returning match
+          setTimeout(() => {
+            const audio = getAudioController();
+            audio?.playMatchSound();
+          }, 300);
+          break;
+        }
+      }
+    }
+    
     // Check game over
-    const isGameOver = finalSlots.length >= MAX_SLOTS && !matchedType;
-    const isGameWon = remaining === 0 && finalSlots.length === 0;
+    const isGameOver = returnedSlots.length >= MAX_SLOTS && !matchedType;
+    const isGameWon = remaining === 0 && returnedSlots.length === 0;
+    
+    // Play sounds for game end states
+    if (isGameOver) {
+      setTimeout(() => {
+        const audio = getAudioController();
+        audio?.playGameOverSound();
+      }, 200);
+    }
+    if (isGameWon) {
+      setTimeout(() => {
+        const audio = getAudioController();
+        audio?.playVictorySound();
+      }, 200);
+    }
     
     set({
       mapData: blocksWithLock,
-      slots: finalSlots,
+      slots: returnedSlots,
+      tempCache: returnedTempCache,
       historyStack: [...state.historyStack, historyEntry],
       isGameOver,
       isGameWon,
