@@ -1,10 +1,9 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useGameStore } from '@/stores/gameStore';
-import { FruitCard } from './FruitCard';
 import { FRUIT_EMOJIS } from '@/types/game';
 
-const SLOT_SIZE = 40; // Compact for mobile
+const SLOT_SIZE = 42;
 const MAX_SLOTS = 7;
 
 export const SlotBar: React.FC = () => {
@@ -12,23 +11,26 @@ export const SlotBar: React.FC = () => {
   
   return (
     <div className="flex flex-col items-center gap-3">
-      {/* Temp cache area */}
+      {/* Temp cache area - 木质风格 */}
       {tempCache.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-center gap-1 p-2 rounded-xl bg-amber-900/30 border-2 border-amber-700/50"
+          className="flex items-center justify-center gap-1 p-2 rounded-xl border-[3px] border-[#333]"
+          style={{
+            backgroundColor: 'hsl(25 70% 35%)',
+          }}
         >
-          {tempCache.map((block, index) => (
+          {tempCache.map((block) => (
             <motion.div
               key={block.id}
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="flex items-center justify-center rounded-lg border-2 border-white/30"
+              className="flex items-center justify-center rounded-lg border-[2px] border-[#333]"
               style={{
                 width: SLOT_SIZE - 4,
                 height: SLOT_SIZE - 4,
-                backgroundColor: `hsl(var(--muted))`,
+                backgroundColor: '#FFFEF5',
               }}
             >
               <span className="text-xl">
@@ -39,16 +41,33 @@ export const SlotBar: React.FC = () => {
         </motion.div>
       )}
       
-      {/* Main slot bar */}
+      {/* Main slot bar - 木栅栏/木槽风格 */}
       <div 
         className="relative flex items-center justify-center gap-1 p-3 rounded-2xl"
         style={{
-          background: 'linear-gradient(180deg, #8B4513 0%, #654321 50%, #4a3219 100%)',
-          border: '4px solid #3d2914',
-          boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.2), 0 4px 8px rgba(0,0,0,0.3)',
+          // 纯色木质背景，无渐变
+          backgroundColor: 'hsl(25 70% 35%)',
+          // 粗深色描边
+          border: '5px solid hsl(25 70% 22%)',
         }}
       >
-        {/* Slot placeholders */}
+        {/* 木栅栏装饰 - 左右两侧的竖条 */}
+        <div 
+          className="absolute -left-2 top-1/2 -translate-y-1/2 w-3 h-12 rounded-full"
+          style={{
+            backgroundColor: 'hsl(25 60% 28%)',
+            border: '2px solid hsl(25 70% 18%)',
+          }}
+        />
+        <div 
+          className="absolute -right-2 top-1/2 -translate-y-1/2 w-3 h-12 rounded-full"
+          style={{
+            backgroundColor: 'hsl(25 60% 28%)',
+            border: '2px solid hsl(25 70% 18%)',
+          }}
+        />
+        
+        {/* Slot placeholders - 凹槽效果 */}
         {Array.from({ length: MAX_SLOTS }).map((_, index) => (
           <div
             key={index}
@@ -56,8 +75,8 @@ export const SlotBar: React.FC = () => {
             style={{
               width: SLOT_SIZE,
               height: SLOT_SIZE,
-              backgroundColor: 'rgba(0,0,0,0.3)',
-              border: '2px solid rgba(255,255,255,0.1)',
+              backgroundColor: 'hsl(25 50% 25%)',
+              border: '2px solid hsl(25 60% 18%)',
             }}
           />
         ))}
@@ -65,7 +84,7 @@ export const SlotBar: React.FC = () => {
         {/* Actual slots overlay */}
         <div className="absolute inset-3 flex items-center gap-1">
           <AnimatePresence mode="popLayout">
-            {slots.map((block, index) => (
+            {slots.map((block) => (
               <motion.div
                 key={block.id}
                 layout
@@ -77,7 +96,6 @@ export const SlotBar: React.FC = () => {
                   stiffness: 400,
                   damping: 25,
                   mass: 0.8,
-                  // Bezier curve effect for flying animation
                   y: {
                     type: "spring",
                     stiffness: 300,
@@ -85,14 +103,14 @@ export const SlotBar: React.FC = () => {
                   },
                   opacity: { duration: 0.2 },
                 }}
-                className="flex items-center justify-center rounded-lg border-2 border-white/50 shadow-md"
+                className="flex items-center justify-center rounded-lg border-[3px] border-[#333]"
                 style={{
                   width: SLOT_SIZE,
                   height: SLOT_SIZE,
-                  backgroundColor: `hsl(var(--card))`,
+                  backgroundColor: '#FFFEF5',
                 }}
               >
-                <span className="text-xl">
+                <span className="text-xl" style={{ textShadow: '0 1px 0 #333' }}>
                   {FRUIT_EMOJIS[block.type]}
                 </span>
               </motion.div>
@@ -100,17 +118,23 @@ export const SlotBar: React.FC = () => {
           </AnimatePresence>
         </div>
         
-        {/* Wood grain texture overlay */}
+        {/* 木纹纹理 - 水平木条 */}
         <div 
-          className="absolute inset-0 rounded-xl opacity-10 pointer-events-none"
+          className="absolute inset-0 rounded-xl opacity-15 pointer-events-none"
           style={{
-            backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 11px)',
+            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(0,0,0,0.2) 8px, rgba(0,0,0,0.2) 9px)',
           }}
         />
       </div>
       
       {/* Slot counter */}
-      <div className="text-xs text-muted-foreground">
+      <div 
+        className="text-sm font-bold px-3 py-1 rounded-full border-[2px] border-[#333]"
+        style={{
+          backgroundColor: '#FFFEF5',
+          color: '#333',
+        }}
+      >
         {slots.length} / {MAX_SLOTS}
       </div>
     </div>

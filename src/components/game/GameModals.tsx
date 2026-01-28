@@ -2,7 +2,6 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RotateCcw, Share2 } from 'lucide-react';
 import { useGameStore } from '@/stores/gameStore';
-import { Button } from '@/components/ui/button';
 
 export const GameOverModal: React.FC = () => {
   const { 
@@ -24,76 +23,87 @@ export const GameOverModal: React.FC = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
         >
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
-            className="relative w-[320px] p-6 rounded-3xl"
+            className="relative w-[320px] p-6 rounded-3xl border-[4px] border-[#333]"
             style={{
-              background: 'linear-gradient(180deg, #fef3c7 0%, #fde68a 100%)',
-              border: '4px solid #92400e',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              // 羊了个羊风格：纯色背景
+              backgroundColor: '#FEF3C7',
             }}
           >
             {/* Header */}
             <div className="text-center mb-4">
-              <h2 className="text-2xl font-bold text-amber-900">
-                Game Over! 😢
+              <h2 className="text-2xl font-bold text-[#333]">
+                游戏结束! 😢
               </h2>
-              <p className="text-amber-700 mt-1">
-                Level {currentLevel}
+              <p className="text-[#666] mt-1 font-medium">
+                第 {currentLevel} 关
               </p>
             </div>
             
             {/* Progress */}
             <div className="mb-6">
-              <div className="flex items-center justify-between text-sm text-amber-800 mb-2">
-                <span>Progress</span>
+              <div className="flex items-center justify-between text-sm text-[#333] font-bold mb-2">
+                <span>进度</span>
                 <span>{progress}%</span>
               </div>
-              <div className="h-4 bg-amber-200 rounded-full overflow-hidden">
+              <div 
+                className="h-5 rounded-full overflow-hidden border-[2px] border-[#333]"
+                style={{ backgroundColor: '#FDE68A' }}
+              >
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
                   transition={{ delay: 0.3, duration: 0.5 }}
                   className="h-full rounded-full"
                   style={{
-                    background: 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)',
+                    backgroundColor: '#F59E0B',
                   }}
                 />
               </div>
             </div>
             
-            {/* Buttons */}
+            {/* Buttons - 羊了个羊风格 */}
             <div className="flex flex-col gap-3">
               {!hasRevived && (
-                <Button
+                <motion.button
                   onClick={reviveWithWhatsApp}
-                  className="w-full h-12 text-white font-semibold rounded-xl"
+                  whileTap={{ y: 2 }}
+                  className="w-full h-12 text-white font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
                   style={{
-                    background: 'linear-gradient(180deg, #22c55e 0%, #16a34a 100%)',
+                    backgroundColor: '#22C55E',
+                    borderBottomWidth: '5px',
+                    borderBottomColor: '#166534',
                   }}
                 >
-                  <Share2 className="w-5 h-5 mr-2" />
-                  Share & Revive
-                </Button>
+                  <Share2 className="w-5 h-5" strokeWidth={2.5} />
+                  分享复活
+                </motion.button>
               )}
               
-              <Button
+              <motion.button
                 onClick={restartGame}
-                variant="outline"
-                className="w-full h-12 font-semibold rounded-xl border-2 border-amber-600 text-amber-800 hover:bg-amber-100"
+                whileTap={{ y: 2 }}
+                className="w-full h-12 text-white font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
+                style={{
+                  backgroundColor: 'hsl(217 85% 55%)',
+                  borderBottomWidth: '5px',
+                  borderBottomColor: 'hsl(217 85% 38%)',
+                }}
               >
-                <RotateCcw className="w-5 h-5 mr-2" />
-                Restart
-              </Button>
+                <RotateCcw className="w-5 h-5" strokeWidth={2.5} />
+                重新开始
+              </motion.button>
             </div>
             
             {hasRevived && (
-              <p className="text-center text-sm text-amber-700 mt-4">
-                You've already used your revival. Better luck next time! 🍀
+              <p className="text-center text-sm text-[#666] font-medium mt-4">
+                你已经使用过复活机会了，下次好运！🍀
               </p>
             )}
           </motion.div>
@@ -121,17 +131,16 @@ export const GameWonModal: React.FC = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
         >
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
-            className="relative w-[320px] p-6 rounded-3xl text-center"
+            className="relative w-[320px] p-6 rounded-3xl text-center border-[4px] border-[#333]"
             style={{
-              background: 'linear-gradient(180deg, #bbf7d0 0%, #86efac 100%)',
-              border: '4px solid #166534',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              backgroundColor: '#BBF7D0',
             }}
           >
             {/* Celebration */}
@@ -144,22 +153,25 @@ export const GameWonModal: React.FC = () => {
               🎉
             </motion.div>
             
-            <h2 className="text-2xl font-bold text-green-900 mb-2">
-              You Won!
+            <h2 className="text-2xl font-bold text-[#333] mb-2">
+              恭喜通关!
             </h2>
-            <p className="text-green-700 mb-6">
-              Level {currentLevel} Complete!
+            <p className="text-[#166534] font-medium mb-6">
+              第 {currentLevel} 关完成!
             </p>
             
-            <Button
+            <motion.button
               onClick={handleNextLevel}
-              className="w-full h-12 text-white font-semibold rounded-xl"
+              whileTap={{ y: 2 }}
+              className="w-full h-12 text-white font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
               style={{
-                background: 'linear-gradient(180deg, #22c55e 0%, #16a34a 100%)',
+                backgroundColor: '#22C55E',
+                borderBottomWidth: '5px',
+                borderBottomColor: '#166534',
               }}
             >
-              Next Level →
-            </Button>
+              下一关 →
+            </motion.button>
           </motion.div>
         </motion.div>
       )}

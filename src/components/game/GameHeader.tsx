@@ -4,33 +4,35 @@ import { motion } from 'framer-motion';
 
 export const GameHeader: React.FC = () => {
   const today = new Date();
-  const dateStr = today.toLocaleDateString('en-US', { 
+  const dateStr = today.toLocaleDateString('zh-CN', { 
     month: 'short', 
     day: 'numeric' 
   });
   
   return (
     <div className="flex items-center justify-between w-full px-4 py-2">
-      {/* Settings button */}
+      {/* Settings button - 羊了个羊风格 */}
       <motion.button
         whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        className="flex items-center justify-center w-12 h-12 rounded-xl"
+        whileTap={{ scale: 0.95, y: 2 }}
+        className="flex items-center justify-center w-12 h-12 rounded-xl border-[3px] border-[#333]"
         style={{
-          background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)',
-          border: '2px solid rgba(255,255,255,0.3)',
-          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+          // 纯色蓝色，无渐变
+          backgroundColor: 'hsl(217 85% 55%)',
+          // 3D效果底边
+          borderBottomWidth: '5px',
+          borderBottomColor: 'hsl(217 85% 38%)',
         }}
       >
-        <Settings className="w-6 h-6 text-white" />
+        <Settings className="w-6 h-6 text-white" strokeWidth={2.5} />
       </motion.button>
       
-      {/* Date display */}
+      {/* Date display - 卡通标签风格 */}
       <div 
-        className="px-4 py-2 rounded-full text-sm font-medium"
+        className="px-4 py-2 rounded-full text-sm font-bold border-[2px] border-[#333]"
         style={{
-          backgroundColor: 'rgba(0,0,0,0.8)',
-          color: 'white',
+          backgroundColor: '#FFFEF5',
+          color: '#333',
         }}
       >
         - {dateStr} -

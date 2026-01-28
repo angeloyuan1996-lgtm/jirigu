@@ -32,19 +32,19 @@ export const FruitCard: React.FC<FruitCardProps> = ({
         zIndex: block.z + 1,
         width: size,
         height: size,
-        backgroundColor: '#FFFEF5',
-        backgroundImage: 'linear-gradient(135deg, #FFFEF5 0%, #FFF8E7 100%)',
-        borderColor: `${bgColor}80`,
       }}
       className={cn(
-        "flex items-center justify-center rounded-lg border-2 border-white/50 shadow-lg select-none",
+        // 羊了个羊风格：方形、粗描边、纯色
+        "flex items-center justify-center select-none",
+        "rounded-lg", // border-radius: 8px
+        "border-[3px] border-[#333]", // 粗黑色描边
         "transition-all duration-300 ease-in-out",
         isInSlot && "relative",
-        isInTemp && "relative opacity-90",
-        // 锁定状态：置灰、变暗、禁止点击
-        block.isLocked && "brightness-50 grayscale cursor-not-allowed pointer-events-none",
+        isInTemp && "relative",
+        // 锁定状态：深橄榄绿覆盖效果
+        block.isLocked && "cursor-not-allowed pointer-events-none",
         // 可点击状态
-        !block.isLocked && block.status === 'onMap' && "brightness-100 grayscale-0 cursor-pointer active:scale-95 hover:scale-105 hover:shadow-xl"
+        !block.isLocked && block.status === 'onMap' && "cursor-pointer active:scale-95 hover:scale-105"
       )}
       initial={false}
       animate={{
@@ -52,20 +52,38 @@ export const FruitCard: React.FC<FruitCardProps> = ({
         opacity: 1,
       }}
     >
+      {/* 方块背景 - 纯色无渐变 */}
+      <div 
+        className="absolute inset-0 rounded-lg"
+        style={{
+          backgroundColor: '#FFFEF5', // 浅米色基底
+        }}
+      />
+      
+      {/* 锁定状态覆盖层 - 深橄榄绿 */}
+      {block.isLocked && (
+        <div 
+          className="absolute inset-0 rounded-lg"
+          style={{
+            backgroundColor: 'hsl(80 40% 25% / 0.7)', // 深橄榄绿
+          }}
+        />
+      )}
+      
+      {/* 水果emoji - 2D风格 */}
       <span 
-        className="drop-shadow-sm"
-        style={{ fontSize: size * 0.55 }}
+        className={cn(
+          "relative z-10 drop-shadow-none",
+          block.isLocked && "opacity-60"
+        )}
+        style={{ 
+          fontSize: size * 0.55,
+          // 粗线条卡通风格的文字描边效果
+          textShadow: '0 1px 0 #333',
+        }}
       >
         {emoji}
       </span>
-      
-      {/* Shine effect */}
-      <div 
-        className="absolute inset-0 rounded-lg opacity-30 pointer-events-none"
-        style={{
-          background: 'linear-gradient(135deg, white 0%, transparent 50%)',
-        }}
-      />
     </motion.div>
   );
 };
