@@ -34,10 +34,10 @@ export const FruitCard: React.FC<FruitCardProps> = ({
         height: size,
       }}
       className={cn(
-        // 羊了个羊风格：方形、粗描边、纯色
+        // 羊了个羊风格：方形、细描边、纯色
         "flex items-center justify-center select-none",
         "rounded-lg", // border-radius: 8px
-        "border-[3px] border-[#333]", // 粗黑色描边
+        "border-[1.5px] border-[#555]", // 细黑色描边（参考截图）
         "transition-all duration-300 ease-in-out",
         isInSlot && "relative",
         isInTemp && "relative",
@@ -77,9 +77,9 @@ export const FruitCard: React.FC<FruitCardProps> = ({
           block.isLocked && "opacity-60"
         )}
         style={{ 
-          fontSize: size * 0.55,
-          // 粗线条卡通风格的文字描边效果
-          textShadow: '0 1px 0 #333',
+          fontSize: size * 0.7, // 放大水果emoji
+          // 2D手绘风格
+          textShadow: '0 1px 0 rgba(0,0,0,0.2)',
         }}
       >
         {emoji}
