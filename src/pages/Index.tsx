@@ -4,7 +4,7 @@ import { GameBoard } from '@/components/game/GameBoard';
 import { SlotBar } from '@/components/game/SlotBar';
 import { BoosterBar } from '@/components/game/BoosterBar';
 import { GameHeader } from '@/components/game/GameHeader';
-import { BlindStack } from '@/components/game/BlindStack';
+
 import { GameOverModal, GameWonModal } from '@/components/game/GameModals';
 
 const Index = () => {
@@ -42,10 +42,6 @@ const Index = () => {
         {/* Game board */}
         <div className="relative mb-4">
           <GameBoard />
-          
-          {/* Blind stacks on sides */}
-          <BlindStack position="left" />
-          <BlindStack position="right" />
         </div>
       </div>
       

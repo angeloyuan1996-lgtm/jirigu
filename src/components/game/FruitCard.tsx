@@ -38,8 +38,8 @@ export const FruitCard: React.FC<FruitCardProps> = ({
       style={{
         width: size,
         height: size,
-        backgroundColor: `${bgColor}20`,
-        backgroundImage: `linear-gradient(135deg, ${bgColor}40 0%, ${bgColor}20 100%)`,
+        backgroundColor: '#FFFEF5',
+        backgroundImage: `linear-gradient(135deg, #FFFEF5 0%, #FFF8E7 100%)`,
         borderColor: `${bgColor}80`,
         left: isInSlot || isInTemp ? undefined : block.x * size,
         top: isInSlot || isInTemp ? undefined : block.y * size,
