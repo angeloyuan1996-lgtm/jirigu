@@ -4,7 +4,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { FruitCard } from './FruitCard';
 import { FRUIT_EMOJIS } from '@/types/game';
 
-const SLOT_SIZE = 44;
+const SLOT_SIZE = 40; // Compact for mobile
 const MAX_SLOTS = 7;
 
 export const SlotBar: React.FC = () => {

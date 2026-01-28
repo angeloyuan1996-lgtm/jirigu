@@ -17,7 +17,7 @@ const Index = () => {
   return (
     <AudioProvider>
       <div 
-        className="min-h-screen flex flex-col overflow-hidden"
+        className="h-screen w-screen max-w-full flex flex-col overflow-hidden"
         style={{
           background: 'linear-gradient(180deg, hsl(var(--primary) / 0.15) 0%, hsl(var(--primary) / 0.25) 100%)',
           backgroundColor: '#90EE90', // Light green fallback
@@ -27,34 +27,30 @@ const Index = () => {
         <GameHeader />
         
         {/* Level indicator */}
-        <div className="text-center py-2">
+        <div className="text-center py-1">
           <span className="text-sm font-medium text-primary-foreground/70">
             Level {currentLevel}
           </span>
         </div>
         
-        {/* Main game area */}
-        <div className="flex-1 relative flex flex-col items-center justify-center px-4">
-          {/* Decorative elements */}
-          <div className="absolute top-8 left-1/2 -translate-x-1/2 text-2xl opacity-50">
-            〰️
-          </div>
-          
+        {/* Main game area - scrollable if needed */}
+        <div className="flex-1 relative flex flex-col items-center justify-center overflow-hidden px-2">
           {/* Game board */}
-          <div className="relative mb-4">
+          <div className="relative">
             <GameBoard />
           </div>
         </div>
         
-        {/* Bottom section */}
+        {/* Bottom section - fixed height */}
         <div 
-          className="relative z-20 pb-4"
+          className="relative z-20 pb-safe px-2"
           style={{
             background: 'linear-gradient(180deg, transparent 0%, rgba(139, 69, 19, 0.1) 100%)',
+            paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
           }}
         >
           {/* Slot bar */}
-          <div className="mb-4">
+          <div className="mb-3">
             <SlotBar />
           </div>
           

@@ -24,7 +24,7 @@ const BoosterButton: React.FC<BoosterButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "relative flex flex-col items-center gap-1 px-6 py-3 rounded-xl",
+        "relative flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl",
         "transition-all duration-200",
         disabled 
           ? "opacity-50 cursor-not-allowed" 
@@ -77,7 +77,7 @@ export const BoosterBar: React.FC = () => {
   } = useGameStore();
   
   return (
-    <div className="flex items-center justify-center gap-4">
+    <div className="flex items-center justify-center gap-3 px-2">
       <BoosterButton
         icon={<ArrowLeftRight className="w-6 h-6" />}
         label="Move Out"

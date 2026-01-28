@@ -2,8 +2,8 @@ import { create } from 'zustand';
 import { FruitBlock, FruitType, GameState, HistoryEntry, ALL_FRUITS } from '@/types/game';
 import { getAudioController } from '@/hooks/useAudio';
 
-const BLOCK_SIZE = 48;
-const GRID_COLS = 8;
+const BLOCK_SIZE = 44; // Smaller for mobile
+const GRID_COLS = 7;  // Reduced to fit mobile screens
 const GRID_ROWS = 8;
 const MAX_SLOTS = 7;
 
