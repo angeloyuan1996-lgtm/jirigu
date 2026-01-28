@@ -10,19 +10,48 @@ const MAX_SLOTS = 7;
 // Generate unique ID
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-// Check if two blocks overlap (pixel-level overlap detection)
-const blocksOverlap = (a: FruitBlock, b: FruitBlock): boolean => {
-  const aLeft = a.x * BLOCK_SIZE;
-  const aRight = aLeft + BLOCK_SIZE;
-  const aTop = a.y * BLOCK_SIZE;
-  const aBottom = aTop + BLOCK_SIZE;
+/**
+ * AABB 矩形碰撞检测 - 判断两个方块是否重叠
+ * 使用像素级坐标进行精确碰撞检测
+ */
+const checkOverlap = (target: FruitBlock, other: FruitBlock): boolean => {
+  const targetLeft = target.x * BLOCK_SIZE;
+  const targetRight = targetLeft + BLOCK_SIZE;
+  const targetTop = target.y * BLOCK_SIZE;
+  const targetBottom = targetTop + BLOCK_SIZE;
   
-  const bLeft = b.x * BLOCK_SIZE;
-  const bRight = bLeft + BLOCK_SIZE;
-  const bTop = b.y * BLOCK_SIZE;
-  const bBottom = bTop + BLOCK_SIZE;
+  const otherLeft = other.x * BLOCK_SIZE;
+  const otherRight = otherLeft + BLOCK_SIZE;
+  const otherTop = other.y * BLOCK_SIZE;
+  const otherBottom = otherTop + BLOCK_SIZE;
   
-  return !(aRight <= bLeft || bRight <= aLeft || aBottom <= bTop || bBottom <= aTop);
+  // AABB 碰撞检测：如果任意边界不重叠，则无碰撞
+  const isOverlapping = !(
+    targetRight <= otherLeft ||
+    targetLeft >= otherRight ||
+    targetBottom <= otherTop ||
+    targetTop >= otherBottom
+  );
+  
+  return isOverlapping;
+};
+
+/**
+ * 判定方块是否被遮挡的算法
+ * 只有 Z 轴更大的方块才可能造成遮挡
+ */
+const checkIsLocked = (target: FruitBlock, allTiles: FruitBlock[]): boolean => {
+  // 筛选出在当前方块上方且仍在地图上的方块
+  const tilesAbove = allTiles.filter(
+    tile => tile.z > target.z && tile.status === 'onMap'
+  );
+  
+  for (const topTile of tilesAbove) {
+    if (checkOverlap(target, topTile)) {
+      return true; // 被上方方块重叠，锁定
+    }
+  }
+  return false; // 无遮挡，解锁
 };
 
 // Generate level data with "Hell Algorithm"
@@ -87,22 +116,16 @@ const generateLevel = (level: number): FruitBlock[] => {
   return blocks.sort((a, b) => a.z - b.z);
 };
 
-// Calculate lock status for all blocks
+/**
+ * 全局状态更新函数
+ * 遍历所有方块更新锁定状态
+ */
 const calculateLockStatus = (blocks: FruitBlock[]): FruitBlock[] => {
   return blocks.map(block => {
     if (block.status !== 'onMap') {
       return { ...block, isLocked: false };
     }
-    
-    // Check if any block with higher z overlaps this one
-    const isLocked = blocks.some(other => 
-      other.id !== block.id &&
-      other.status === 'onMap' &&
-      other.z > block.z &&
-      blocksOverlap(block, other)
-    );
-    
-    return { ...block, isLocked };
+    return { ...block, isLocked: checkIsLocked(block, blocks) };
   });
 };
 
