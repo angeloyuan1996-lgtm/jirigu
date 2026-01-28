@@ -56,61 +56,66 @@ const checkIsLocked = (target: FruitBlock, allTiles: FruitBlock[]): boolean => {
 
 // Generate level data with "Hell Algorithm"
 // Key: Total count of each fruit type must be divisible by 3
-// Level 1: Simple layers (Z < 3), minimal overlap
-// Level 2+: Many layers, intentionally allows unsolvable states
+// Only 2 levels: Super easy Level 1 (9 cards) and Hell Level 2
 const generateLevel = (level: number): FruitBlock[] => {
   const blocks: FruitBlock[] = [];
   
-  // Level difficulty scaling
-  const numFruitTypes = level === 1 ? 6 : Math.min(6 + level, 14);
-  const maxZ = level === 1 ? 2 : Math.min(15 + level * 5, 50);
-  
-  // Ensure each fruit count is divisible by 3 (3, 6, or 9 per type)
-  const getBlocksPerType = (lvl: number): number => {
-    if (lvl === 1) return 6; // 6 blocks per type for level 1
-    if (lvl <= 3) return 6;
-    if (lvl <= 6) return 9;
-    return Math.random() > 0.5 ? 9 : 6; // Mix for harder levels
-  };
-  
-  // Select random fruit types
-  const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
-  const selectedFruits = shuffledFruits.slice(0, numFruitTypes);
-  
-  // Generate blocks for each fruit type
-  selectedFruits.forEach((fruitType) => {
-    const blocksPerType = getBlocksPerType(level);
+  if (level === 1) {
+    // Level 1: 超简单 - 只有3种水果，每种3个 = 9张卡片，无重叠
+    const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
+    const selectedFruits = shuffledFruits.slice(0, 3); // 只选3种水果
     
-    for (let i = 0; i < blocksPerType; i++) {
-      let x: number, y: number, z: number;
-      
-      if (level === 1) {
-        // Level 1: More spread out, less overlap
-        x = Math.floor(Math.random() * GRID_COLS);
-        y = Math.floor(Math.random() * GRID_ROWS);
-        z = Math.floor(Math.random() * maxZ);
-      } else {
-        // Level 2+: Clustered, more overlapping (The "Hell" aspect)
-        // Allow fractional positions for organic feel
-        x = Math.floor(Math.random() * GRID_COLS) + (Math.random() * 0.6 - 0.3);
-        y = Math.floor(Math.random() * GRID_ROWS) + (Math.random() * 0.6 - 0.3);
-        z = Math.floor(Math.random() * maxZ);
-        
-        // Intentionally create more overlap in harder levels
-        // This creates the "dead end" scenarios per spec
+    // 在网格中均匀分布，避免重叠
+    const positions = [
+      { x: 1, y: 1 }, { x: 3, y: 1 }, { x: 5, y: 1 },
+      { x: 1, y: 3 }, { x: 3, y: 3 }, { x: 5, y: 3 },
+      { x: 1, y: 5 }, { x: 3, y: 5 }, { x: 5, y: 5 },
+    ];
+    
+    let posIndex = 0;
+    selectedFruits.forEach((fruitType) => {
+      for (let i = 0; i < 3; i++) {
+        const pos = positions[posIndex++];
+        blocks.push({
+          id: generateId(),
+          type: fruitType,
+          x: pos.x,
+          y: pos.y,
+          z: 0, // 全部在同一层，无遮挡
+          status: 'onMap',
+          isLocked: false,
+        });
       }
+    });
+  } else {
+    // Level 2: 地狱难度 - 14种水果，每种6-9个，50层堆叠
+    const numFruitTypes = 14;
+    const maxZ = 50;
+    
+    const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
+    const selectedFruits = shuffledFruits.slice(0, numFruitTypes);
+    
+    selectedFruits.forEach((fruitType) => {
+      const blocksPerType = Math.random() > 0.5 ? 9 : 6;
       
-      blocks.push({
-        id: generateId(),
-        type: fruitType,
-        x,
-        y,
-        z,
-        status: 'onMap',
-        isLocked: false,
-      });
-    }
-  });
+      for (let i = 0; i < blocksPerType; i++) {
+        // 地狱模式：密集堆叠，大量重叠
+        const x = Math.floor(Math.random() * GRID_COLS) + (Math.random() * 0.6 - 0.3);
+        const y = Math.floor(Math.random() * GRID_ROWS) + (Math.random() * 0.6 - 0.3);
+        const z = Math.floor(Math.random() * maxZ);
+        
+        blocks.push({
+          id: generateId(),
+          type: fruitType,
+          x,
+          y,
+          z,
+          status: 'onMap',
+          isLocked: false,
+        });
+      }
+    });
+  }
   
   // Sort by z for proper rendering (lower z first)
   return blocks.sort((a, b) => a.z - b.z);
