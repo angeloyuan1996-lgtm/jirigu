@@ -1,0 +1,17 @@
+{
+  "name": "Fruit Match",
+  "short_name": "FruitMatch",
+  "description": "A fun fruit matching puzzle game",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#90EE90",
+  "theme_color": "#22c55e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}
