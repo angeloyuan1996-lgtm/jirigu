@@ -24,41 +24,40 @@ const BoosterButton: React.FC<BoosterButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "relative flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl",
-        "transition-all duration-200",
+        // 羊了个羊风格：大矩形蓝色按钮，粗边框
+        "relative flex flex-col items-center gap-1 px-5 py-3",
+        "rounded-xl",
+        "border-[3px] border-[#333]", // 粗黑色描边
+        "transition-all duration-150",
         disabled 
           ? "opacity-50 cursor-not-allowed" 
-          : "hover:scale-105 active:scale-95",
+          : "cursor-pointer active:translate-y-[2px]",
       )}
       style={{
-        background: disabled 
-          ? 'linear-gradient(180deg, #6b7280 0%, #4b5563 100%)'
-          : 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)',
-        boxShadow: disabled 
-          ? 'none' 
-          : '0 4px 12px rgba(59, 130, 246, 0.4)',
-        border: '2px solid rgba(255,255,255,0.2)',
+        // 纯色背景，无渐变
+        backgroundColor: disabled ? '#6b7280' : 'hsl(217 85% 55%)',
+        // 3D点击效果 - 底部深色边框
+        borderBottomWidth: disabled ? '3px' : '6px',
+        borderBottomColor: disabled ? '#4b5563' : 'hsl(217 85% 38%)',
       }}
-      whileHover={!disabled ? { y: -2 } : undefined}
-      whileTap={!disabled ? { scale: 0.95 } : undefined}
+      whileTap={!disabled ? { y: 2 } : undefined}
     >
-      {/* Plus badge */}
+      {/* 黄色 + 徽章 - 广告奖励指示器 */}
       {!used && (
         <div 
-          className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
+          className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center border-[2px] border-[#333]"
           style={{
-            backgroundColor: '#000',
-            border: '2px solid #fff',
+            backgroundColor: 'hsl(45 100% 50%)', // 亮黄色
           }}
         >
-          <Plus className="w-3 h-3 text-white" />
+          <Plus className="w-4 h-4 text-[#333]" strokeWidth={3} />
         </div>
       )}
       
-      <div className="text-white text-2xl">
+      <div className="text-white">
         {icon}
       </div>
-      <span className="text-white text-xs font-medium">
+      <span className="text-white text-xs font-bold">
         {label}
       </span>
     </motion.button>
@@ -77,26 +76,26 @@ export const BoosterBar: React.FC = () => {
   } = useGameStore();
   
   return (
-    <div className="flex items-center justify-center gap-3 px-2">
+    <div className="flex items-center justify-center gap-4 px-2">
       <BoosterButton
-        icon={<ArrowLeftRight className="w-6 h-6" />}
-        label="Move Out"
+        icon={<ArrowLeftRight className="w-7 h-7" strokeWidth={2.5} />}
+        label="移出"
         onClick={useMoveOut}
         disabled={boostersUsed.moveOut || slots.length < 3 || tempCache.length > 0}
         used={boostersUsed.moveOut}
       />
       
       <BoosterButton
-        icon={<Undo2 className="w-6 h-6" />}
-        label="Undo"
+        icon={<Undo2 className="w-7 h-7" strokeWidth={2.5} />}
+        label="撤回"
         onClick={useUndo}
         disabled={boostersUsed.undo || historyStack.length === 0}
         used={boostersUsed.undo}
       />
       
       <BoosterButton
-        icon={<Shuffle className="w-6 h-6" />}
-        label="Shuffle"
+        icon={<Shuffle className="w-7 h-7" strokeWidth={2.5} />}
+        label="洗牌"
         onClick={useShuffle}
         disabled={boostersUsed.shuffle}
         used={boostersUsed.shuffle}

@@ -19,21 +19,27 @@ const Index = () => {
       <div 
         className="h-screen w-screen max-w-full flex flex-col overflow-hidden"
         style={{
-          background: 'linear-gradient(180deg, hsl(var(--primary) / 0.15) 0%, hsl(var(--primary) / 0.25) 100%)',
-          backgroundColor: '#90EE90', // Light green fallback
+          // 羊了个羊风格：纯色亮绿色背景，无渐变
+          backgroundColor: '#A2E16F',
         }}
       >
         {/* Header */}
         <GameHeader />
         
-        {/* Level indicator */}
+        {/* Level indicator - 卡通风格 */}
         <div className="text-center py-1">
-          <span className="text-sm font-medium text-primary-foreground/70">
-            Level {currentLevel}
+          <span 
+            className="text-sm font-bold px-4 py-1 rounded-full border-[2px] border-[#333] inline-block"
+            style={{
+              backgroundColor: '#FFFEF5',
+              color: '#333',
+            }}
+          >
+            第 {currentLevel} 关
           </span>
         </div>
         
-        {/* Main game area - scrollable if needed */}
+        {/* Main game area */}
         <div className="flex-1 relative flex flex-col items-center justify-center overflow-hidden px-2">
           {/* Game board */}
           <div className="relative">
@@ -41,11 +47,12 @@ const Index = () => {
           </div>
         </div>
         
-        {/* Bottom section - fixed height */}
+        {/* Bottom section - 纯色背景 */}
         <div 
           className="relative z-20 pb-safe px-2"
           style={{
-            background: 'linear-gradient(180deg, transparent 0%, rgba(139, 69, 19, 0.1) 100%)',
+            // 底部微妙的深色区域
+            backgroundColor: 'hsl(90 50% 50%)',
             paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
           }}
         >
