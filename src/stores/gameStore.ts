@@ -109,7 +109,8 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   }
   
   // ========== Level 2: 羊了个羊级别地狱难度 ==========
-  // 核心：先生成完整的卡片池，然后分配到各个区域
+  // 核心：视觉陷阱 - 前期简单诱导 + 中期全类型爆发
+  // 所有区域共享同一个资源池
   
   const BLIND_STACK_SIZE = 10; // 每个盲盒堆10张
   const NUM_FRUIT_TYPES = 14;
@@ -124,42 +125,84 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     { x: 5.0, y: 5.5 },
   ];
   
-  // 打乱水果类型
-  const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
-  const selectedFruits = shuffledFruits.slice(0, NUM_FRUIT_TYPES);
+  // ===== 视觉陷阱设计 =====
+  // 前 3-5 层（高Z值 = 最上层）: 仅使用 3-4 种水果，简单消除给玩家信心
+  // 第 10-30 层（中Z值）: 全部 14 种水果混合，快速占满槽位
+  // 底层（低Z值）: 继续保持多样性
   
-  // ===== 第一步：生成完整的卡片池（所有水果数量是3的倍数）=====
+  const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
+  const allFruits = shuffledFruits.slice(0, NUM_FRUIT_TYPES);
+  
+  // 前期诱导水果（仅3-4种，玩家可以轻松消除）
+  const easyFruits = allFruits.slice(0, 4);
+  // 中期爆发水果（全部14种）
+  const hellFruits = allFruits;
+  
+  // ===== 第一步：生成分层卡片池 =====
   interface CardInfo {
     type: FruitType;
-    isBottomBuried: boolean;
+    layer: 'top' | 'middle' | 'bottom'; // 分层控制
   }
   
   const totalCardPool: CardInfo[] = [];
   
-  selectedFruits.forEach((fruitType) => {
-    // 每种水果 9-12 个 (必须是3的倍数)
-    const triplets = Math.random() > 0.5 ? 4 : 3; // 3-4个三元组
-    
+  // 顶层（诱导层）: 3-4种水果，每种3-6个 = 简单消除
+  // 这些会放在 z 值最高的位置（最上面，最先被点击）
+  easyFruits.forEach((fruitType) => {
+    const triplets = Math.floor(Math.random() * 2) + 1; // 1-2个三元组 (3-6张)
     for (let t = 0; t < triplets; t++) {
-      // 数学死局：每个三元组中，1张深埋，2张顶层
       for (let i = 0; i < 3; i++) {
-        totalCardPool.push({
-          type: fruitType,
-          isBottomBuried: i === 0,
-        });
+        totalCardPool.push({ type: fruitType, layer: 'top' });
       }
     }
   });
   
-  // 打乱整个卡片池
-  const shuffledPool = [...totalCardPool].sort(() => Math.random() - 0.5);
+  // 中层（地狱层）: 全部14种水果，每种6-12个
+  // 这些会放在 z 值中间的位置，玩家消除顶层后立即面对
+  hellFruits.forEach((fruitType) => {
+    const triplets = Math.floor(Math.random() * 3) + 2; // 2-4个三元组 (6-12张)
+    for (let t = 0; t < triplets; t++) {
+      for (let i = 0; i < 3; i++) {
+        totalCardPool.push({ type: fruitType, layer: 'middle' });
+      }
+    }
+  });
+  
+  // 底层: 继续保持多样性
+  hellFruits.forEach((fruitType) => {
+    const triplets = Math.floor(Math.random() * 2) + 1; // 1-2个三元组
+    for (let t = 0; t < triplets; t++) {
+      for (let i = 0; i < 3; i++) {
+        totalCardPool.push({ type: fruitType, layer: 'bottom' });
+      }
+    }
+  });
+  
+  // 分离各层卡片
+  const topCards = totalCardPool.filter(c => c.layer === 'top');
+  const middleCards = totalCardPool.filter(c => c.layer === 'middle');
+  const bottomCards = totalCardPool.filter(c => c.layer === 'bottom');
+  
+  // 各层内部打乱
+  const shuffledTop = [...topCards].sort(() => Math.random() - 0.5);
+  const shuffledMiddle = [...middleCards].sort(() => Math.random() - 0.5);
+  const shuffledBottom = [...bottomCards].sort(() => Math.random() - 0.5);
+  
+  // 合并：底层在前（低z值），中层次之，顶层在后（高z值）
+  const orderedPool = [...shuffledBottom, ...shuffledMiddle, ...shuffledTop];
+  
+  console.log(`[Level 2 - 视觉陷阱] 顶层(诱导): ${topCards.length}张 (${easyFruits.length}种水果)`);
+  console.log(`[Level 2 - 视觉陷阱] 中层(地狱): ${middleCards.length}张 (${hellFruits.length}种水果)`);
+  console.log(`[Level 2 - 视觉陷阱] 底层: ${bottomCards.length}张`);
   
   // ===== 第二步：从卡片池中分配到盲盒堆 =====
-  const leftStackCards = shuffledPool.splice(0, BLIND_STACK_SIZE);
-  const rightStackCards = shuffledPool.splice(0, BLIND_STACK_SIZE);
+  // 盲盒堆主要从中层和底层抽取（保持地狱难度）
+  const nonTopPool = [...shuffledBottom, ...shuffledMiddle].sort(() => Math.random() - 0.5);
+  const leftStackCards = nonTopPool.splice(0, BLIND_STACK_SIZE);
+  const rightStackCards = nonTopPool.splice(0, BLIND_STACK_SIZE);
   
-  // 剩余的卡片放入主区域
-  const mainAreaCards = shuffledPool;
+  // 剩余的非顶层卡片 + 全部顶层卡片放入主区域
+  const mainAreaCards = [...nonTopPool, ...shuffledTop];
   
   // ===== 第三步：生成盲盒堆 FruitBlock =====
   const createBlindStack = (cards: CardInfo[], position: 'left' | 'right'): FruitBlock[] => {
@@ -179,90 +222,98 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   const leftStack = createBlindStack(leftStackCards, 'left');
   const rightStack = createBlindStack(rightStackCards, 'right');
   
-  // ===== 第四步：生成主区域方块 =====
+  // ===== 第四步：生成主区域方块（保持分层结构）=====
   const mainBlocks: FruitBlock[] = [];
   
-  // 分配到各个堆叠点
-  const clusterCards: CardInfo[][] = CLUSTER_POINTS.map(() => []);
+  // 分离主区域中的各层卡片
+  const mainBottom = mainAreaCards.filter(c => c.layer === 'bottom');
+  const mainMiddle = mainAreaCards.filter(c => c.layer === 'middle');
+  const mainTop = mainAreaCards.filter(c => c.layer === 'top');
   
-  mainAreaCards.forEach((card, idx) => {
-    const clusterIndex = idx % CLUSTER_POINTS.length;
-    clusterCards[clusterIndex].push(card);
-  });
+  let currentZ = 0;
   
-  // 为每个堆叠点生成方块
-  clusterCards.forEach((cluster, clusterIdx) => {
+  // === 底层方块生成 (z: 0 - 9) ===
+  mainBottom.forEach((card, idx) => {
+    const clusterIdx = idx % CLUSTER_POINTS.length;
     const basePoint = CLUSTER_POINTS[clusterIdx];
     
-    // 分离深埋块和顶层块
-    const buriedCards = cluster.filter(c => c.isBottomBuried);
-    const topCards = cluster.filter(c => !c.isBottomBuried);
+    const offsetX = (Math.random() - 0.5) * 1.5;
+    const offsetY = (Math.random() - 0.5) * 1.5;
     
-    // 先放置深埋块在底层
-    buriedCards.forEach((card, idx) => {
-      const offsetX = (idx % 4) * QUARTER_OFFSET - 0.375;
-      const offsetY = Math.floor(idx / 4) * QUARTER_OFFSET - 0.375;
-      
-      const x = Math.max(0, Math.min(GRID_COLS - 1, basePoint.x + offsetX));
-      const y = Math.max(0, Math.min(GRID_ROWS - 1, basePoint.y + offsetY));
-      const z = idx;
-      
-      mainBlocks.push({
-        id: generateId(),
-        type: card.type,
-        x,
-        y,
-        z,
-        status: 'onMap',
-        isLocked: false,
-      });
-      usedCoordinates.add(coordKey(x, y));
-    });
+    const x = Math.max(0, Math.min(GRID_COLS - 1, basePoint.x + offsetX));
+    const y = Math.max(0, Math.min(GRID_ROWS - 1, basePoint.y + offsetY));
+    const z = Math.floor(idx / CLUSTER_POINTS.length);
     
-    // 在顶层放置其他方块
-    topCards.forEach((card, idx) => {
-      const spiralIdx = idx % 16;
-      const layer = Math.floor(idx / 16);
-      
-      const offsetPatterns = [
-        { dx: 0, dy: 0 },
-        { dx: QUARTER_OFFSET, dy: 0 },
-        { dx: QUARTER_OFFSET * 2, dy: 0 },
-        { dx: 0, dy: QUARTER_OFFSET },
-        { dx: QUARTER_OFFSET, dy: QUARTER_OFFSET },
-        { dx: QUARTER_OFFSET * 2, dy: QUARTER_OFFSET },
-        { dx: 0, dy: QUARTER_OFFSET * 2 },
-        { dx: QUARTER_OFFSET, dy: QUARTER_OFFSET * 2 },
-        { dx: -QUARTER_OFFSET, dy: 0 },
-        { dx: -QUARTER_OFFSET, dy: QUARTER_OFFSET },
-        { dx: 0, dy: -QUARTER_OFFSET },
-        { dx: QUARTER_OFFSET, dy: -QUARTER_OFFSET },
-        { dx: -QUARTER_OFFSET, dy: -QUARTER_OFFSET },
-        { dx: QUARTER_OFFSET * 2, dy: -QUARTER_OFFSET },
-        { dx: -QUARTER_OFFSET * 2, dy: 0 },
-        { dx: -QUARTER_OFFSET * 2, dy: QUARTER_OFFSET },
-      ];
-      
-      const pattern = offsetPatterns[spiralIdx];
-      const x = Math.max(0, Math.min(GRID_COLS - 1, basePoint.x + pattern.dx + layer * 0.1));
-      const y = Math.max(0, Math.min(GRID_ROWS - 1, basePoint.y + pattern.dy + layer * 0.1));
-      const z = buriedCards.length + idx + layer * 16;
-      
-      mainBlocks.push({
-        id: generateId(),
-        type: card.type,
-        x,
-        y,
-        z,
-        status: 'onMap',
-        isLocked: false,
-      });
-      usedCoordinates.add(coordKey(x, y));
+    mainBlocks.push({
+      id: generateId(),
+      type: card.type,
+      x,
+      y,
+      z,
+      status: 'onMap',
+      isLocked: false,
     });
+    usedCoordinates.add(coordKey(x, y));
   });
   
-  // 添加边缘散布方块（从主区域抽取一些放到边缘）
-  const edgeCount = Math.floor(mainBlocks.length * 0.1);
+  currentZ = Math.max(...mainBlocks.map(b => b.z), 0) + 1;
+  
+  // === 中层方块生成 (z: 10 - 30) - 地狱层 ===
+  // 全部14种水果密集堆叠，快速占满槽位
+  mainMiddle.forEach((card, idx) => {
+    const clusterIdx = idx % CLUSTER_POINTS.length;
+    const basePoint = CLUSTER_POINTS[clusterIdx];
+    
+    // 紧密堆叠，更多重叠
+    const offsetX = (idx % 4) * QUARTER_OFFSET - 0.375;
+    const offsetY = Math.floor((idx / 4) % 4) * QUARTER_OFFSET - 0.375;
+    
+    const x = Math.max(0, Math.min(GRID_COLS - 1, basePoint.x + offsetX));
+    const y = Math.max(0, Math.min(GRID_ROWS - 1, basePoint.y + offsetY));
+    const z = currentZ + Math.floor(idx / (CLUSTER_POINTS.length * 2));
+    
+    mainBlocks.push({
+      id: generateId(),
+      type: card.type,
+      x,
+      y,
+      z,
+      status: 'onMap',
+      isLocked: false,
+    });
+    usedCoordinates.add(coordKey(x, y));
+  });
+  
+  currentZ = Math.max(...mainBlocks.map(b => b.z), 0) + 1;
+  
+  // === 顶层方块生成 (最高z值) - 诱导层 ===
+  // 仅3-4种水果，玩家可以轻松消除，产生"能通关"的错觉
+  mainTop.forEach((card, idx) => {
+    const clusterIdx = idx % CLUSTER_POINTS.length;
+    const basePoint = CLUSTER_POINTS[clusterIdx];
+    
+    // 分散放置，容易点击
+    const offsetX = (Math.random() - 0.5) * 2;
+    const offsetY = (Math.random() - 0.5) * 2;
+    
+    const x = Math.max(0, Math.min(GRID_COLS - 1, basePoint.x + offsetX));
+    const y = Math.max(0, Math.min(GRID_ROWS - 1, basePoint.y + offsetY));
+    const z = currentZ + Math.floor(idx / CLUSTER_POINTS.length);
+    
+    mainBlocks.push({
+      id: generateId(),
+      type: card.type,
+      x,
+      y,
+      z,
+      status: 'onMap',
+      isLocked: false,
+    });
+    usedCoordinates.add(coordKey(x, y));
+  });
+  
+  // 添加边缘散布方块
+  const edgeCount = Math.floor(mainBlocks.length * 0.08);
   for (let i = 0; i < edgeCount && i < mainBlocks.length; i++) {
     const block = mainBlocks[i];
     const isLeft = Math.random() > 0.5;
@@ -270,7 +321,6 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
       ? Math.random() * 1.5 
       : GRID_COLS - 1.5 + Math.random() * 1;
     block.y = Math.random() * (GRID_ROWS - 1);
-    block.z = Math.floor(Math.random() * 15);
     block.x = Math.max(0, Math.min(GRID_COLS - 1, block.x));
     block.y = Math.max(0, Math.min(GRID_ROWS - 1, block.y));
   }
