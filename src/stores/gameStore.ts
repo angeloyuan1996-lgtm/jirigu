@@ -70,8 +70,16 @@ const checkIsLocked = (target: FruitBlock, allTiles: FruitBlock[], targetIndex: 
 // Generate level data with "Hell Algorithm"
 // Key: Total count of each fruit type must be divisible by 3
 // Only 2 levels: Super easy Level 1 (9 cards) and Hell Level 2
+// IMPORTANT: Zero Perfect Overlap policy - no two tiles can have same (x, y)
 const generateLevel = (level: number): FruitBlock[] => {
   const blocks: FruitBlock[] = [];
+  
+  // Track used coordinates to prevent perfect overlaps
+  const usedCoordinates = new Set<string>();
+  const coordKey = (x: number, y: number) => `${x.toFixed(1)},${y.toFixed(1)}`;
+  
+  // Minimum offset when stacking (25% of tile = 0.25 grid units)
+  const MIN_OFFSET = 0.5; // Half a grid unit ensures visibility
   
   if (level === 1) {
     // Level 1: 超简单 - 只有3种水果，每种3个 = 9张卡片，无重叠
@@ -98,34 +106,80 @@ const generateLevel = (level: number): FruitBlock[] => {
           status: 'onMap',
           isLocked: false,
         });
+        usedCoordinates.add(coordKey(pos.x, pos.y));
       }
     });
   } else {
     // Level 2: 地狱难度 - 14种水果，每种6-9个，多层堆叠
-    // 使用 Grid-Based Offset System：坐标必须是 1/2 格的倍数
+    // Zero Perfect Overlap: Every tile must be partially visible
     const numFruitTypes = 14;
-    const maxZ = 30; // 减少层数以提高可玩性
+    const maxZ = 30;
     
-    // 半格网格系统：所有坐标必须是 0.5 的倍数
-    // 这样确保方块重叠时呈现整齐的 1/4, 1/2, 3/4 覆盖效果
-    const HALF_GRID_COLS = GRID_COLS * 2 - 1; // 可用的半格列数 (0, 0.5, 1, 1.5, ... 6)
-    const HALF_GRID_ROWS = GRID_ROWS * 2 - 1; // 可用的半格行数 (0, 0.5, 1, 1.5, ... 7)
+    // Grid system: coordinates in 0.5 increments
+    const GRID_STEP = 0.5;
+    const MAX_X = (GRID_COLS - 1); // 0 to 6
+    const MAX_Y = (GRID_ROWS - 1); // 0 to 7
     
     const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
     const selectedFruits = shuffledFruits.slice(0, numFruitTypes);
+    
+    // Helper: Find a unique coordinate with offset from existing tiles
+    const findUniquePosition = (preferredX: number, preferredY: number): { x: number, y: number } => {
+      // Check if preferred position is available
+      if (!usedCoordinates.has(coordKey(preferredX, preferredY))) {
+        return { x: preferredX, y: preferredY };
+      }
+      
+      // Apply staircase offset - try different offsets
+      const offsets = [
+        { dx: MIN_OFFSET, dy: 0 },
+        { dx: -MIN_OFFSET, dy: 0 },
+        { dx: 0, dy: MIN_OFFSET },
+        { dx: 0, dy: -MIN_OFFSET },
+        { dx: MIN_OFFSET, dy: MIN_OFFSET },
+        { dx: -MIN_OFFSET, dy: MIN_OFFSET },
+        { dx: MIN_OFFSET, dy: -MIN_OFFSET },
+        { dx: -MIN_OFFSET, dy: -MIN_OFFSET },
+        { dx: MIN_OFFSET * 2, dy: 0 },
+        { dx: 0, dy: MIN_OFFSET * 2 },
+      ];
+      
+      for (const offset of offsets) {
+        const newX = Math.max(0, Math.min(MAX_X, preferredX + offset.dx));
+        const newY = Math.max(0, Math.min(MAX_Y, preferredY + offset.dy));
+        
+        if (!usedCoordinates.has(coordKey(newX, newY))) {
+          return { x: newX, y: newY };
+        }
+      }
+      
+      // Last resort: find any available position
+      for (let attempt = 0; attempt < 50; attempt++) {
+        const randX = Math.floor(Math.random() * (MAX_X / GRID_STEP + 1)) * GRID_STEP;
+        const randY = Math.floor(Math.random() * (MAX_Y / GRID_STEP + 1)) * GRID_STEP;
+        
+        if (!usedCoordinates.has(coordKey(randX, randY))) {
+          return { x: randX, y: randY };
+        }
+      }
+      
+      // Absolute fallback - extend beyond normal grid slightly
+      const fallbackX = (usedCoordinates.size % 13) * GRID_STEP;
+      const fallbackY = Math.floor(usedCoordinates.size / 13) * GRID_STEP;
+      return { x: fallbackX % MAX_X, y: fallbackY % MAX_Y };
+    };
     
     selectedFruits.forEach((fruitType) => {
       const blocksPerType = Math.random() > 0.5 ? 9 : 6;
       
       for (let i = 0; i < blocksPerType; i++) {
-        // Grid-Based Offset System: 坐标 = 半格单位 * 0.5
-        // 例如：randomColumn = 5 → x = 5 * 0.5 = 2.5
-        const randomColumn = Math.floor(Math.random() * HALF_GRID_COLS);
-        const randomRow = Math.floor(Math.random() * HALF_GRID_ROWS);
-        
-        const x = randomColumn * 0.5; // 精确到半格
-        const y = randomRow * 0.5;    // 精确到半格
+        // Generate base position
+        const baseX = Math.floor(Math.random() * (MAX_X / GRID_STEP + 1)) * GRID_STEP;
+        const baseY = Math.floor(Math.random() * (MAX_Y / GRID_STEP + 1)) * GRID_STEP;
         const z = Math.floor(Math.random() * maxZ);
+        
+        // Find unique position (no perfect overlap)
+        const { x, y } = findUniquePosition(baseX, baseY);
         
         blocks.push({
           id: generateId(),
@@ -136,6 +190,9 @@ const generateLevel = (level: number): FruitBlock[] => {
           status: 'onMap',
           isLocked: false,
         });
+        
+        // Mark this coordinate as used
+        usedCoordinates.add(coordKey(x, y));
       }
     });
   }
