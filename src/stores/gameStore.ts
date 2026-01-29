@@ -238,7 +238,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   totalBlocks: 0,
   remainingBlocks: 0,
   soundEnabled: true,
-  musicEnabled: true,
+  
 
   initLevel: (level: number) => {
     const blocks = generateLevel(level);
@@ -599,9 +599,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     set((state) => ({ soundEnabled: !state.soundEnabled }));
   },
 
-  toggleMusic: () => {
-    set((state) => ({ musicEnabled: !state.musicEnabled }));
-  },
 
   abandonGame: () => {
     // Reset to level 1 (home page placeholder - just restart at level 1)
