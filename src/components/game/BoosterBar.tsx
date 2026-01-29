@@ -1,14 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeftRight, Undo2, Shuffle } from 'lucide-react';
 import { useGameStore } from '@/stores/gameStore';
 import { cn } from '@/lib/utils';
+import { RewardedAdModal } from './RewardedAdModal';
 
 interface BoosterButtonProps {
   icon: React.ReactNode;
   label: string;
-  onActivate: () => void;
-  onUse: () => void;
+  onClick: () => void;
   disabled: boolean;
   used: boolean;
   activated: boolean;
@@ -17,29 +17,14 @@ interface BoosterButtonProps {
 const BoosterButton: React.FC<BoosterButtonProps> = ({
   icon,
   label,
-  onActivate,
-  onUse,
+  onClick,
   disabled,
   used,
   activated,
 }) => {
-  const handleClick = () => {
-    if (used) return; // Already used this game
-    
-    if (!activated) {
-      // Not activated yet - trigger rewarded ad flow
-      onActivate();
-    } else {
-      // Activated and ready to use
-      if (!disabled) {
-        onUse();
-      }
-    }
-  };
-
   return (
     <motion.button
-      onClick={handleClick}
+      onClick={onClick}
       disabled={used}
       className={cn(
         // 羊了个羊风格：大矩形蓝色按钮，粗边框
@@ -81,6 +66,14 @@ const BoosterButton: React.FC<BoosterButtonProps> = ({
   );
 };
 
+type BoosterType = 'moveOut' | 'undo' | 'shuffle';
+
+const BOOSTER_LABELS: Record<BoosterType, string> = {
+  moveOut: '移出',
+  undo: '撤回',
+  shuffle: '洗牌',
+};
+
 export const BoosterBar: React.FC = () => {
   const { 
     useMoveOut, 
@@ -94,37 +87,86 @@ export const BoosterBar: React.FC = () => {
     historyStack,
   } = useGameStore();
   
+  const [adModalOpen, setAdModalOpen] = useState(false);
+  const [pendingBooster, setPendingBooster] = useState<BoosterType | null>(null);
+
+  const handleBoosterClick = (booster: BoosterType) => {
+    if (boostersUsed[booster]) return;
+    
+    if (!boostersActivated[booster]) {
+      // Not activated - show ad modal
+      setPendingBooster(booster);
+      setAdModalOpen(true);
+    } else {
+      // Already activated - use it
+      executeBooster(booster);
+    }
+  };
+
+  const executeBooster = (booster: BoosterType) => {
+    switch (booster) {
+      case 'moveOut':
+        useMoveOut();
+        break;
+      case 'undo':
+        useUndo();
+        break;
+      case 'shuffle':
+        useShuffle();
+        break;
+    }
+  };
+
+  const handleAdComplete = () => {
+    if (pendingBooster) {
+      activateBooster(pendingBooster);
+    }
+    setAdModalOpen(false);
+    setPendingBooster(null);
+  };
+
+  const handleAdClose = () => {
+    setAdModalOpen(false);
+    setPendingBooster(null);
+  };
+  
   return (
-    <div className="flex items-center justify-center gap-4 px-2">
-      <BoosterButton
-        icon={<ArrowLeftRight className="w-7 h-7" strokeWidth={2.5} />}
-        label="移出"
-        onActivate={() => activateBooster('moveOut')}
-        onUse={useMoveOut}
-        disabled={slots.length < 3 || tempCache.length > 0}
-        used={boostersUsed.moveOut}
-        activated={boostersActivated.moveOut}
+    <>
+      <div className="flex items-center justify-center gap-4 px-2">
+        <BoosterButton
+          icon={<ArrowLeftRight className="w-7 h-7" strokeWidth={2.5} />}
+          label="移出"
+          onClick={() => handleBoosterClick('moveOut')}
+          disabled={slots.length < 3 || tempCache.length > 0}
+          used={boostersUsed.moveOut}
+          activated={boostersActivated.moveOut}
+        />
+        
+        <BoosterButton
+          icon={<Undo2 className="w-7 h-7" strokeWidth={2.5} />}
+          label="撤回"
+          onClick={() => handleBoosterClick('undo')}
+          disabled={historyStack.length === 0}
+          used={boostersUsed.undo}
+          activated={boostersActivated.undo}
+        />
+        
+        <BoosterButton
+          icon={<Shuffle className="w-7 h-7" strokeWidth={2.5} />}
+          label="洗牌"
+          onClick={() => handleBoosterClick('shuffle')}
+          disabled={false}
+          used={boostersUsed.shuffle}
+          activated={boostersActivated.shuffle}
+        />
+      </div>
+
+      <RewardedAdModal
+        isOpen={adModalOpen}
+        onClose={handleAdClose}
+        onComplete={handleAdComplete}
+        boosterName={pendingBooster ? BOOSTER_LABELS[pendingBooster] : ''}
       />
-      
-      <BoosterButton
-        icon={<Undo2 className="w-7 h-7" strokeWidth={2.5} />}
-        label="撤回"
-        onActivate={() => activateBooster('undo')}
-        onUse={useUndo}
-        disabled={historyStack.length === 0}
-        used={boostersUsed.undo}
-        activated={boostersActivated.undo}
-      />
-      
-      <BoosterButton
-        icon={<Shuffle className="w-7 h-7" strokeWidth={2.5} />}
-        label="洗牌"
-        onActivate={() => activateBooster('shuffle')}
-        onUse={useShuffle}
-        disabled={false}
-        used={boostersUsed.shuffle}
-        activated={boostersActivated.shuffle}
-      />
-    </div>
+    </>
   );
 };
