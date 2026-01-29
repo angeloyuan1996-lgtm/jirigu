@@ -351,30 +351,11 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     return mask;
   };
   
-  // 生成"乱中有序"的网格位置 - 禁止上下层完全重叠，强制 ±0.5 偏移
+  // 生成"乱中有序"的网格位置 - 避免整齐并排，强制错位遮挡
   const generateChaoticGridPositions = (count: number, baseZ: number): { x: number, y: number, z: number }[] => {
     const positions: { x: number, y: number, z: number }[] = [];
-    // 追踪所有已放置卡片的位置，用于检测跨层完全重叠
-    const allPlacedPositions: { x: number, y: number, z: number }[] = [];
     let currentZ = baseZ;
     let globalPosIndex = 0;
-    
-    // 检查新位置是否与任何已放置的位置完全重叠
-    const hasExactOverlap = (x: number, y: number): boolean => {
-      const snappedX = snapToGrid(x);
-      const snappedY = snapToGrid(y);
-      return allPlacedPositions.some(pos => 
-        snapToGrid(pos.x) === snappedX && snapToGrid(pos.y) === snappedY
-      );
-    };
-    
-    // 生成独立随机的 ±0.5 偏移
-    const getRandomOffset = (seed: number): { dx: number, dy: number } => {
-      // 独立随机决定 X 和 Y 的偏移方向
-      const dirX = Math.sin(seed * 17.3) > 0 ? 0.5 : -0.5;
-      const dirY = Math.sin(seed * 31.7) > 0 ? 0.5 : -0.5;
-      return { dx: dirX, dy: dirY };
-    };
     
     while (positions.length < count) {
       const layerIndex = currentZ - baseZ;
@@ -382,50 +363,44 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
       // 生成当前层的不规则掩码
       const mask = generateIrregularMask(BASE_GRID_COLS, BASE_GRID_ROWS, layerIndex);
       
-      // 收集这层所有有效位置
+      // 收集这层所有有效位置（使用散点布局避免并排）
       const layerPositions: { x: number, y: number }[] = [];
       
       for (let row = 0; row < BASE_GRID_ROWS; row++) {
         for (let col = 0; col < BASE_GRID_COLS; col++) {
           if (!mask[row][col]) continue;
           
-          // 棋盘式稀疏
+          // 使用1.5间距的稀疏网格（避免并排）
+          // 每隔一个位置放一张卡，然后用0.5偏移填充
           const sparseRow = row % 2;
           const sparseCol = col % 2;
+          
+          // 棋盘式稀疏：只在特定格子放卡片
+          // 层与层之间错开
           const layerOffset = layerIndex % 2;
           const shouldPlace = (sparseRow + sparseCol + layerOffset) % 2 === 0;
           
           if (!shouldPlace && Math.sin(layerIndex * 7 + col * 13 + row * 17) > -0.3) {
-            continue;
+            continue; // 50%跳过非棋盘位置
           }
           
-          const baseX = col * 1.0;
+          // 每张卡片独立获取随机偏移
+          const { dx, dy } = getLayerOffset(layerIndex, col * 100 + row);
+          
+          // 基础位置使用更大的间距 + 随机0.5偏移
+          const baseX = col * 1.0; // 原本是col，现在加大间距
           const baseY = row * 1.0;
           
-          // 每张卡片独立随机 ±0.5 偏移
-          const seed = layerIndex * 1000 + col * 100 + row + globalPosIndex;
-          const { dx, dy } = getRandomOffset(seed);
+          // 添加随机抖动（0 或 0.5）
+          const jitterX = Math.sin(layerIndex * 23 + col * 7 + row * 11) > 0 ? 0.5 : 0;
+          const jitterY = Math.sin(layerIndex * 29 + col * 11 + row * 7) > 0 ? 0.5 : 0;
           
-          let x = baseX + dx;
-          let y = baseY + dy;
+          let x = baseX + dx + jitterX;
+          let y = baseY + dy + jitterY;
           
-          // 确保在边界内
+          // 确保在边界内（留出1个单位的边距，因为卡片占1个单位）
           x = Math.max(0, Math.min(x, GRID_COLS - 1));
           y = Math.max(0, Math.min(y, GRID_ROWS - 1));
-          
-          // 禁止与任何已放置卡片完全重叠
-          if (hasExactOverlap(x, y)) {
-            // 尝试反向偏移
-            x = baseX - dx;
-            y = baseY - dy;
-            x = Math.max(0, Math.min(x, GRID_COLS - 1));
-            y = Math.max(0, Math.min(y, GRID_ROWS - 1));
-            
-            // 如果仍然重叠，跳过这个位置
-            if (hasExactOverlap(x, y)) {
-              continue;
-            }
-          }
           
           layerPositions.push({ x, y });
         }
@@ -437,13 +412,8 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
       // 添加位置
       for (const pos of layerPositions) {
         if (positions.length >= count) break;
-        
-        // 最终检查：确保不与已有位置完全重叠
-        if (!hasExactOverlap(pos.x, pos.y)) {
-          positions.push({ x: pos.x, y: pos.y, z: currentZ });
-          allPlacedPositions.push({ x: pos.x, y: pos.y, z: currentZ });
-          globalPosIndex++;
-        }
+        positions.push({ x: pos.x, y: pos.y, z: currentZ });
+        globalPosIndex++;
       }
       
       currentZ++;
