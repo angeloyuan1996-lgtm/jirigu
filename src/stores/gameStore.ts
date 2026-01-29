@@ -102,40 +102,73 @@ const generateLevel = (level: number): FruitBlock[] => {
     });
   } else {
     // Level 2: 地狱难度 - 14种水果，每种6-9个，多层堆叠
-    // 使用 Grid-Based Offset System：坐标必须是 1/2 格的倍数
+    // 混合网格系统：整格位置允许完全堆叠，半格位置创造部分重叠
     const numFruitTypes = 14;
-    const maxZ = 30; // 减少层数以提高可玩性
-    
-    // 半格网格系统：所有坐标必须是 0.5 的倍数
-    // 这样确保方块重叠时呈现整齐的 1/4, 1/2, 3/4 覆盖效果
-    const HALF_GRID_COLS = GRID_COLS * 2 - 1; // 可用的半格列数 (0, 0.5, 1, 1.5, ... 6)
-    const HALF_GRID_ROWS = GRID_ROWS * 2 - 1; // 可用的半格行数 (0, 0.5, 1, 1.5, ... 7)
+    const numLayers = 8; // 8层堆叠
     
     const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
     const selectedFruits = shuffledFruits.slice(0, numFruitTypes);
     
-    selectedFruits.forEach((fruitType) => {
-      const blocksPerType = Math.random() > 0.5 ? 9 : 6;
+    // 创建基础网格位置（整格，允许完全堆叠）
+    const basePositions: { x: number; y: number }[] = [];
+    for (let row = 0; row < GRID_ROWS - 1; row++) {
+      for (let col = 0; col < GRID_COLS - 1; col++) {
+        basePositions.push({ x: col, y: row });
+      }
+    }
+    
+    // 为每一层生成卡片
+    for (let layer = 0; layer < numLayers; layer++) {
+      // 每层随机选择一些位置放置卡片
+      const shuffledPositions = [...basePositions].sort(() => Math.random() - 0.5);
+      const positionsThisLayer = shuffledPositions.slice(0, Math.floor(basePositions.length * 0.4));
       
-      for (let i = 0; i < blocksPerType; i++) {
-        // Grid-Based Offset System: 坐标 = 半格单位 * 0.5
-        // 例如：randomColumn = 5 → x = 5 * 0.5 = 2.5
-        const randomColumn = Math.floor(Math.random() * HALF_GRID_COLS);
-        const randomRow = Math.floor(Math.random() * HALF_GRID_ROWS);
+      positionsThisLayer.forEach((pos) => {
+        // 随机选择水果类型
+        const fruitType = selectedFruits[Math.floor(Math.random() * selectedFruits.length)];
         
-        const x = randomColumn * 0.5; // 精确到半格
-        const y = randomRow * 0.5;    // 精确到半格
-        const z = Math.floor(Math.random() * maxZ);
+        // 偏移量：0（完全对齐）或 0.5（半格偏移）
+        // 较低层使用更多偏移，较高层趋向对齐（便于完全覆盖）
+        const useOffset = layer < 4 && Math.random() > 0.5;
+        const offsetX = useOffset ? (Math.random() > 0.5 ? 0.5 : 0) : 0;
+        const offsetY = useOffset ? (Math.random() > 0.5 ? 0.5 : 0) : 0;
         
         blocks.push({
           id: generateId(),
           type: fruitType,
-          x,
-          y,
-          z,
+          x: pos.x + offsetX,
+          y: pos.y + offsetY,
+          z: layer,
           status: 'onMap',
           isLocked: false,
         });
+      });
+    }
+    
+    // 确保每种水果的数量是3的倍数
+    const typeCounts: Record<string, number> = {};
+    blocks.forEach(b => {
+      typeCounts[b.type] = (typeCounts[b.type] || 0) + 1;
+    });
+    
+    // 补充缺失的卡片使其为3的倍数
+    Object.entries(typeCounts).forEach(([type, count]) => {
+      const remainder = count % 3;
+      if (remainder !== 0) {
+        const needed = 3 - remainder;
+        for (let i = 0; i < needed; i++) {
+          // 在随机位置添加补充卡片
+          const pos = basePositions[Math.floor(Math.random() * basePositions.length)];
+          blocks.push({
+            id: generateId(),
+            type: type as FruitType,
+            x: pos.x,
+            y: pos.y,
+            z: Math.floor(Math.random() * numLayers),
+            status: 'onMap',
+            isLocked: false,
+          });
+        }
       }
     });
   }
