@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Loader2, CheckCircle } from 'lucide-react';
 
@@ -45,14 +46,16 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
     setPhase('watching');
   };
 
-  return (
+  // 使用 Portal 将弹窗渲染到 body，避免被其他元素覆盖
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60"
+          className="fixed inset-0 flex items-center justify-center bg-black/60"
+          style={{ zIndex: 99999 }}
           onClick={phase === 'ready' ? onClose : undefined}
         >
           <motion.div
@@ -145,6 +148,7 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
