@@ -18,10 +18,7 @@ export const SlotBar: React.FC = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          className="flex items-center justify-center gap-2 p-2 rounded-xl border-[3px] border-[#333] mb-3"
-          style={{
-            backgroundColor: 'hsl(25 70% 35%)',
-          }}
+          className="flex items-center justify-center gap-1 mb-3"
         >
           {/* Render 3 buffer slots */}
           {Array.from({ length: BUFFER_SLOTS }).map((_, index) => {
@@ -33,8 +30,8 @@ export const SlotBar: React.FC = () => {
                 style={{
                   width: SLOT_SIZE,
                   height: SLOT_SIZE,
-                  backgroundColor: block ? '#FFF8E7' : 'hsl(25 50% 25%)',
-                  borderColor: block ? '#555' : 'hsl(25 60% 18%)',
+                  backgroundColor: block ? '#FFF8E7' : 'transparent',
+                  borderColor: block ? '#555' : 'transparent',
                   cursor: block ? 'pointer' : 'default',
                 }}
                 onClick={() => block && clickBufferBlock(block.id)}
