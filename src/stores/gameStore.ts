@@ -156,66 +156,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   totalBlocks: 0,
   remainingBlocks: 0,
 
-  returnTempToSlot: (blockId: string) => {
-    const state = get();
-    if (state.slots.length >= MAX_SLOTS) return;
-    
-    const block = state.tempCache.find(b => b.id === blockId);
-    if (!block) return;
-    
-    // 从暂存区移除
-    const newTempCache = state.tempCache.filter(b => b.id !== blockId);
-    
-    // 智能插入到槽位
-    let insertIndex = state.slots.length;
-    for (let i = 0; i < state.slots.length; i++) {
-      if (state.slots[i].type === block.type) {
-        let lastSameType = i;
-        while (lastSameType < state.slots.length - 1 && 
-               state.slots[lastSameType + 1].type === block.type) {
-          lastSameType++;
-        }
-        insertIndex = lastSameType + 1;
-        break;
-      }
-    }
-    
-    const newSlots = [...state.slots];
-    newSlots.splice(insertIndex, 0, { ...block, status: 'inSlot' });
-    
-    // 检查是否有三消
-    const typeCount: Record<string, number> = {};
-    newSlots.forEach(s => {
-      typeCount[s.type] = (typeCount[s.type] || 0) + 1;
-    });
-    
-    let finalSlots = newSlots;
-    for (const [type, count] of Object.entries(typeCount)) {
-      if (count >= 3) {
-        const matchType = type;
-        let removed = 0;
-        finalSlots = newSlots.filter(s => {
-          if (s.type === matchType && removed < 3) {
-            removed++;
-            return false;
-          }
-          return true;
-        });
-        // 播放消除音效
-        setTimeout(() => {
-          const audio = getAudioController();
-          audio?.playMatchSound();
-        }, 100);
-        break;
-      }
-    }
-    
-    set({
-      slots: finalSlots,
-      tempCache: newTempCache,
-    });
-  },
-
   initLevel: (level: number) => {
     const blocks = generateLevel(level);
     const blocksWithLock = calculateLockStatus(blocks);
