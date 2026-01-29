@@ -351,84 +351,109 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     return mask;
   };
   
-  // 检测与已有位置是否完全重叠（同坐标相邻层）
+  // 检测与已有位置是否完全重叠（检查所有层级，不仅仅是相邻层）
   const hasExactOverlapWithExisting = (
     x: number, 
     y: number, 
-    z: number, 
     existingPositions: { x: number, y: number, z: number }[]
   ): boolean => {
     const snappedX = snapToGrid(x);
     const snappedY = snapToGrid(y);
     
-    // 检查上下相邻的3层（当前层、上一层、下一层）
+    // 检查所有已有位置是否有完全重叠的坐标
     for (const existing of existingPositions) {
-      const layerDiff = Math.abs(existing.z - z);
-      if (layerDiff <= 2) { // 检查相邻2层以内
-        const existingSnappedX = snapToGrid(existing.x);
-        const existingSnappedY = snapToGrid(existing.y);
-        
-        // 如果坐标完全相同，则有完全重叠
-        if (snappedX === existingSnappedX && snappedY === existingSnappedY) {
-          return true;
-        }
+      const existingSnappedX = snapToGrid(existing.x);
+      const existingSnappedY = snapToGrid(existing.y);
+      
+      // 如果坐标完全相同，则有完全重叠
+      if (snappedX === existingSnappedX && snappedY === existingSnappedY) {
+        return true;
       }
     }
     return false;
   };
   
-  // 强制偏移以避免完全重叠
+  // 强制偏移以避免完全重叠 - 更激进的策略
   const forceOffset = (
     x: number, 
     y: number, 
-    z: number, 
     existingPositions: { x: number, y: number, z: number }[],
     seed: number
   ): { x: number, y: number } => {
-    let newX = x;
-    let newY = y;
+    const snappedX = snapToGrid(x);
+    const snappedY = snapToGrid(y);
     
-    // 如果检测到完全重叠，强制偏移0.5单位
-    if (hasExactOverlapWithExisting(newX, newY, z, existingPositions)) {
-      // 随机选择偏移方向
-      const offsetOptions = [
-        { dx: 0.5, dy: 0 },
-        { dx: -0.5, dy: 0 },
-        { dx: 0, dy: 0.5 },
-        { dx: 0, dy: -0.5 },
-        { dx: 0.5, dy: 0.5 },
-        { dx: -0.5, dy: 0.5 },
-        { dx: 0.5, dy: -0.5 },
-        { dx: -0.5, dy: -0.5 },
-      ];
+    // 如果没有重叠，直接返回
+    if (!hasExactOverlapWithExisting(snappedX, snappedY, existingPositions)) {
+      return { x: snappedX, y: snappedY };
+    }
+    
+    // 有重叠，必须偏移
+    // 尝试所有可能的偏移组合（0.25, 0.5, 0.75 单位）
+    const offsets = [0.25, 0.5, 0.75, -0.25, -0.5, -0.75];
+    const directions = [
+      { dx: 0.5, dy: 0 },
+      { dx: -0.5, dy: 0 },
+      { dx: 0, dy: 0.5 },
+      { dx: 0, dy: -0.5 },
+      { dx: 0.5, dy: 0.5 },
+      { dx: -0.5, dy: 0.5 },
+      { dx: 0.5, dy: -0.5 },
+      { dx: -0.5, dy: -0.5 },
+      { dx: 0.25, dy: 0 },
+      { dx: -0.25, dy: 0 },
+      { dx: 0, dy: 0.25 },
+      { dx: 0, dy: -0.25 },
+      { dx: 0.75, dy: 0 },
+      { dx: -0.75, dy: 0 },
+      { dx: 0, dy: 0.75 },
+      { dx: 0, dy: -0.75 },
+    ];
+    
+    // 随机打乱尝试顺序
+    const shuffledDirs = [...directions].sort(() => Math.sin(seed * 13.7 + directions.indexOf(directions[0])) - 0.5);
+    
+    for (const dir of shuffledDirs) {
+      const testX = snapToGrid(x + dir.dx);
+      const testY = snapToGrid(y + dir.dy);
       
-      // 尝试每个偏移选项，找到不重叠的位置
-      for (let i = 0; i < offsetOptions.length; i++) {
-        const idx = (Math.floor(Math.sin(seed + i * 7) * 4) + 4 + i) % offsetOptions.length;
-        const offset = offsetOptions[idx];
-        const testX = snapToGrid(x + offset.dx);
-        const testY = snapToGrid(y + offset.dy);
-        
-        // 确保在边界内
-        const clampedX = Math.max(0, Math.min(testX, GRID_COLS - 1));
-        const clampedY = Math.max(0, Math.min(testY, GRID_ROWS - 1));
-        
-        if (!hasExactOverlapWithExisting(clampedX, clampedY, z, existingPositions)) {
-          newX = clampedX;
-          newY = clampedY;
-          break;
-        }
-      }
+      // 确保在边界内
+      const clampedX = Math.max(0, Math.min(testX, GRID_COLS - 1));
+      const clampedY = Math.max(0, Math.min(testY, GRID_ROWS - 1));
       
-      // 如果所有偏移都不行，随机选一个（至少确保有偏移）
-      if (hasExactOverlapWithExisting(newX, newY, z, existingPositions)) {
-        const randomOffset = offsetOptions[Math.floor(Math.sin(seed) * 4 + 4) % offsetOptions.length];
-        newX = Math.max(0, Math.min(snapToGrid(x + randomOffset.dx), GRID_COLS - 1));
-        newY = Math.max(0, Math.min(snapToGrid(y + randomOffset.dy), GRID_ROWS - 1));
+      if (!hasExactOverlapWithExisting(clampedX, clampedY, existingPositions)) {
+        return { x: clampedX, y: clampedY };
       }
     }
     
-    return { x: newX, y: newY };
+    // 如果所有标准偏移都失败，使用更大的偏移（1个单位）
+    const largeOffsets = [
+      { dx: 1, dy: 0 },
+      { dx: -1, dy: 0 },
+      { dx: 0, dy: 1 },
+      { dx: 0, dy: -1 },
+      { dx: 1, dy: 1 },
+      { dx: -1, dy: 1 },
+      { dx: 1, dy: -1 },
+      { dx: -1, dy: -1 },
+    ];
+    
+    for (const dir of largeOffsets) {
+      const testX = snapToGrid(x + dir.dx);
+      const testY = snapToGrid(y + dir.dy);
+      const clampedX = Math.max(0, Math.min(testX, GRID_COLS - 1));
+      const clampedY = Math.max(0, Math.min(testY, GRID_ROWS - 1));
+      
+      if (!hasExactOverlapWithExisting(clampedX, clampedY, existingPositions)) {
+        return { x: clampedX, y: clampedY };
+      }
+    }
+    
+    // 最后手段：强制使用0.5偏移（即使还是重叠）
+    const forcedX = Math.max(0, Math.min(snapToGrid(x + 0.5), GRID_COLS - 1));
+    const forcedY = Math.max(0, Math.min(snapToGrid(y + 0.5), GRID_ROWS - 1));
+    console.warn(`[forceOffset] 无法找到非重叠位置，强制偏移: (${x},${y}) -> (${forcedX},${forcedY})`);
+    return { x: forcedX, y: forcedY };
   };
   
   // 生成"乱中有序"的网格位置 - 避免整齐并排，强制错位遮挡，禁止完全重叠
@@ -496,11 +521,10 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
       for (const pos of layerPositions) {
         if (positions.length >= count) break;
         
-        // 检测完全重叠并强制偏移
+        // 检测完全重叠并强制偏移（检查所有已有位置，不限层级）
         const { x: finalX, y: finalY } = forceOffset(
           pos.x, 
           pos.y, 
-          currentZ, 
           allPositions,
           globalPosIndex * 17 + currentZ * 31
         );
