@@ -78,6 +78,25 @@ export const FRUIT_EMOJIS: Record<FruitType, string> = {
   blueberry: '🫐',
 };
 
+// OpenMoji CDN URLs (color SVG)
+// https://openmoji.org/library/
+export const FRUIT_ICONS: Record<FruitType, string> = {
+  apple: 'https://openmoji.org/data/color/svg/1F34E.svg',
+  banana: 'https://openmoji.org/data/color/svg/1F34C.svg',
+  cherry: 'https://openmoji.org/data/color/svg/1F352.svg',
+  grape: 'https://openmoji.org/data/color/svg/1F347.svg',
+  lemon: 'https://openmoji.org/data/color/svg/1F34B.svg',
+  orange: 'https://openmoji.org/data/color/svg/1F34A.svg',
+  peach: 'https://openmoji.org/data/color/svg/1F351.svg',
+  pear: 'https://openmoji.org/data/color/svg/1F350.svg',
+  pineapple: 'https://openmoji.org/data/color/svg/1F34D.svg',
+  strawberry: 'https://openmoji.org/data/color/svg/1F353.svg',
+  watermelon: 'https://openmoji.org/data/color/svg/1F349.svg',
+  dragonfruit: 'https://openmoji.org/data/color/svg/1F409.svg', // Dragon as placeholder
+  kiwi: 'https://openmoji.org/data/color/svg/1F95D.svg',
+  blueberry: 'https://openmoji.org/data/color/svg/1FAD0.svg',
+};
+
 export const FRUIT_COLORS: Record<FruitType, string> = {
   apple: '#FF6B6B',
   banana: '#FFE66D',
