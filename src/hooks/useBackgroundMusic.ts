@@ -116,13 +116,15 @@ export const useBackgroundMusic = () => {
     });
   }, [getAudioContext]);
 
-  const playLoop = useCallback(() => {
+  const playLoop = useCallback(async () => {
     if (!isPlayingRef.current) return;
 
     try {
       const { ctx } = getAudioContext();
+      
+      // Must await resume - it's async!
       if (ctx.state === 'suspended') {
-        ctx.resume();
+        await ctx.resume();
       }
 
       const baseTime = ctx.currentTime + 0.1;
@@ -156,17 +158,27 @@ export const useBackgroundMusic = () => {
     }
   }, [getAudioContext, playMusicBoxNote, playPadChord]);
 
-  const startMusic = useCallback(() => {
+  const startMusic = useCallback(async () => {
     if (isPlayingRef.current) return;
-    isPlayingRef.current = true;
     
-    // Reset gain
-    if (masterGainRef.current) {
-      masterGainRef.current.gain.value = 0.12;
+    try {
+      // Initialize audio context on user interaction
+      const { ctx, master } = getAudioContext();
+      
+      // Resume suspended context
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+      
+      // Reset gain
+      master.gain.value = 0.12;
+      
+      isPlayingRef.current = true;
+      playLoop();
+    } catch (e) {
+      console.log('Failed to start music:', e);
     }
-    
-    playLoop();
-  }, [playLoop]);
+  }, [getAudioContext, playLoop]);
 
   const stopMusic = useCallback(() => {
     isPlayingRef.current = false;
