@@ -38,6 +38,13 @@ export interface GameState {
     shuffle: boolean;
   };
   
+  // Booster activation (via rewarded ads)
+  boostersActivated: {
+    moveOut: boolean;
+    undo: boolean;
+    shuffle: boolean;
+  };
+  
   // Computed
   totalBlocks: number;
   remainingBlocks: number;
@@ -48,6 +55,7 @@ export interface GameState {
   useMoveOut: () => void;
   useUndo: () => void;
   useShuffle: () => void;
+  activateBooster: (booster: 'moveOut' | 'undo' | 'shuffle') => void;
   reviveWithWhatsApp: () => void;
   restartGame: () => void;
   updateLockStatus: () => void;
