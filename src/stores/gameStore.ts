@@ -293,47 +293,81 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     }
   };
   
-  // 生成不规则形状掩码 - 决定哪些位置要跳过
+  // 生成高度不规则形状掩码 - 模拟羊了个羊的"被咬过"的边缘
   const generateIrregularMask = (cols: number, rows: number, layerIndex: number): boolean[][] => {
     const mask: boolean[][] = [];
-    const seed = layerIndex * 17 + 42; // 伪随机种子
+    const seed = layerIndex * 23 + 137; // 更独特的伪随机种子
+    
+    // 每层生成一个随机的"形状中心"偏移
+    const centerOffsetX = (Math.sin(seed * 3) * 0.3) * cols;
+    const centerOffsetY = (Math.cos(seed * 5) * 0.3) * rows;
     
     for (let row = 0; row < rows; row++) {
       mask[row] = [];
       for (let col = 0; col < cols; col++) {
-        // 中心区域更密集，边缘更稀疏
-        const distFromCenterX = Math.abs(col - cols / 2) / (cols / 2);
-        const distFromCenterY = Math.abs(row - rows / 2) / (rows / 2);
-        const distFromCenter = Math.max(distFromCenterX, distFromCenterY);
+        // 动态中心（每层中心位置不同）
+        const centerX = cols / 2 + centerOffsetX;
+        const centerY = rows / 2 + centerOffsetY;
         
-        // 边缘有更高概率被跳过
-        const skipProbability = distFromCenter > 0.7 ? 0.5 : (distFromCenter > 0.5 ? 0.3 : 0.15);
+        const distFromCenterX = Math.abs(col - centerX) / (cols / 2);
+        const distFromCenterY = Math.abs(row - centerY) / (rows / 2);
+        const distFromCenter = Math.sqrt(distFromCenterX ** 2 + distFromCenterY ** 2);
         
-        // 使用确定性随机（基于位置和层级）
-        const randomValue = Math.sin(seed + col * 7 + row * 13) * 0.5 + 0.5;
+        // 多重伪随机源
+        const rand1 = Math.sin(seed + col * 7.3 + row * 13.7) * 0.5 + 0.5;
+        const rand2 = Math.cos(seed * 2 + col * 11 + row * 17) * 0.5 + 0.5;
+        const rand3 = Math.sin(seed * 3 + (col + row) * 19) * 0.5 + 0.5;
+        const randomValue = (rand1 + rand2 + rand3) / 3;
         
-        // 如果是边角，增加跳过概率
-        const isCorner = (col === 0 || col === cols - 1) && (row === 0 || row === rows - 1);
-        const isEdge = col === 0 || col === cols - 1 || row === 0 || row === rows - 1;
+        // 边角检测
+        const isCorner = (col <= 1 || col >= cols - 2) && (row <= 1 || row >= rows - 2);
+        const isEdge = col <= 1 || col >= cols - 2 || row <= 1 || row >= rows - 2;
+        const isSecondRing = (col === 2 || col === cols - 3 || row === 2 || row === rows - 3);
         
-        let shouldSkip = false;
+        // 大幅提高边缘跳过概率
+        let skipProbability = 0;
         if (isCorner) {
-          shouldSkip = randomValue < 0.6; // 角落60%跳过
+          skipProbability = 0.85; // 角落85%跳过
         } else if (isEdge) {
-          shouldSkip = randomValue < skipProbability + 0.2; // 边缘额外20%
+          skipProbability = 0.7; // 最外圈70%跳过
+        } else if (isSecondRing) {
+          skipProbability = 0.5; // 次外圈50%跳过
+        } else if (distFromCenter > 0.6) {
+          skipProbability = 0.4; // 中外区域40%跳过
+        } else if (distFromCenter > 0.3) {
+          skipProbability = 0.25; // 中间区域25%跳过
         } else {
-          shouldSkip = randomValue < skipProbability;
+          skipProbability = 0.15; // 核心区域15%跳过
         }
         
-        // 每层使用不同的跳过模式
-        if (layerIndex % 2 === 0) {
-          // 偶数层：棋盘格式稀疏
-          if ((col + row) % 3 === 0) shouldSkip = shouldSkip || randomValue < 0.3;
-        } else {
-          // 奇数层：对角线式稀疏
-          if (Math.abs(col - row) % 4 === 0) shouldSkip = shouldSkip || randomValue < 0.25;
+        // 添加波浪形边缘效果
+        const waveEffect = Math.sin(col * 1.5 + layerIndex * 2) * Math.cos(row * 1.3 + layerIndex);
+        if (waveEffect > 0.3 && isEdge) {
+          skipProbability += 0.2;
         }
         
+        // 每层使用完全不同的跳过模式
+        const patternType = layerIndex % 4;
+        if (patternType === 0) {
+          // 斜条纹
+          if ((col + row) % 4 === 0) skipProbability += 0.2;
+        } else if (patternType === 1) {
+          // 棋盘稀疏
+          if ((col + row) % 2 === 0 && distFromCenter > 0.4) skipProbability += 0.15;
+        } else if (patternType === 2) {
+          // 垂直条纹
+          if (col % 3 === 0) skipProbability += 0.2;
+        } else {
+          // 水平条纹
+          if (row % 3 === 0) skipProbability += 0.2;
+        }
+        
+        // 随机"洞"效果 - 中间区域也可能有缺口
+        if (rand2 > 0.92) {
+          skipProbability += 0.5; // 随机洞
+        }
+        
+        const shouldSkip = randomValue < skipProbability;
         mask[row][col] = !shouldSkip;
       }
     }
