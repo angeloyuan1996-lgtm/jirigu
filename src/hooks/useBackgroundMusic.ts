@@ -1,158 +1,188 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useGameStore } from '@/stores/gameStore';
 
-// Cheerful pentatonic scale notes (C major pentatonic)
+// Cheerful C major scale - brighter, more uplifting
 const MELODY_NOTES = [
-  261.63, // C4
-  293.66, // D4
-  329.63, // E4
-  392.00, // G4
-  440.00, // A4
   523.25, // C5
   587.33, // D5
   659.25, // E5
+  698.46, // F5
+  783.99, // G5
+  880.00, // A5
+  987.77, // B5
+  1046.50, // C6
 ];
 
-const BASS_NOTES = [
-  130.81, // C3
-  146.83, // D3
-  164.81, // E3
-  196.00, // G3
+const CHORD_PROGRESSIONS = [
+  [261.63, 329.63, 392.00], // C major
+  [293.66, 369.99, 440.00], // D minor
+  [329.63, 392.00, 493.88], // E minor
+  [349.23, 440.00, 523.25], // F major
+  [392.00, 493.88, 587.33], // G major
+  [261.63, 329.63, 392.00], // C major
+];
+
+// Predefined cheerful melody pattern (like a music box)
+const MELODY_PATTERN = [
+  { note: 0, duration: 0.3 },
+  { note: 2, duration: 0.3 },
+  { note: 4, duration: 0.3 },
+  { note: 7, duration: 0.6 },
+  { note: 5, duration: 0.3 },
+  { note: 4, duration: 0.3 },
+  { note: 2, duration: 0.3 },
+  { note: 4, duration: 0.6 },
+  { note: 2, duration: 0.3 },
+  { note: 0, duration: 0.3 },
+  { note: 2, duration: 0.3 },
+  { note: 4, duration: 0.6 },
+  { note: 2, duration: 0.3 },
+  { note: 4, duration: 0.3 },
+  { note: 5, duration: 0.3 },
+  { note: 7, duration: 0.9 },
 ];
 
 export const useBackgroundMusic = () => {
   const audioContextRef = useRef<AudioContext | null>(null);
-  const gainNodeRef = useRef<GainNode | null>(null);
+  const masterGainRef = useRef<GainNode | null>(null);
   const isPlayingRef = useRef(false);
-  const intervalRef = useRef<number | null>(null);
+  const timeoutRef = useRef<number | null>(null);
   const musicEnabled = useGameStore((state) => state.musicEnabled);
 
   const getAudioContext = useCallback(() => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      gainNodeRef.current = audioContextRef.current.createGain();
-      gainNodeRef.current.gain.value = 0.15; // Low volume for background
-      gainNodeRef.current.connect(audioContextRef.current.destination);
+      masterGainRef.current = audioContextRef.current.createGain();
+      masterGainRef.current.gain.value = 0.12;
+      masterGainRef.current.connect(audioContextRef.current.destination);
     }
-    return { ctx: audioContextRef.current, gain: gainNodeRef.current! };
+    return { ctx: audioContextRef.current, master: masterGainRef.current! };
   }, []);
 
-  const playNote = useCallback((frequency: number, duration: number, delay: number, type: OscillatorType = 'sine') => {
-    const { ctx, gain } = getAudioContext();
-    const currentTime = ctx.currentTime + delay;
+  // Music box / bell-like tone
+  const playMusicBoxNote = useCallback((frequency: number, duration: number, startTime: number) => {
+    const { ctx, master } = getAudioContext();
 
-    const osc = ctx.createOscillator();
-    const noteGain = ctx.createGain();
+    // Main tone
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gainNode = ctx.createGain();
 
-    osc.type = type;
-    osc.frequency.setValueAtTime(frequency, currentTime);
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(frequency, startTime);
+    
+    // Add slight detune for richness
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(frequency * 2, startTime); // Octave up
 
-    // Soft attack and release
-    noteGain.gain.setValueAtTime(0, currentTime);
-    noteGain.gain.linearRampToValueAtTime(0.3, currentTime + 0.05);
-    noteGain.gain.linearRampToValueAtTime(0.2, currentTime + duration * 0.5);
-    noteGain.gain.linearRampToValueAtTime(0, currentTime + duration);
+    // Bell-like envelope
+    gainNode.gain.setValueAtTime(0, startTime);
+    gainNode.gain.linearRampToValueAtTime(0.4, startTime + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.15, startTime + duration * 0.3);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
 
-    osc.connect(noteGain);
-    noteGain.connect(gain);
+    osc1.connect(gainNode);
+    osc2.connect(gainNode);
+    gainNode.connect(master);
 
-    osc.start(currentTime);
-    osc.stop(currentTime + duration);
+    osc1.start(startTime);
+    osc1.stop(startTime + duration + 0.1);
+    osc2.start(startTime);
+    osc2.stop(startTime + duration + 0.1);
   }, [getAudioContext]);
 
-  const playChord = useCallback((frequencies: number[], duration: number, delay: number) => {
+  // Soft pad chord
+  const playPadChord = useCallback((frequencies: number[], duration: number, startTime: number) => {
+    const { ctx, master } = getAudioContext();
+
     frequencies.forEach((freq) => {
-      playNote(freq, duration, delay, 'triangle');
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq * 0.5, startTime); // Lower octave
+
+      // Soft pad envelope
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.08, startTime + 0.3);
+      gainNode.gain.setValueAtTime(0.08, startTime + duration - 0.3);
+      gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
+
+      osc.connect(gainNode);
+      gainNode.connect(master);
+
+      osc.start(startTime);
+      osc.stop(startTime + duration + 0.1);
     });
-  }, [playNote]);
+  }, [getAudioContext]);
 
-  const playMelodyLoop = useCallback(() => {
-    // Generate a cheerful 8-bar melody pattern
-    const beatDuration = 0.25; // 240 BPM feel
-    const barLength = 8; // 8 beats per bar
-    const totalBars = 4;
-    
-    let time = 0;
+  const playLoop = useCallback(() => {
+    if (!isPlayingRef.current) return;
 
-    for (let bar = 0; bar < totalBars; bar++) {
-      // Bass note at start of each bar
-      const bassNote = BASS_NOTES[bar % BASS_NOTES.length];
-      playNote(bassNote, beatDuration * 4, time, 'triangle');
-
-      // Melody pattern - cheerful bouncy feel
-      for (let beat = 0; beat < barLength; beat++) {
-        // Random melody note from pentatonic scale
-        const noteIndex = Math.floor(Math.random() * MELODY_NOTES.length);
-        const note = MELODY_NOTES[noteIndex];
-        
-        // Vary note duration for rhythm variety
-        const noteDuration = beat % 2 === 0 ? beatDuration * 1.5 : beatDuration * 0.8;
-        
-        // Add some rests for breathing room
-        if (Math.random() > 0.3) {
-          playNote(note, noteDuration, time + beat * beatDuration, 'sine');
-        }
-
-        // Add harmony occasionally
-        if (beat % 4 === 0 && Math.random() > 0.5) {
-          const harmonyIndex = (noteIndex + 2) % MELODY_NOTES.length;
-          playNote(MELODY_NOTES[harmonyIndex], noteDuration, time + beat * beatDuration, 'sine');
-        }
-      }
-
-      time += barLength * beatDuration;
-    }
-
-    return totalBars * barLength * beatDuration * 1000; // Return duration in ms
-  }, [playNote]);
-
-  const startMusic = useCallback(() => {
-    if (isPlayingRef.current) return;
-    
     try {
       const { ctx } = getAudioContext();
       if (ctx.state === 'suspended') {
         ctx.resume();
       }
 
-      isPlayingRef.current = true;
+      const baseTime = ctx.currentTime + 0.1;
+      const tempo = 0.28; // Seconds per beat unit
+      let currentTime = 0;
+      let chordIndex = 0;
 
-      const loopDuration = playMelodyLoop();
+      // Play melody
+      MELODY_PATTERN.forEach((note, i) => {
+        const noteTime = baseTime + currentTime;
+        playMusicBoxNote(MELODY_NOTES[note.note], note.duration * tempo * 2, noteTime);
 
-      // Set up looping
-      intervalRef.current = window.setInterval(() => {
-        if (isPlayingRef.current) {
-          playMelodyLoop();
+        // Change chord every 4 notes
+        if (i % 4 === 0 && chordIndex < CHORD_PROGRESSIONS.length) {
+          playPadChord(CHORD_PROGRESSIONS[chordIndex], tempo * 4 * 1.5, noteTime);
+          chordIndex++;
         }
+
+        currentTime += note.duration * tempo;
+      });
+
+      // Calculate total loop duration and schedule next loop
+      const loopDuration = currentTime * 1000 + 200; // Add small gap
+
+      timeoutRef.current = window.setTimeout(() => {
+        playLoop();
       }, loopDuration);
+
     } catch (e) {
-      console.log('Background music not available');
+      console.log('Background music error:', e);
     }
-  }, [getAudioContext, playMelodyLoop]);
+  }, [getAudioContext, playMusicBoxNote, playPadChord]);
+
+  const startMusic = useCallback(() => {
+    if (isPlayingRef.current) return;
+    isPlayingRef.current = true;
+    
+    // Reset gain
+    if (masterGainRef.current) {
+      masterGainRef.current.gain.value = 0.12;
+    }
+    
+    playLoop();
+  }, [playLoop]);
 
   const stopMusic = useCallback(() => {
     isPlayingRef.current = false;
-    
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
 
     // Fade out
-    if (gainNodeRef.current && audioContextRef.current) {
+    if (masterGainRef.current && audioContextRef.current) {
       const currentTime = audioContextRef.current.currentTime;
-      gainNodeRef.current.gain.linearRampToValueAtTime(0, currentTime + 0.5);
-      
-      // Reset gain after fade
-      setTimeout(() => {
-        if (gainNodeRef.current) {
-          gainNodeRef.current.gain.value = 0.15;
-        }
-      }, 600);
+      masterGainRef.current.gain.linearRampToValueAtTime(0, currentTime + 0.3);
     }
   }, []);
 
-  // React to musicEnabled changes
   useEffect(() => {
     if (musicEnabled) {
       startMusic();
@@ -165,7 +195,6 @@ export const useBackgroundMusic = () => {
     };
   }, [musicEnabled, startMusic, stopMusic]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopMusic();
