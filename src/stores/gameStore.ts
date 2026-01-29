@@ -706,21 +706,18 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   useUndo: () => {
     const state = get();
-    if (state.boostersUsed.undo || state.historyStack.length === 0) return;
+    if (state.boostersUsed.undo || state.slots.length === 0) return;
     
-    const lastEntry = state.historyStack[state.historyStack.length - 1];
+    // 撤回槽位里最后一张卡片（最右边的）
+    const lastSlotBlock = state.slots[state.slots.length - 1];
     
-    // 只撤回最后点击的那一张卡片，不恢复被消除的卡片
-    // 1. 将最后点击的卡片从槽位移除（如果它还在槽位中）
-    // 2. 将该卡片放回地图原位置
-    
-    // 从当前槽位中移除该卡片（如果存在）
-    const newSlots = state.slots.filter(s => s.id !== lastEntry.block.id);
+    // 从槽位移除最后一张
+    const newSlots = state.slots.slice(0, -1);
     
     // 将该卡片放回地图原位置
     const updatedMapData = state.mapData.map(b => 
-      b.id === lastEntry.block.id 
-        ? { ...lastEntry.block, status: 'onMap' as const }
+      b.id === lastSlotBlock.id 
+        ? { ...b, status: 'onMap' as const, x: lastSlotBlock.x, y: lastSlotBlock.y, z: lastSlotBlock.z }
         : b
     );
     
@@ -730,7 +727,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({
       mapData: blocksWithLock,
       slots: newSlots,
-      historyStack: state.historyStack.slice(0, -1),
       boostersUsed: { ...state.boostersUsed, undo: true },
       isGameOver: false,
       remainingBlocks: remaining,
