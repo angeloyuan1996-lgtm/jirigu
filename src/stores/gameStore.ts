@@ -148,6 +148,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     undo: false,
     shuffle: false,
   },
+  boostersActivated: {
+    moveOut: false,
+    undo: false,
+    shuffle: false,
+  },
   totalBlocks: 0,
   remainingBlocks: 0,
 
@@ -165,6 +170,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       currentLevel: level,
       hasRevived: false,
       boostersUsed: {
+        moveOut: false,
+        undo: false,
+        shuffle: false,
+      },
+      boostersActivated: {
         moveOut: false,
         undo: false,
         shuffle: false,
@@ -443,6 +453,17 @@ export const useGameStore = create<GameState>((set, get) => ({
   restartGame: () => {
     const state = get();
     get().initLevel(state.currentLevel);
+  },
+
+  activateBooster: (booster: 'moveOut' | 'undo' | 'shuffle') => {
+    const state = get();
+    if (state.boostersActivated[booster]) return; // Already activated
+    
+    // Simulate watching a rewarded ad
+    // In production, this would be called after the ad completes
+    set({
+      boostersActivated: { ...state.boostersActivated, [booster]: true },
+    });
   },
 
   updateLockStatus: () => {
