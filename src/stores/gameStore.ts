@@ -351,6 +351,81 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     return mask;
   };
   
+  // 追踪所有已使用的位置（跨层检查）
+  const allUsedPositions: { x: number, y: number, z: number }[] = [];
+  
+  // 检查位置是否与其他层完全重叠（禁止同x,y不同z）
+  const isPositionValid = (x: number, y: number, z: number): boolean => {
+    const snapX = snapToGrid(x);
+    const snapY = snapToGrid(y);
+    
+    // 检查是否与任何已存在的位置完全重叠
+    for (const pos of allUsedPositions) {
+      const existSnapX = snapToGrid(pos.x);
+      const existSnapY = snapToGrid(pos.y);
+      
+      // 如果x,y完全相同（任意z层），则无效
+      if (snapX === existSnapX && snapY === existSnapY) {
+        return false;
+      }
+    }
+    return true;
+  };
+  
+  // 强制偏移量（必须是0.5的倍数，不能为0）
+  const FORCED_OFFSETS = [
+    { dx: 0.5, dy: 0 },      // 右半
+    { dx: -0.5, dy: 0 },     // 左半
+    { dx: 0, dy: 0.5 },      // 下半
+    { dx: 0, dy: -0.5 },     // 上半
+    { dx: 0.5, dy: 0.5 },    // 右下角
+    { dx: -0.5, dy: 0.5 },   // 左下角
+    { dx: 0.5, dy: -0.5 },   // 右上角
+    { dx: -0.5, dy: -0.5 },  // 左上角
+  ];
+  
+  // 找到一个有效位置（不与其他层完全重叠）
+  const findNonOverlappingPosition = (baseX: number, baseY: number, z: number, seed: number): { x: number, y: number } | null => {
+    // 首先尝试原位置
+    let x = snapToGrid(baseX);
+    let y = snapToGrid(baseY);
+    
+    if (isPositionValid(x, y, z)) {
+      return { x, y };
+    }
+    
+    // 如果原位置被占用，尝试所有偏移
+    const shuffledOffsets = [...FORCED_OFFSETS].sort(() => Math.sin(seed) - 0.5);
+    
+    for (const offset of shuffledOffsets) {
+      const newX = snapToGrid(baseX + offset.dx);
+      const newY = snapToGrid(baseY + offset.dy);
+      
+      // 确保在边界内
+      if (newX >= 0 && newX <= GRID_COLS - 1 && newY >= 0 && newY <= GRID_ROWS - 1) {
+        if (isPositionValid(newX, newY, z)) {
+          return { x: newX, y: newY };
+        }
+      }
+    }
+    
+    // 如果还是找不到，尝试更大范围的偏移
+    for (let dx = -1; dx <= 1; dx += 0.5) {
+      for (let dy = -1; dy <= 1; dy += 0.5) {
+        if (dx === 0 && dy === 0) continue;
+        const newX = snapToGrid(baseX + dx);
+        const newY = snapToGrid(baseY + dy);
+        if (newX >= 0 && newX <= GRID_COLS - 1 && newY >= 0 && newY <= GRID_ROWS - 1) {
+          if (isPositionValid(newX, newY, z)) {
+            return { x: newX, y: newY };
+          }
+        }
+      }
+    }
+    
+    return null; // 实在找不到
+  };
+  
   // 生成"乱中有序"的网格位置 - 避免整齐并排，强制错位遮挡
   const generateChaoticGridPositions = (count: number, baseZ: number): { x: number, y: number, z: number }[] => {
     const positions: { x: number, y: number, z: number }[] = [];
@@ -371,48 +446,53 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
           if (!mask[row][col]) continue;
           
           // 使用1.5间距的稀疏网格（避免并排）
-          // 每隔一个位置放一张卡，然后用0.5偏移填充
           const sparseRow = row % 2;
           const sparseCol = col % 2;
           
-          // 棋盘式稀疏：只在特定格子放卡片
-          // 层与层之间错开
+          // 棋盘式稀疏
           const layerOffset = layerIndex % 2;
           const shouldPlace = (sparseRow + sparseCol + layerOffset) % 2 === 0;
           
           if (!shouldPlace && Math.sin(layerIndex * 7 + col * 13 + row * 17) > -0.3) {
-            continue; // 50%跳过非棋盘位置
+            continue;
           }
           
           // 每张卡片独立获取随机偏移
           const { dx, dy } = getLayerOffset(layerIndex, col * 100 + row);
           
-          // 基础位置使用更大的间距 + 随机0.5偏移
-          const baseX = col * 1.0; // 原本是col，现在加大间距
+          // 基础位置
+          const baseX = col * 1.0;
           const baseY = row * 1.0;
           
           // 添加随机抖动（0 或 0.5）
           const jitterX = Math.sin(layerIndex * 23 + col * 7 + row * 11) > 0 ? 0.5 : 0;
           const jitterY = Math.sin(layerIndex * 29 + col * 11 + row * 7) > 0 ? 0.5 : 0;
           
-          let x = baseX + dx + jitterX;
-          let y = baseY + dy + jitterY;
+          let candidateX = baseX + dx + jitterX;
+          let candidateY = baseY + dy + jitterY;
           
-          // 确保在边界内（留出1个单位的边距，因为卡片占1个单位）
-          x = Math.max(0, Math.min(x, GRID_COLS - 1));
-          y = Math.max(0, Math.min(y, GRID_ROWS - 1));
+          // 确保在边界内
+          candidateX = Math.max(0, Math.min(candidateX, GRID_COLS - 1));
+          candidateY = Math.max(0, Math.min(candidateY, GRID_ROWS - 1));
           
-          layerPositions.push({ x, y });
+          // 找到一个不与其他层完全重叠的位置
+          const seed = currentZ * 1000 + col * 100 + row;
+          const validPos = findNonOverlappingPosition(candidateX, candidateY, currentZ, seed);
+          
+          if (validPos) {
+            layerPositions.push(validPos);
+          }
         }
       }
       
       // 随机打乱这层的位置顺序
       layerPositions.sort(() => Math.sin(currentZ * 31 + globalPosIndex * 7) - 0.5);
       
-      // 添加位置
+      // 添加位置并记录到全局
       for (const pos of layerPositions) {
         if (positions.length >= count) break;
         positions.push({ x: pos.x, y: pos.y, z: currentZ });
+        allUsedPositions.push({ x: pos.x, y: pos.y, z: currentZ });
         globalPosIndex++;
       }
       
