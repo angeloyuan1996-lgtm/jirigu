@@ -7,40 +7,62 @@ const SLOT_SIZE = 42;
 const MAX_SLOTS = 7;
 
 export const SlotBar: React.FC = () => {
-  const { slots, tempCache } = useGameStore();
+  const { slots, tempCache, returnTempToSlot } = useGameStore();
   
   return (
     <div className="flex flex-col items-center gap-3">
-      {/* Temp cache area - 木质风格 */}
+      {/* Temp cache area - 暂存区 */}
       {tempCache.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-center gap-1 p-2 rounded-xl border-[3px] border-[#333]"
-          style={{
-            backgroundColor: 'hsl(25 70% 35%)',
-          }}
+          className="flex flex-col items-center gap-1"
         >
-          {tempCache.map((block) => (
-            <motion.div
-              key={block.id}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="flex items-center justify-center rounded-lg border-[1.5px] border-[#555]"
-              style={{
-                width: SLOT_SIZE - 4,
-                height: SLOT_SIZE - 4,
-                backgroundColor: '#FFF8E7',
-              }}
-            >
-              <img 
-                src={FRUIT_ICONS[block.type]}
-                alt={block.type}
-                draggable={false}
-                className="w-7 h-7"
-              />
-            </motion.div>
-          ))}
+          {/* 暂存区标签 */}
+          <span 
+            className="text-xs font-bold px-2 py-0.5 rounded-full border-[2px] border-[#333]"
+            style={{
+              backgroundColor: '#FFE4B5',
+              color: '#333',
+            }}
+          >
+            暂存区
+          </span>
+          
+          {/* 暂存卡片 - 半透明悬浮风格 */}
+          <div 
+            className="flex items-center justify-center gap-2 p-2 rounded-xl"
+            style={{
+              backgroundColor: 'rgba(255, 248, 231, 0.9)',
+              border: '2px dashed #8B7355',
+            }}
+          >
+            {tempCache.map((block) => (
+              <motion.button
+                key={block.id}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => returnTempToSlot(block.id)}
+                disabled={slots.length >= MAX_SLOTS}
+                className="flex items-center justify-center rounded-lg border-[1.5px] border-[#555] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 transition-transform"
+                style={{
+                  width: SLOT_SIZE,
+                  height: SLOT_SIZE,
+                  backgroundColor: '#FFF8E7',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                }}
+              >
+                <img 
+                  src={FRUIT_ICONS[block.type]}
+                  alt={block.type}
+                  draggable={false}
+                  className="w-7 h-7"
+                />
+              </motion.button>
+            ))}
+          </div>
         </motion.div>
       )}
       
