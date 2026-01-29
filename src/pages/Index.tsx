@@ -39,8 +39,8 @@ const Index = () => {
           </span>
         </div>
         
-        {/* Main game area */}
-        <div className="flex-1 relative flex flex-col items-center justify-center overflow-hidden px-2">
+        {/* Main game area - 靠上对齐，给底部腾空间 */}
+        <div className="flex-1 relative flex flex-col items-center justify-start overflow-hidden px-2 pt-2">
           {/* Game board */}
           <div className="relative">
             <GameBoard />
