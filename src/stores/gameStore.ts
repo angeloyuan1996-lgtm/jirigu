@@ -351,7 +351,7 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     return mask;
   };
   
-  // 生成"乱中有序"的网格位置 - 每张卡片独立随机偏移
+  // 生成"乱中有序"的网格位置 - 避免整齐并排，强制错位遮挡
   const generateChaoticGridPositions = (count: number, baseZ: number): { x: number, y: number, z: number }[] => {
     const positions: { x: number, y: number, z: number }[] = [];
     let currentZ = baseZ;
@@ -363,19 +363,40 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
       // 生成当前层的不规则掩码
       const mask = generateIrregularMask(BASE_GRID_COLS, BASE_GRID_ROWS, layerIndex);
       
-      // 收集这层所有有效位置（每个位置独立计算偏移）
+      // 收集这层所有有效位置（使用散点布局避免并排）
       const layerPositions: { x: number, y: number }[] = [];
       
       for (let row = 0; row < BASE_GRID_ROWS; row++) {
         for (let col = 0; col < BASE_GRID_COLS; col++) {
           if (!mask[row][col]) continue;
           
-          // 每张卡片独立获取随机偏移（大部分是corner偏移）
+          // 使用1.5间距的稀疏网格（避免并排）
+          // 每隔一个位置放一张卡，然后用0.5偏移填充
+          const sparseRow = row % 2;
+          const sparseCol = col % 2;
+          
+          // 棋盘式稀疏：只在特定格子放卡片
+          // 层与层之间错开
+          const layerOffset = layerIndex % 2;
+          const shouldPlace = (sparseRow + sparseCol + layerOffset) % 2 === 0;
+          
+          if (!shouldPlace && Math.sin(layerIndex * 7 + col * 13 + row * 17) > -0.3) {
+            continue; // 50%跳过非棋盘位置
+          }
+          
+          // 每张卡片独立获取随机偏移
           const { dx, dy } = getLayerOffset(layerIndex, col * 100 + row);
           
-          // 基础位置 + 随机0.5偏移
-          const x = col + 0.5 + dx;
-          const y = row + 0.5 + dy;
+          // 基础位置使用更大的间距 + 随机0.5偏移
+          const baseX = col * 1.0; // 原本是col，现在加大间距
+          const baseY = row * 1.0;
+          
+          // 添加随机抖动（0 或 0.5）
+          const jitterX = Math.sin(layerIndex * 23 + col * 7 + row * 11) > 0 ? 0.5 : 0;
+          const jitterY = Math.sin(layerIndex * 29 + col * 11 + row * 7) > 0 ? 0.5 : 0;
+          
+          const x = baseX + dx + jitterX;
+          const y = baseY + dy + jitterY;
           
           // 确保在边界内
           if (x >= 0 && x <= GRID_COLS && y >= 0 && y <= GRID_ROWS) {
