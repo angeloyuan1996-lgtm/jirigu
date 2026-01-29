@@ -79,8 +79,8 @@ export const FruitCard: React.FC<FruitCardProps> = ({
           block.isLocked && "opacity-60"
         )}
         style={{ 
-          width: size * 0.75,
-          height: size * 0.75,
+          width: size * 0.88,
+          height: size * 0.88,
         }}
       />
     </motion.div>
