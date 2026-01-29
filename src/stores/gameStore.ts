@@ -76,10 +76,10 @@ const generateLevel = (level: number): FruitBlock[] => {
   
   // Track used coordinates to prevent perfect overlaps
   const usedCoordinates = new Set<string>();
-  const coordKey = (x: number, y: number) => `${x.toFixed(1)},${y.toFixed(1)}`;
+  const coordKey = (x: number, y: number) => `${x.toFixed(2)},${y.toFixed(2)}`;
   
-  // Minimum offset when stacking (25% of tile = 0.25 grid units)
-  const MIN_OFFSET = 0.5; // Half a grid unit ensures visibility
+  // Staircase offset - 30% of tile size for clear visibility
+  const MIN_OFFSET = 0.3; // 30% offset creates classic staircase effect
   
   if (level === 1) {
     // Level 1: 超简单 - 只有3种水果，每种3个 = 9张卡片，无重叠
@@ -130,18 +130,19 @@ const generateLevel = (level: number): FruitBlock[] => {
         return { x: preferredX, y: preferredY };
       }
       
-      // Apply staircase offset - try different offsets
+      // Apply staircase offset - diagonal cascading like classic games
+      // Prioritize diagonal offsets for authentic staircase look
       const offsets = [
-        { dx: MIN_OFFSET, dy: 0 },
-        { dx: -MIN_OFFSET, dy: 0 },
-        { dx: 0, dy: MIN_OFFSET },
-        { dx: 0, dy: -MIN_OFFSET },
-        { dx: MIN_OFFSET, dy: MIN_OFFSET },
-        { dx: -MIN_OFFSET, dy: MIN_OFFSET },
-        { dx: MIN_OFFSET, dy: -MIN_OFFSET },
-        { dx: -MIN_OFFSET, dy: -MIN_OFFSET },
-        { dx: MIN_OFFSET * 2, dy: 0 },
-        { dx: 0, dy: MIN_OFFSET * 2 },
+        { dx: MIN_OFFSET, dy: MIN_OFFSET },      // Primary: down-right diagonal
+        { dx: -MIN_OFFSET, dy: MIN_OFFSET },     // Down-left diagonal
+        { dx: MIN_OFFSET, dy: -MIN_OFFSET },     // Up-right diagonal
+        { dx: -MIN_OFFSET, dy: -MIN_OFFSET },    // Up-left diagonal
+        { dx: MIN_OFFSET * 2, dy: MIN_OFFSET },  // Extended down-right
+        { dx: -MIN_OFFSET * 2, dy: MIN_OFFSET }, // Extended down-left
+        { dx: MIN_OFFSET, dy: MIN_OFFSET * 2 },  // Extended diagonal
+        { dx: MIN_OFFSET * 2, dy: MIN_OFFSET * 2 }, // Double diagonal
+        { dx: MIN_OFFSET, dy: 0 },               // Fallback: horizontal
+        { dx: 0, dy: MIN_OFFSET },               // Fallback: vertical
       ];
       
       for (const offset of offsets) {
