@@ -269,10 +269,6 @@ export const useGameStore = create<GameState>((set, get) => ({
           ? { ...b, status: 'removed' as const }
           : b
       );
-    } else {
-      // Play click sound
-      const audio = getAudioController();
-      audio?.playClickSound();
     }
     
     // Recalculate lock status
