@@ -272,24 +272,34 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   const BASE_GRID_ROWS = 8;
   
   // 羊了个羊式遮挡模式
-  type OverlapMode = 'half-x' | 'half-y' | 'corner' | 'none';
+  type OverlapMode = 'half-x' | 'half-y' | 'corner';
   
-  // 每层的偏移模式（相对于下层）
-  const LAYER_PATTERNS: OverlapMode[] = ['corner', 'half-x', 'corner', 'half-y'];
+  // 大幅增加"一角遮挡"(corner)的比例 - 70%是corner，30%是half
+  const getRandomOverlapMode = (seed: number): OverlapMode => {
+    const rand = Math.sin(seed * 13.7) * 0.5 + 0.5;
+    if (rand < 0.7) return 'corner'; // 70% corner
+    if (rand < 0.85) return 'half-x'; // 15% half-x
+    return 'half-y'; // 15% half-y
+  };
   
-  // 根据模式获取偏移量
-  const getLayerOffset = (layerIndex: number): { dx: number, dy: number } => {
-    const pattern = LAYER_PATTERNS[layerIndex % LAYER_PATTERNS.length];
+  // 根据层级和随机种子获取偏移量（更随机化）
+  const getLayerOffset = (layerIndex: number, posIndex: number): { dx: number, dy: number } => {
+    const seed = layerIndex * 31 + posIndex * 7;
+    const pattern = getRandomOverlapMode(seed);
+    
+    // 随机决定偏移方向（正或负）
+    const dirX = Math.sin(seed * 17) > 0 ? 1 : -1;
+    const dirY = Math.sin(seed * 23) > 0 ? 1 : -1;
+    
     switch (pattern) {
       case 'half-x':
-        return { dx: 0.5, dy: 0 };
+        return { dx: 0.5 * dirX, dy: 0 };
       case 'half-y':
-        return { dx: 0, dy: 0.5 };
+        return { dx: 0, dy: 0.5 * dirY };
       case 'corner':
-        return { dx: 0.5, dy: 0.5 };
-      case 'none':
+        return { dx: 0.5 * dirX, dy: 0.5 * dirY };
       default:
-        return { dx: 0, dy: 0 };
+        return { dx: 0.5 * dirX, dy: 0.5 * dirY };
     }
   };
   
@@ -341,56 +351,47 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     return mask;
   };
   
-  // 生成"乱中有序"的网格位置
+  // 生成"乱中有序"的网格位置 - 每张卡片独立随机偏移
   const generateChaoticGridPositions = (count: number, baseZ: number): { x: number, y: number, z: number }[] => {
     const positions: { x: number, y: number, z: number }[] = [];
     let currentZ = baseZ;
-    
-    // 累计偏移（每层叠加0.5）
-    let accumulatedX = 0.5; // 从中心偏移开始
-    let accumulatedY = 0.5;
+    let globalPosIndex = 0;
     
     while (positions.length < count) {
       const layerIndex = currentZ - baseZ;
       
-      // 获取当前层相对于上一层的偏移
-      if (layerIndex > 0) {
-        const { dx, dy } = getLayerOffset(layerIndex);
-        accumulatedX += dx;
-        accumulatedY += dy;
-        
-        // 防止偏移过大，周期性回绕
-        if (accumulatedX > 1.5) accumulatedX -= 1;
-        if (accumulatedY > 1.5) accumulatedY -= 1;
-      }
-      
       // 生成当前层的不规则掩码
       const mask = generateIrregularMask(BASE_GRID_COLS, BASE_GRID_ROWS, layerIndex);
       
-      // 收集这层所有有效位置
+      // 收集这层所有有效位置（每个位置独立计算偏移）
       const layerPositions: { x: number, y: number }[] = [];
       
       for (let row = 0; row < BASE_GRID_ROWS; row++) {
         for (let col = 0; col < BASE_GRID_COLS; col++) {
-          if (!mask[row][col]) continue; // 跳过被掩码标记的位置
+          if (!mask[row][col]) continue;
           
-          const x = col + accumulatedX;
-          const y = row + accumulatedY;
+          // 每张卡片独立获取随机偏移（大部分是corner偏移）
+          const { dx, dy } = getLayerOffset(layerIndex, col * 100 + row);
+          
+          // 基础位置 + 随机0.5偏移
+          const x = col + 0.5 + dx;
+          const y = row + 0.5 + dy;
           
           // 确保在边界内
-          if (x >= 0 && x <= GRID_COLS - 0.5 && y >= 0 && y <= GRID_ROWS - 0.5) {
+          if (x >= 0 && x <= GRID_COLS && y >= 0 && y <= GRID_ROWS) {
             layerPositions.push({ x, y });
           }
         }
       }
       
       // 随机打乱这层的位置顺序
-      layerPositions.sort(() => Math.sin(currentZ * 31 + positions.length * 7) - 0.5);
+      layerPositions.sort(() => Math.sin(currentZ * 31 + globalPosIndex * 7) - 0.5);
       
-      // 添加位置直到填满需要的数量
+      // 添加位置
       for (const pos of layerPositions) {
         if (positions.length >= count) break;
         positions.push({ x: pos.x, y: pos.y, z: currentZ });
+        globalPosIndex++;
       }
       
       currentZ++;
