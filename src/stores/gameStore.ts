@@ -352,10 +352,64 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   };
   
   // 生成"乱中有序"的网格位置 - 避免整齐并排，强制错位遮挡
+  // 禁止完全重叠：同坐标同层方块自动强制偏移0.5
   const generateChaoticGridPositions = (count: number, baseZ: number): { x: number, y: number, z: number }[] => {
     const positions: { x: number, y: number, z: number }[] = [];
+    const usedCoords = new Set<string>(); // 追踪已使用的坐标
     let currentZ = baseZ;
     let globalPosIndex = 0;
+    
+    // 坐标键生成（精确到0.5单位）
+    const makeKey = (x: number, y: number, z: number) => 
+      `${(Math.round(x * 2) / 2).toFixed(1)},${(Math.round(y * 2) / 2).toFixed(1)},${z}`;
+    
+    // 检查位置是否可用，如果不可用则尝试偏移
+    const findAvailablePosition = (x: number, y: number, z: number): { x: number, y: number } => {
+      const key = makeKey(x, y, z);
+      
+      if (!usedCoords.has(key)) {
+        return { x, y };
+      }
+      
+      // 位置已被占用，尝试四个方向的0.5偏移
+      const offsets = [
+        { dx: 0.5, dy: 0 },
+        { dx: -0.5, dy: 0 },
+        { dx: 0, dy: 0.5 },
+        { dx: 0, dy: -0.5 },
+        { dx: 0.5, dy: 0.5 },
+        { dx: -0.5, dy: 0.5 },
+        { dx: 0.5, dy: -0.5 },
+        { dx: -0.5, dy: -0.5 },
+      ];
+      
+      for (const offset of offsets) {
+        const newX = Math.max(0, Math.min(x + offset.dx, GRID_COLS - 1));
+        const newY = Math.max(0, Math.min(y + offset.dy, GRID_ROWS - 1));
+        const newKey = makeKey(newX, newY, z);
+        
+        if (!usedCoords.has(newKey)) {
+          return { x: newX, y: newY };
+        }
+      }
+      
+      // 所有偏移都被占用，尝试更大的偏移
+      const largeOffsets = [1, -1, 1.5, -1.5];
+      for (const dx of largeOffsets) {
+        for (const dy of largeOffsets) {
+          const newX = Math.max(0, Math.min(x + dx, GRID_COLS - 1));
+          const newY = Math.max(0, Math.min(y + dy, GRID_ROWS - 1));
+          const newKey = makeKey(newX, newY, z);
+          
+          if (!usedCoords.has(newKey)) {
+            return { x: newX, y: newY };
+          }
+        }
+      }
+      
+      // 最后返回原位置（极少情况）
+      return { x, y };
+    };
     
     while (positions.length < count) {
       const layerIndex = currentZ - baseZ;
@@ -371,24 +425,21 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
           if (!mask[row][col]) continue;
           
           // 使用1.5间距的稀疏网格（避免并排）
-          // 每隔一个位置放一张卡，然后用0.5偏移填充
           const sparseRow = row % 2;
           const sparseCol = col % 2;
           
           // 棋盘式稀疏：只在特定格子放卡片
-          // 层与层之间错开
           const layerOffset = layerIndex % 2;
           const shouldPlace = (sparseRow + sparseCol + layerOffset) % 2 === 0;
           
           if (!shouldPlace && Math.sin(layerIndex * 7 + col * 13 + row * 17) > -0.3) {
-            continue; // 50%跳过非棋盘位置
+            continue;
           }
           
           // 每张卡片独立获取随机偏移
           const { dx, dy } = getLayerOffset(layerIndex, col * 100 + row);
           
-          // 基础位置使用更大的间距 + 随机0.5偏移
-          const baseX = col * 1.0; // 原本是col，现在加大间距
+          const baseX = col * 1.0;
           const baseY = row * 1.0;
           
           // 添加随机抖动（0 或 0.5）
@@ -398,7 +449,7 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
           let x = baseX + dx + jitterX;
           let y = baseY + dy + jitterY;
           
-          // 确保在边界内（留出1个单位的边距，因为卡片占1个单位）
+          // 确保在边界内
           x = Math.max(0, Math.min(x, GRID_COLS - 1));
           y = Math.max(0, Math.min(y, GRID_ROWS - 1));
           
@@ -409,10 +460,16 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
       // 随机打乱这层的位置顺序
       layerPositions.sort(() => Math.sin(currentZ * 31 + globalPosIndex * 7) - 0.5);
       
-      // 添加位置
+      // 添加位置（确保不完全重叠）
       for (const pos of layerPositions) {
         if (positions.length >= count) break;
-        positions.push({ x: pos.x, y: pos.y, z: currentZ });
+        
+        // 检查并获取可用位置
+        const { x: finalX, y: finalY } = findAvailablePosition(pos.x, pos.y, currentZ);
+        const finalKey = makeKey(finalX, finalY, currentZ);
+        
+        usedCoords.add(finalKey);
+        positions.push({ x: finalX, y: finalY, z: currentZ });
         globalPosIndex++;
       }
       
