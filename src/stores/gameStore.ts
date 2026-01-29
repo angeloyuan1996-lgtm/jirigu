@@ -174,19 +174,33 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     return { mainBlocks: blocks.sort((a, b) => a.z - b.z), leftStack: [], rightStack: [] };
   }
   
-  // ========== Level 2: 整齐网格布局 ==========
-  // 核心：卡片排列整齐，只在 1/4 或 1/2 位置偏移
-  // 类似原版羊了个羊的整齐堆叠效果
+  // ========== Level 2: 羊了个羊级别地狱难度 ==========
+  // 核心：视觉陷阱 - 前期简单诱导 + 中期全类型爆发
+  // 所有区域共享同一个资源池
+  // 严格网格对齐 + 阶梯式堆叠
   
-  const BLIND_STACK_SIZE = 10;
+  const BLIND_STACK_SIZE = 10; // 每个盲盒堆10张
   const NUM_FRUIT_TYPES = 14;
   
-  // ===== 生成水果池 =====
+  // 深井堆叠点配置（对齐到网格）
+  const CLUSTER_POINTS = [
+    { x: snapToGrid(2.0), y: snapToGrid(2.0) },
+    { x: snapToGrid(4.5), y: snapToGrid(2.0) },
+    { x: snapToGrid(3.25), y: snapToGrid(4.5) },
+    { x: snapToGrid(1.5), y: snapToGrid(5.5) },
+    { x: snapToGrid(5.0), y: snapToGrid(5.5) },
+  ];
+  
+  // ===== 视觉陷阱设计 =====
   const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
   const allFruits = shuffledFruits.slice(0, NUM_FRUIT_TYPES);
+  
+  // 前期诱导水果（仅3-4种）
   const easyFruits = allFruits.slice(0, 4);
+  // 中期爆发水果（全部14种）
   const hellFruits = allFruits;
   
+  // ===== 第一步：生成分层卡片池 =====
   interface CardInfo {
     type: FruitType;
     layer: 'top' | 'middle' | 'bottom';
@@ -194,7 +208,7 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   
   const totalCardPool: CardInfo[] = [];
   
-  // 顶层（诱导层）
+  // 顶层（诱导层）: 3-4种水果
   easyFruits.forEach((fruitType) => {
     const triplets = Math.floor(Math.random() * 2) + 1;
     for (let t = 0; t < triplets; t++) {
@@ -204,7 +218,7 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     }
   });
   
-  // 中层（地狱层）
+  // 中层（地狱层）: 全部14种水果
   hellFruits.forEach((fruitType) => {
     const triplets = Math.floor(Math.random() * 3) + 2;
     for (let t = 0; t < triplets; t++) {
@@ -224,10 +238,12 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     }
   });
   
+  // 分离各层卡片
   const topCards = totalCardPool.filter(c => c.layer === 'top');
   const middleCards = totalCardPool.filter(c => c.layer === 'middle');
   const bottomCards = totalCardPool.filter(c => c.layer === 'bottom');
   
+  // 各层内部打乱
   const shuffledTop = [...topCards].sort(() => Math.random() - 0.5);
   const shuffledMiddle = [...middleCards].sort(() => Math.random() - 0.5);
   const shuffledBottom = [...bottomCards].sort(() => Math.random() - 0.5);
@@ -236,12 +252,15 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   console.log(`[Level 2 - 视觉陷阱] 中层(地狱): ${middleCards.length}张 (${hellFruits.length}种水果)`);
   console.log(`[Level 2 - 视觉陷阱] 底层: ${bottomCards.length}张`);
   
-  // 盲盒堆
+  // ===== 第二步：从卡片池中分配到盲盒堆 =====
   const nonTopPool = [...shuffledBottom, ...shuffledMiddle].sort(() => Math.random() - 0.5);
   const leftStackCards = nonTopPool.splice(0, BLIND_STACK_SIZE);
   const rightStackCards = nonTopPool.splice(0, BLIND_STACK_SIZE);
+  
+  // 剩余的非顶层卡片 + 全部顶层卡片放入主区域
   const mainAreaCards = [...nonTopPool, ...shuffledTop];
   
+  // ===== 第三步：生成盲盒堆 FruitBlock =====
   const createBlindStack = (cards: CardInfo[], position: 'left' | 'right'): FruitBlock[] => {
     return cards.map((card, index) => ({
       id: generateId(),
@@ -259,221 +278,142 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   const leftStack = createBlindStack(leftStackCards, 'left');
   const rightStack = createBlindStack(rightStackCards, 'right');
   
-  // ===== 羊了个羊式"乱中有序"堆叠 =====
-  // 核心规则：
-  // 1. 遮住一半 = X或Y方向偏移0.5
-  // 2. 遮住一个角 = X和Y方向都偏移0.5
-  // 3. 不规则外形 = 随机跳过某些位置，边缘参差不齐
-  
+  // ===== 第四步：生成主区域方块（网格对齐 + 阶梯式堆叠）=====
   const mainBlocks: FruitBlock[] = [];
   
-  // 基础网格尺寸（整数坐标）
-  const BASE_GRID_COLS = 7;
-  const BASE_GRID_ROWS = 8;
-  
-  // 羊了个羊式遮挡模式
-  type OverlapMode = 'half-x' | 'half-y' | 'corner';
-  
-  // 更丰富的偏移模式，增加变化感
-  const OVERLAP_OPTIONS: { mode: OverlapMode, dirX: number, dirY: number }[] = [
-    { mode: 'corner', dirX: 1, dirY: 1 },    // 右下角
-    { mode: 'corner', dirX: -1, dirY: 1 },   // 左下角
-    { mode: 'corner', dirX: 1, dirY: -1 },   // 右上角
-    { mode: 'corner', dirX: -1, dirY: -1 },  // 左上角
-    { mode: 'half-x', dirX: 1, dirY: 0 },    // 向右半格
-    { mode: 'half-x', dirX: -1, dirY: 0 },   // 向左半格
-    { mode: 'half-y', dirX: 0, dirY: 1 },    // 向下半格
-    { mode: 'half-y', dirX: 0, dirY: -1 },   // 向上半格
-  ];
-  
-  // 根据层级获取偏移量 - 每层随机选择不同的偏移方向
-  const getLayerOffset = (layerIndex: number): { dx: number, dy: number } => {
-    // 使用伪随机确保可重现
-    const seed = layerIndex * 31 + 17;
-    const randomIndex = Math.abs(Math.floor(Math.sin(seed) * 1000)) % OVERLAP_OPTIONS.length;
-    const option = OVERLAP_OPTIONS[randomIndex];
-    
-    switch (option.mode) {
-      case 'half-x':
-        return { dx: 0.5 * option.dirX, dy: 0 };
-      case 'half-y':
-        return { dx: 0, dy: 0.5 * option.dirY };
-      case 'corner':
-        return { dx: 0.5 * option.dirX, dy: 0.5 * option.dirY };
-      default:
-        return { dx: 0.5, dy: 0.5 };
-    }
-  };
-  
-  // 生成不规则形状掩码 - 决定哪些位置要跳过
-  const generateIrregularMask = (cols: number, rows: number, layerIndex: number): boolean[][] => {
-    const mask: boolean[][] = [];
-    const seed = layerIndex * 17 + 42; // 伪随机种子
-    
-    for (let row = 0; row < rows; row++) {
-      mask[row] = [];
-      for (let col = 0; col < cols; col++) {
-        // 中心区域更密集，边缘更稀疏
-        const distFromCenterX = Math.abs(col - cols / 2) / (cols / 2);
-        const distFromCenterY = Math.abs(row - rows / 2) / (rows / 2);
-        const distFromCenter = Math.max(distFromCenterX, distFromCenterY);
-        
-        // 边缘有更高概率被跳过
-        const skipProbability = distFromCenter > 0.7 ? 0.5 : (distFromCenter > 0.5 ? 0.3 : 0.15);
-        
-        // 使用确定性随机（基于位置和层级）
-        const randomValue = Math.sin(seed + col * 7 + row * 13) * 0.5 + 0.5;
-        
-        // 如果是边角，增加跳过概率
-        const isCorner = (col === 0 || col === cols - 1) && (row === 0 || row === rows - 1);
-        const isEdge = col === 0 || col === cols - 1 || row === 0 || row === rows - 1;
-        
-        let shouldSkip = false;
-        if (isCorner) {
-          shouldSkip = randomValue < 0.6; // 角落60%跳过
-        } else if (isEdge) {
-          shouldSkip = randomValue < skipProbability + 0.2; // 边缘额外20%
-        } else {
-          shouldSkip = randomValue < skipProbability;
-        }
-        
-        // 每层使用不同的跳过模式
-        if (layerIndex % 2 === 0) {
-          // 偶数层：棋盘格式稀疏
-          if ((col + row) % 3 === 0) shouldSkip = shouldSkip || randomValue < 0.3;
-        } else {
-          // 奇数层：对角线式稀疏
-          if (Math.abs(col - row) % 4 === 0) shouldSkip = shouldSkip || randomValue < 0.25;
-        }
-        
-        mask[row][col] = !shouldSkip;
-      }
-    }
-    
-    return mask;
-  };
-  
-  // 生成"乱中有序"的网格位置
-  const generateChaoticGridPositions = (count: number, baseZ: number): { x: number, y: number, z: number }[] => {
-    const positions: { x: number, y: number, z: number }[] = [];
-    let currentZ = baseZ;
-    
-    // 每层独立计算偏移，不再累加，而是根据层级产生更大的变化
-    while (positions.length < count) {
-      const layerIndex = currentZ - baseZ;
-      
-      // 每层独立的偏移 - 使用层级产生变化
-      const { dx, dy } = getLayerOffset(layerIndex);
-      
-      // 基于层级计算偏移量，交替变化，让每层看起来都不同
-      // 偶数层和奇数层使用不同的基础偏移
-      let layerOffsetX = (layerIndex % 2 === 0) ? 0 : 0.5;
-      let layerOffsetY = (layerIndex % 2 === 0) ? 0.5 : 0;
-      
-      // 叠加当前层的随机偏移
-      layerOffsetX += dx;
-      layerOffsetY += dy;
-      
-      // 每3层额外增加一个大偏移，产生更明显的层次感
-      if (layerIndex % 3 === 0 && layerIndex > 0) {
-        const extraSeed = layerIndex * 47;
-        layerOffsetX += (Math.sin(extraSeed) > 0 ? 0.5 : -0.5);
-        layerOffsetY += (Math.cos(extraSeed) > 0 ? 0.5 : -0.5);
-      }
-      
-      // 生成当前层的不规则掩码
-      const mask = generateIrregularMask(BASE_GRID_COLS, BASE_GRID_ROWS, layerIndex);
-      
-      // 收集这层所有有效位置
-      const layerPositions: { x: number, y: number }[] = [];
-      
-      for (let row = 0; row < BASE_GRID_ROWS; row++) {
-        for (let col = 0; col < BASE_GRID_COLS; col++) {
-          if (!mask[row][col]) continue; // 跳过被掩码标记的位置
-          
-          const x = col + layerOffsetX;
-          const y = row + layerOffsetY;
-          
-          // 确保在边界内（允许更大的偏移范围）
-          if (x >= -0.5 && x <= GRID_COLS && y >= -0.5 && y <= GRID_ROWS) {
-            layerPositions.push({ x, y });
-          }
-        }
-      }
-      
-      // 随机打乱这层的位置顺序
-      layerPositions.sort(() => Math.sin(currentZ * 31 + positions.length * 7) - 0.5);
-      
-      // 添加位置直到填满需要的数量
-      for (const pos of layerPositions) {
-        if (positions.length >= count) break;
-        positions.push({ x: pos.x, y: pos.y, z: currentZ });
-      }
-      
-      currentZ++;
-    }
-    
-    return positions;
-  };
-  
-  // 分类主区域卡片
+  // 分离主区域中的各层卡片
   const mainBottom = mainAreaCards.filter(c => c.layer === 'bottom');
   const mainMiddle = mainAreaCards.filter(c => c.layer === 'middle');
   const mainTop = mainAreaCards.filter(c => c.layer === 'top');
   
-  // 底层：z = 0 开始
-  const bottomPositions = generateChaoticGridPositions(mainBottom.length, 0);
+  let currentZ = 0;
+  
+  // === 底层方块生成 (z: 0 - 9) ===
+  // 使用网格对齐的阶梯式放置
   mainBottom.forEach((card, idx) => {
-    const pos = bottomPositions[idx];
+    const clusterIdx = idx % CLUSTER_POINTS.length;
+    const basePoint = CLUSTER_POINTS[clusterIdx];
+    
+    // 阶梯式偏移（1/4, 1/2, 3/4 单位）
+    const offsetUnits = ALLOWED_OFFSETS[idx % ALLOWED_OFFSETS.length];
+    const direction = idx % 4;
+    let offsetX = 0, offsetY = 0;
+    
+    switch (direction) {
+      case 0: offsetX = offsetUnits * GRID_UNIT; offsetY = offsetUnits * GRID_UNIT; break;
+      case 1: offsetX = -offsetUnits * GRID_UNIT; offsetY = offsetUnits * GRID_UNIT; break;
+      case 2: offsetX = offsetUnits * GRID_UNIT; offsetY = -offsetUnits * GRID_UNIT; break;
+      case 3: offsetX = -offsetUnits * GRID_UNIT; offsetY = -offsetUnits * GRID_UNIT; break;
+    }
+    
+    const z = Math.floor(idx / (CLUSTER_POINTS.length * 2));
+    const { x, y } = findValidPosition(basePoint.x + offsetX, basePoint.y + offsetY, z);
+    
     mainBlocks.push({
       id: generateId(),
       type: card.type,
-      x: pos.x,
-      y: pos.y,
-      z: pos.z,
+      x,
+      y,
+      z,
       status: 'onMap',
       isLocked: false,
     });
   });
   
-  const maxBottomZ = Math.max(...mainBlocks.map(b => b.z), 0);
+  currentZ = Math.max(...mainBlocks.map(b => b.z), 0) + 1;
   
-  // 中层：紧接底层
-  const middlePositions = generateChaoticGridPositions(mainMiddle.length, maxBottomZ + 1);
+  // === 中层方块生成 (z: 10 - 30) - 地狱层 ===
+  // 全部14种水果密集堆叠，网格对齐
   mainMiddle.forEach((card, idx) => {
-    const pos = middlePositions[idx];
+    const clusterIdx = idx % CLUSTER_POINTS.length;
+    const basePoint = CLUSTER_POINTS[clusterIdx];
+    
+    // 紧密阶梯式堆叠
+    const layerInCluster = Math.floor(idx / CLUSTER_POINTS.length);
+    const offsetPattern = layerInCluster % 4;
+    const offsetUnits = ALLOWED_OFFSETS[offsetPattern % 3];
+    
+    let offsetX = 0, offsetY = 0;
+    switch (offsetPattern) {
+      case 0: offsetX = offsetUnits * GRID_UNIT; offsetY = 0; break;
+      case 1: offsetX = 0; offsetY = offsetUnits * GRID_UNIT; break;
+      case 2: offsetX = -offsetUnits * GRID_UNIT; offsetY = 0; break;
+      case 3: offsetX = 0; offsetY = -offsetUnits * GRID_UNIT; break;
+    }
+    
+    const z = currentZ + Math.floor(idx / (CLUSTER_POINTS.length * 2));
+    const { x, y } = findValidPosition(basePoint.x + offsetX, basePoint.y + offsetY, z);
+    
     mainBlocks.push({
       id: generateId(),
       type: card.type,
-      x: pos.x,
-      y: pos.y,
-      z: pos.z,
+      x,
+      y,
+      z,
       status: 'onMap',
       isLocked: false,
     });
   });
   
-  const maxMiddleZ = Math.max(...mainBlocks.map(b => b.z), 0);
+  currentZ = Math.max(...mainBlocks.map(b => b.z), 0) + 1;
   
-  // 顶层：最上面
-  const topPositions = generateChaoticGridPositions(mainTop.length, maxMiddleZ + 1);
+  // === 顶层方块生成 (最高z值) - 诱导层 ===
+  // 仅3-4种水果，网格对齐，阶梯式分散
   mainTop.forEach((card, idx) => {
-    const pos = topPositions[idx];
+    const clusterIdx = idx % CLUSTER_POINTS.length;
+    const basePoint = CLUSTER_POINTS[clusterIdx];
+    
+    // 更大范围的阶梯式分散
+    const spreadPattern = idx % 8;
+    const spreadUnits = (spreadPattern % 4 + 1) * 2; // 2, 4, 6, 8 个网格单位
+    
+    let offsetX = 0, offsetY = 0;
+    switch (spreadPattern) {
+      case 0: offsetX = spreadUnits * GRID_UNIT; offsetY = 0; break;
+      case 1: offsetX = 0; offsetY = spreadUnits * GRID_UNIT; break;
+      case 2: offsetX = -spreadUnits * GRID_UNIT; offsetY = 0; break;
+      case 3: offsetX = 0; offsetY = -spreadUnits * GRID_UNIT; break;
+      case 4: offsetX = spreadUnits * GRID_UNIT; offsetY = spreadUnits * GRID_UNIT; break;
+      case 5: offsetX = -spreadUnits * GRID_UNIT; offsetY = spreadUnits * GRID_UNIT; break;
+      case 6: offsetX = spreadUnits * GRID_UNIT; offsetY = -spreadUnits * GRID_UNIT; break;
+      case 7: offsetX = -spreadUnits * GRID_UNIT; offsetY = -spreadUnits * GRID_UNIT; break;
+    }
+    
+    const z = currentZ + Math.floor(idx / CLUSTER_POINTS.length);
+    const { x, y } = findValidPosition(basePoint.x + offsetX, basePoint.y + offsetY, z);
+    
     mainBlocks.push({
       id: generateId(),
       type: card.type,
-      x: pos.x,
-      y: pos.y,
-      z: pos.z,
+      x,
+      y,
+      z,
       status: 'onMap',
       isLocked: false,
     });
   });
   
+  // 边缘散布（也遵循网格对齐）
+  const edgeCount = Math.floor(mainBlocks.length * 0.08);
+  for (let i = 0; i < edgeCount && i < mainBlocks.length; i++) {
+    const block = mainBlocks[i];
+    const isLeft = i % 2 === 0;
+    
+    // 边缘位置也对齐到网格
+    const edgeX = isLeft 
+      ? snapToGrid(Math.floor(Math.random() * 4) * GRID_UNIT)
+      : snapToGrid(GRID_COLS - 1 - Math.floor(Math.random() * 4) * GRID_UNIT);
+    const edgeY = snapToGrid(Math.floor(Math.random() * (GRID_ROWS * 4)) * GRID_UNIT);
+    
+    block.x = Math.max(0, Math.min(GRID_COLS - 1, edgeX));
+    block.y = Math.max(0, Math.min(GRID_ROWS - 1, edgeY));
+  }
+  
+  // 验证总数是3的倍数
   const totalCount = mainBlocks.length + leftStack.length + rightStack.length;
   console.log(`[Level 2] Total cards: ${totalCount} (main: ${mainBlocks.length}, left: ${leftStack.length}, right: ${rightStack.length})`);
   console.log(`[Level 2] Is multiple of 3: ${totalCount % 3 === 0}`);
-  console.log(`[Level 2] Grid alignment: Neat 1/4 and 1/2 offsets only`);
+  console.log(`[Level 2] Grid alignment: All coordinates snapped to 1/4 unit grid`);
   
   return { 
     mainBlocks: mainBlocks.sort((a, b) => a.z - b.z), 
@@ -766,22 +706,14 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   useUndo: () => {
     const state = get();
-    if (state.boostersUsed.undo || state.slots.length === 0) return;
+    if (state.boostersUsed.undo || state.historyStack.length === 0) return;
     
-    // 撤回槽位里最后一张卡片（最右边的）
-    const lastSlotBlock = state.slots[state.slots.length - 1];
+    const lastEntry = state.historyStack[state.historyStack.length - 1];
     
-    // 从 mapData 中找到原始方块（保留了原始 x, y, z 坐标）
-    const originalBlock = state.mapData.find(b => b.id === lastSlotBlock.id);
-    if (!originalBlock) return;
-    
-    // 从槽位移除最后一张
-    const newSlots = state.slots.slice(0, -1);
-    
-    // 将该卡片放回地图原位置（使用 mapData 中保存的原始坐标）
+    // Restore block to map
     const updatedMapData = state.mapData.map(b => 
-      b.id === lastSlotBlock.id 
-        ? { ...b, status: 'onMap' as const }
+      b.id === lastEntry.block.id 
+        ? { ...lastEntry.block, status: 'onMap' as const }
         : b
     );
     
@@ -790,7 +722,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     
     set({
       mapData: blocksWithLock,
-      slots: newSlots,
+      slots: lastEntry.previousSlots,
+      historyStack: state.historyStack.slice(0, -1),
       boostersUsed: { ...state.boostersUsed, undo: true },
       isGameOver: false,
       remainingBlocks: remaining,

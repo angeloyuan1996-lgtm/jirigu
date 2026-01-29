@@ -120,24 +120,25 @@ export const SlotBar: React.FC = () => {
   
   return (
     <div className="flex flex-col items-center">
-      {/* 上方区域：左盲盒堆 + 缓冲区 + 右盲盒堆 水平排列 */}
-      <div className="flex items-end justify-center gap-2 mb-2">
-        {/* 左侧盲盒堆 */}
-        {showBlindStacks && <BlindStack position="left" />}
-        
-        {/* 中央缓冲区 */}
-        <div className="flex items-center justify-center gap-1">
+      {/* Booster Buffer Area */}
+      {tempCache.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="flex items-center justify-center gap-1 mb-3"
+        >
           {Array.from({ length: BUFFER_SLOTS }).map((_, index) => {
             const block = tempCache[index];
             return (
               <motion.div
                 key={block?.id || `empty-buffer-${index}`}
-                className="relative flex items-center justify-center rounded-xl"
+                className="relative flex items-center justify-center rounded-lg border-[1.5px]"
                 style={{
                   width: BUFFER_SLOT_SIZE,
                   height: BUFFER_SLOT_SIZE,
-                  backgroundColor: block ? '#FFF8E7' : 'rgba(0,0,0,0.1)',
-                  border: block ? '2px solid #555' : '2px dashed rgba(0,0,0,0.2)',
+                  backgroundColor: block ? '#FFF8E7' : 'transparent',
+                  borderColor: block ? '#555' : 'transparent',
                   cursor: block ? 'pointer' : 'default',
                 }}
                 onClick={() => block && clickBufferBlock(block.id)}
@@ -152,22 +153,38 @@ export const SlotBar: React.FC = () => {
                       alt={block.type}
                       draggable={false}
                       className="w-10 h-10"
-                      initial={{ scale: 0, y: -30, opacity: 0 }}
+                      initial={{ scale: 0, y: 50, opacity: 0 }}
                       animate={{ scale: 1, y: 0, opacity: 1 }}
-                      exit={{ scale: 0, y: 30, opacity: 0 }}
+                      exit={{ scale: 0, y: 50, opacity: 0 }}
                     />
                   )}
                 </AnimatePresence>
               </motion.div>
             );
           })}
-        </div>
-        
-        {/* 右侧盲盒堆 */}
-        {showBlindStacks && <BlindStack position="right" />}
-      </div>
+        </motion.div>
+      )}
       
-      {/* 下方：木栅栏 */}
+      {/* 盲盒堆 - 在木栅栏正上方，左右两侧 */}
+      {showBlindStacks && (
+        <div 
+          className="flex items-end justify-between mb-2"
+          style={{ 
+            width: MAX_SLOTS * SLOT_SIZE + (MAX_SLOTS - 1) * 4 + 24, // 与木栅栏同宽
+          }}
+        >
+          {/* 左侧盲盒堆 */}
+          <BlindStack position="left" />
+          
+          {/* 中间空白 */}
+          <div className="flex-1" />
+          
+          {/* 右侧盲盒堆 */}
+          <BlindStack position="right" />
+        </div>
+      )}
+      
+      {/* Main slot bar - 木栅栏 */}
       <div 
         className="relative flex items-center justify-center gap-1 p-3 rounded-2xl"
         style={{
