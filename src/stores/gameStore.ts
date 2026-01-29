@@ -395,13 +395,14 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
           const jitterX = Math.sin(layerIndex * 23 + col * 7 + row * 11) > 0 ? 0.5 : 0;
           const jitterY = Math.sin(layerIndex * 29 + col * 11 + row * 7) > 0 ? 0.5 : 0;
           
-          const x = baseX + dx + jitterX;
-          const y = baseY + dy + jitterY;
+          let x = baseX + dx + jitterX;
+          let y = baseY + dy + jitterY;
           
-          // 确保在边界内
-          if (x >= 0 && x <= GRID_COLS && y >= 0 && y <= GRID_ROWS) {
-            layerPositions.push({ x, y });
-          }
+          // 确保在边界内（留出1个单位的边距，因为卡片占1个单位）
+          x = Math.max(0, Math.min(x, GRID_COLS - 1));
+          y = Math.max(0, Math.min(y, GRID_ROWS - 1));
+          
+          layerPositions.push({ x, y });
         }
       }
       
