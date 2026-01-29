@@ -259,25 +259,22 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   const leftStack = createBlindStack(leftStackCards, 'left');
   const rightStack = createBlindStack(rightStackCards, 'right');
   
-  // ===== 羊了个羊式整齐堆叠 =====
-  // 核心规则（参考用户手绘图）：
-  // 1. 遮住一半 = X或Y方向偏移0.5，另一个方向对齐
+  // ===== 羊了个羊式"乱中有序"堆叠 =====
+  // 核心规则：
+  // 1. 遮住一半 = X或Y方向偏移0.5
   // 2. 遮住一个角 = X和Y方向都偏移0.5
-  // 3. 不遮挡 = 间隔至少1个卡片单位
+  // 3. 不规则外形 = 随机跳过某些位置，边缘参差不齐
   
   const mainBlocks: FruitBlock[] = [];
   
   // 基础网格尺寸（整数坐标）
-  const BASE_GRID_COLS = 6;
-  const BASE_GRID_ROWS = 7;
+  const BASE_GRID_COLS = 7;
+  const BASE_GRID_ROWS = 8;
   
   // 羊了个羊式遮挡模式
   type OverlapMode = 'half-x' | 'half-y' | 'corner' | 'none';
   
   // 每层的偏移模式（相对于下层）
-  // half-x: 只X偏移0.5（遮住左半或右半）
-  // half-y: 只Y偏移0.5（遮住上半或下半）
-  // corner: X和Y都偏移0.5（遮住一个角）
   const LAYER_PATTERNS: OverlapMode[] = ['corner', 'half-x', 'corner', 'half-y'];
   
   // 根据模式获取偏移量
@@ -285,25 +282,73 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     const pattern = LAYER_PATTERNS[layerIndex % LAYER_PATTERNS.length];
     switch (pattern) {
       case 'half-x':
-        return { dx: 0.5, dy: 0 };  // 遮住一半（水平方向）
+        return { dx: 0.5, dy: 0 };
       case 'half-y':
-        return { dx: 0, dy: 0.5 };  // 遮住一半（垂直方向）
+        return { dx: 0, dy: 0.5 };
       case 'corner':
-        return { dx: 0.5, dy: 0.5 };  // 遮住一个角
+        return { dx: 0.5, dy: 0.5 };
       case 'none':
       default:
         return { dx: 0, dy: 0 };
     }
   };
   
-  // 生成整齐网格位置
-  const generateNeatGridPositions = (count: number, baseZ: number): { x: number, y: number, z: number }[] => {
+  // 生成不规则形状掩码 - 决定哪些位置要跳过
+  const generateIrregularMask = (cols: number, rows: number, layerIndex: number): boolean[][] => {
+    const mask: boolean[][] = [];
+    const seed = layerIndex * 17 + 42; // 伪随机种子
+    
+    for (let row = 0; row < rows; row++) {
+      mask[row] = [];
+      for (let col = 0; col < cols; col++) {
+        // 中心区域更密集，边缘更稀疏
+        const distFromCenterX = Math.abs(col - cols / 2) / (cols / 2);
+        const distFromCenterY = Math.abs(row - rows / 2) / (rows / 2);
+        const distFromCenter = Math.max(distFromCenterX, distFromCenterY);
+        
+        // 边缘有更高概率被跳过
+        const skipProbability = distFromCenter > 0.7 ? 0.5 : (distFromCenter > 0.5 ? 0.3 : 0.15);
+        
+        // 使用确定性随机（基于位置和层级）
+        const randomValue = Math.sin(seed + col * 7 + row * 13) * 0.5 + 0.5;
+        
+        // 如果是边角，增加跳过概率
+        const isCorner = (col === 0 || col === cols - 1) && (row === 0 || row === rows - 1);
+        const isEdge = col === 0 || col === cols - 1 || row === 0 || row === rows - 1;
+        
+        let shouldSkip = false;
+        if (isCorner) {
+          shouldSkip = randomValue < 0.6; // 角落60%跳过
+        } else if (isEdge) {
+          shouldSkip = randomValue < skipProbability + 0.2; // 边缘额外20%
+        } else {
+          shouldSkip = randomValue < skipProbability;
+        }
+        
+        // 每层使用不同的跳过模式
+        if (layerIndex % 2 === 0) {
+          // 偶数层：棋盘格式稀疏
+          if ((col + row) % 3 === 0) shouldSkip = shouldSkip || randomValue < 0.3;
+        } else {
+          // 奇数层：对角线式稀疏
+          if (Math.abs(col - row) % 4 === 0) shouldSkip = shouldSkip || randomValue < 0.25;
+        }
+        
+        mask[row][col] = !shouldSkip;
+      }
+    }
+    
+    return mask;
+  };
+  
+  // 生成"乱中有序"的网格位置
+  const generateChaoticGridPositions = (count: number, baseZ: number): { x: number, y: number, z: number }[] => {
     const positions: { x: number, y: number, z: number }[] = [];
     let currentZ = baseZ;
     
-    // 累计偏移（每层叠加）
-    let accumulatedX = 0;
-    let accumulatedY = 0;
+    // 累计偏移（每层叠加0.5）
+    let accumulatedX = 0.5; // 从中心偏移开始
+    let accumulatedY = 0.5;
     
     while (positions.length < count) {
       const layerIndex = currentZ - baseZ;
@@ -313,21 +358,41 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
         const { dx, dy } = getLayerOffset(layerIndex);
         accumulatedX += dx;
         accumulatedY += dy;
+        
+        // 防止偏移过大，周期性回绕
+        if (accumulatedX > 1.5) accumulatedX -= 1;
+        if (accumulatedY > 1.5) accumulatedY -= 1;
       }
       
-      // 在当前层按整齐网格排列
-      for (let row = 0; row < BASE_GRID_ROWS && positions.length < count; row++) {
-        for (let col = 0; col < BASE_GRID_COLS && positions.length < count; col++) {
-          // 基础整数坐标 + 累计偏移
+      // 生成当前层的不规则掩码
+      const mask = generateIrregularMask(BASE_GRID_COLS, BASE_GRID_ROWS, layerIndex);
+      
+      // 收集这层所有有效位置
+      const layerPositions: { x: number, y: number }[] = [];
+      
+      for (let row = 0; row < BASE_GRID_ROWS; row++) {
+        for (let col = 0; col < BASE_GRID_COLS; col++) {
+          if (!mask[row][col]) continue; // 跳过被掩码标记的位置
+          
           const x = col + accumulatedX;
           const y = row + accumulatedY;
           
           // 确保在边界内
           if (x >= 0 && x <= GRID_COLS - 0.5 && y >= 0 && y <= GRID_ROWS - 0.5) {
-            positions.push({ x, y, z: currentZ });
+            layerPositions.push({ x, y });
           }
         }
       }
+      
+      // 随机打乱这层的位置顺序
+      layerPositions.sort(() => Math.sin(currentZ * 31 + positions.length * 7) - 0.5);
+      
+      // 添加位置直到填满需要的数量
+      for (const pos of layerPositions) {
+        if (positions.length >= count) break;
+        positions.push({ x: pos.x, y: pos.y, z: currentZ });
+      }
+      
       currentZ++;
     }
     
@@ -340,7 +405,7 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   const mainTop = mainAreaCards.filter(c => c.layer === 'top');
   
   // 底层：z = 0 开始
-  const bottomPositions = generateNeatGridPositions(mainBottom.length, 0);
+  const bottomPositions = generateChaoticGridPositions(mainBottom.length, 0);
   mainBottom.forEach((card, idx) => {
     const pos = bottomPositions[idx];
     mainBlocks.push({
@@ -357,7 +422,7 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   const maxBottomZ = Math.max(...mainBlocks.map(b => b.z), 0);
   
   // 中层：紧接底层
-  const middlePositions = generateNeatGridPositions(mainMiddle.length, maxBottomZ + 1);
+  const middlePositions = generateChaoticGridPositions(mainMiddle.length, maxBottomZ + 1);
   mainMiddle.forEach((card, idx) => {
     const pos = middlePositions[idx];
     mainBlocks.push({
@@ -374,7 +439,7 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   const maxMiddleZ = Math.max(...mainBlocks.map(b => b.z), 0);
   
   // 顶层：最上面
-  const topPositions = generateNeatGridPositions(mainTop.length, maxMiddleZ + 1);
+  const topPositions = generateChaoticGridPositions(mainTop.length, maxMiddleZ + 1);
   mainTop.forEach((card, idx) => {
     const pos = topPositions[idx];
     mainBlocks.push({
