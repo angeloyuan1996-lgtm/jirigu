@@ -259,45 +259,42 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   const leftStack = createBlindStack(leftStackCards, 'left');
   const rightStack = createBlindStack(rightStackCards, 'right');
   
-  // ===== 整齐网格布局生成 =====
-  // 只允许 0, 0.25, 0.5 的偏移（对应 0, 1/4, 1/2 卡片）
-  const NEAT_OFFSETS = [0, 0.25, 0.5];
+  // ===== 整齐阶梯堆叠生成 =====
+  // 只允许 0.25 和 0.5 的偏移（对应遮住1个角 或 2个角/一半）
+  // 关键：相邻层之间的偏移是规则的阶梯形
   
   const mainBlocks: FruitBlock[] = [];
-  const mainBottom = mainAreaCards.filter(c => c.layer === 'bottom');
-  const mainMiddle = mainAreaCards.filter(c => c.layer === 'middle');
-  const mainTop = mainAreaCards.filter(c => c.layer === 'top');
   
-  // 定义整齐的网格区域（6列 x 8行的基础网格）
-  const GRID_WIDTH = 6;
-  const GRID_HEIGHT = 8;
+  // 基础网格尺寸
+  const BASE_GRID_COLS = 5;
+  const BASE_GRID_ROWS = 6;
   
-  // 生成整齐的位置列表
-  const generateNeatPositions = (count: number, baseZ: number, layerOffset: number): { x: number, y: number, z: number }[] => {
+  // 生成整齐阶梯堆叠的位置
+  // 每一层相对于上一层偏移 0.25 或 0.5（遮住1角或2角）
+  const generateStaircasePositions = (count: number, baseZ: number): { x: number, y: number, z: number }[] => {
     const positions: { x: number, y: number, z: number }[] = [];
-    let cardIndex = 0;
     let currentZ = baseZ;
     
     while (positions.length < count) {
-      // 每层使用不同的偏移模式
-      const layerPattern = currentZ % 4;
+      // 计算当前层的偏移
+      // 层级越高，整体偏移越大，形成阶梯效果
+      const layerIndex = currentZ - baseZ;
       
-      // 基于层级的 X/Y 偏移（只用 0, 0.25, 0.5）
-      const xLayerOffset = NEAT_OFFSETS[layerPattern % 3];
-      const yLayerOffset = NEAT_OFFSETS[(layerPattern + 1) % 3];
+      // 每层固定偏移 0.25（1/4卡片 = 遮住1个角）
+      // 或者每2层偏移 0.5（1/2卡片 = 遮住2个角）
+      const xOffset = (layerIndex % 4) * 0.25;  // 0, 0.25, 0.5, 0.75, 0, ...
+      const yOffset = (layerIndex % 4) * 0.25;  // 同步偏移
       
-      // 在当前层放置卡片（整齐的网格排列）
-      for (let row = 0; row < GRID_HEIGHT && positions.length < count; row++) {
-        for (let col = 0; col < GRID_WIDTH && positions.length < count; col++) {
-          // 棋盘式跳过某些位置以创造层次感
-          if ((row + col + currentZ) % 2 === 0) {
-            const x = col + xLayerOffset;
-            const y = row + yLayerOffset;
-            
-            // 确保在边界内
-            if (x >= 0 && x <= GRID_COLS - 1 && y >= 0 && y <= GRID_ROWS - 1) {
-              positions.push({ x, y, z: currentZ });
-            }
+      // 在当前层按紧密网格排列
+      for (let row = 0; row < BASE_GRID_ROWS && positions.length < count; row++) {
+        for (let col = 0; col < BASE_GRID_COLS && positions.length < count; col++) {
+          // 整数网格位置 + 层级偏移
+          const x = col + xOffset + 0.5; // +0.5 居中
+          const y = row + yOffset + 0.5;
+          
+          // 确保在边界内
+          if (x >= 0 && x <= GRID_COLS - 1 && y >= 0 && y <= GRID_ROWS - 1) {
+            positions.push({ x, y, z: currentZ });
           }
         }
       }
@@ -307,8 +304,13 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     return positions;
   };
   
-  // 底层：z = 0-4
-  const bottomPositions = generateNeatPositions(mainBottom.length, 0, 0);
+  // 分类主区域卡片
+  const mainBottom = mainAreaCards.filter(c => c.layer === 'bottom');
+  const mainMiddle = mainAreaCards.filter(c => c.layer === 'middle');
+  const mainTop = mainAreaCards.filter(c => c.layer === 'top');
+  
+  // 底层：z = 0 开始
+  const bottomPositions = generateStaircasePositions(mainBottom.length, 0);
   mainBottom.forEach((card, idx) => {
     const pos = bottomPositions[idx];
     mainBlocks.push({
@@ -325,7 +327,7 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   const maxBottomZ = Math.max(...mainBlocks.map(b => b.z), 0);
   
   // 中层：紧接底层
-  const middlePositions = generateNeatPositions(mainMiddle.length, maxBottomZ + 1, 1);
+  const middlePositions = generateStaircasePositions(mainMiddle.length, maxBottomZ + 1);
   mainMiddle.forEach((card, idx) => {
     const pos = middlePositions[idx];
     mainBlocks.push({
@@ -341,8 +343,8 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   
   const maxMiddleZ = Math.max(...mainBlocks.map(b => b.z), 0);
   
-  // 顶层：最上面，更分散
-  const topPositions = generateNeatPositions(mainTop.length, maxMiddleZ + 1, 2);
+  // 顶层：最上面
+  const topPositions = generateStaircasePositions(mainTop.length, maxMiddleZ + 1);
   mainTop.forEach((card, idx) => {
     const pos = topPositions[idx];
     mainBlocks.push({
