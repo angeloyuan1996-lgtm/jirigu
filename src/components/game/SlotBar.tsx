@@ -10,13 +10,13 @@ export const SlotBar: React.FC = () => {
   const { slots, tempCache } = useGameStore();
   
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center">
       {/* Temp cache area - 木质风格 */}
       {tempCache.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-center gap-1 p-2 rounded-xl border-[3px] border-[#333]"
+          className="flex items-center justify-center gap-1 p-2 rounded-xl border-[3px] border-[#333] mb-3"
           style={{
             backgroundColor: 'hsl(25 70% 35%)',
           }}
@@ -131,17 +131,6 @@ export const SlotBar: React.FC = () => {
             backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(0,0,0,0.2) 8px, rgba(0,0,0,0.2) 9px)',
           }}
         />
-      </div>
-      
-      {/* Slot counter */}
-      <div 
-        className="text-sm font-bold px-3 py-1 rounded-full border-[2px] border-[#333]"
-        style={{
-          backgroundColor: '#FFFEF5',
-          color: '#333',
-        }}
-      >
-        {slots.length} / {MAX_SLOTS}
       </div>
     </div>
   );
