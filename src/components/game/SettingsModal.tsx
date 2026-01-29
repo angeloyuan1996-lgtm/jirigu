@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Volume2, VolumeX, Music, Home } from 'lucide-react';
+import { X, Volume2, VolumeX, Home } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useGameStore } from '@/stores/gameStore';
 
@@ -12,9 +12,7 @@ interface SettingsModalProps {
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { 
     soundEnabled, 
-    musicEnabled, 
     toggleSound, 
-    toggleMusic,
     abandonGame,
   } = useGameStore();
   
@@ -76,22 +74,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   checked={soundEnabled} 
                   onCheckedChange={toggleSound}
                   className="data-[state=checked]:bg-[#22C55E]"
-                />
-              </div>
-              
-              {/* Music toggle */}
-              <div 
-                className="flex items-center justify-between p-3 rounded-xl border-[2px] border-[#333]"
-                style={{ backgroundColor: '#FEF3C7' }}
-              >
-                <div className="flex items-center gap-3">
-                  <Music className="w-5 h-5 text-[#F59E0B]" strokeWidth={2.5} />
-                  <span className="font-bold text-[#333]">音乐</span>
-                </div>
-                <Switch 
-                  checked={musicEnabled} 
-                  onCheckedChange={toggleMusic}
-                  className="data-[state=checked]:bg-[#F59E0B]"
                 />
               </div>
             </div>
