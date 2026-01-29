@@ -238,7 +238,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   totalBlocks: 0,
   remainingBlocks: 0,
   soundEnabled: true,
-  musicEnabled: false,
+  musicEnabled: true,
 
   initLevel: (level: number) => {
     const blocks = generateLevel(level);
