@@ -51,11 +51,11 @@ export const FruitCard: React.FC<FruitCardProps> = ({
         opacity: 1,
       }}
     >
-      {/* 方块背景 - 纯色无渐变 */}
+      {/* 方块背景 - 乳白色 */}
       <div 
         className="absolute inset-0 rounded-lg"
         style={{
-          backgroundColor: '#FFFEF5', // 浅米色基底
+          backgroundColor: '#FFF8E7', // 乳白色
         }}
       />
       

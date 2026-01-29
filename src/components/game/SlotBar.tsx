@@ -30,7 +30,7 @@ export const SlotBar: React.FC = () => {
               style={{
                 width: SLOT_SIZE - 4,
                 height: SLOT_SIZE - 4,
-                backgroundColor: '#FFFEF5',
+                backgroundColor: '#FFF8E7',
               }}
             >
               <img 
@@ -110,7 +110,7 @@ export const SlotBar: React.FC = () => {
                 style={{
                   width: SLOT_SIZE,
                   height: SLOT_SIZE,
-                  backgroundColor: '#FFFEF5',
+                  backgroundColor: '#FFF8E7',
                 }}
               >
               <img 
