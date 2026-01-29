@@ -86,10 +86,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               >
                 <div className="flex items-center gap-3">
                   <Music className="w-5 h-5 text-[#F59E0B]" strokeWidth={2.5} />
-                  <div>
-                    <span className="font-bold text-[#333]">音乐</span>
-                    <span className="text-xs text-[#999] ml-2">(即将上线)</span>
-                  </div>
+                  <span className="font-bold text-[#333]">音乐</span>
                 </div>
                 <Switch 
                   checked={musicEnabled} 
