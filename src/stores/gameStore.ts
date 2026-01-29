@@ -110,10 +110,10 @@ const generateLevel = (level: number): FruitBlock[] => {
       }
     });
   } else {
-    // Level 2: 地狱难度 - 14种水果，每种6-9个，多层堆叠
+    // Level 2: 极限地狱难度 - 14种水果，每种9-12个，更多层堆叠
     // Zero Perfect Overlap: Every tile must be partially visible
     const numFruitTypes = 14;
-    const maxZ = 30;
+    const maxZ = 45; // 更多层级，更难
     
     // Grid system: coordinates in 0.5 increments
     const GRID_STEP = 0.5;
@@ -171,7 +171,8 @@ const generateLevel = (level: number): FruitBlock[] => {
     };
     
     selectedFruits.forEach((fruitType) => {
-      const blocksPerType = Math.random() > 0.5 ? 9 : 6;
+      // 更多方块：9-12个，增加难度
+      const blocksPerType = Math.random() > 0.4 ? 12 : 9;
       
       for (let i = 0; i < blocksPerType; i++) {
         // Generate base position
