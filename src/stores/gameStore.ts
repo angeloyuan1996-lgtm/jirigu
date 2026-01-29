@@ -12,34 +12,32 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 
 /**
  * AABB 矩形碰撞检测 - 判断两个方块是否重叠
- * 使用像素级坐标进行精确碰撞检测
- * 添加最小重叠阈值，确保只有真正覆盖时才判定为遮挡
+ * 严格像素级检测：只要有任何像素重叠就判定为遮挡
  */
 const checkOverlap = (target: FruitBlock, other: FruitBlock): boolean => {
-  // 最小重叠量（像素）- 至少有这么多像素的重叠才算遮挡
-  const MIN_OVERLAP_PX = 4;
+  // 计算 target 的边界 (x1, y1, x2, y2)
+  const targetX1 = target.x * BLOCK_SIZE;
+  const targetX2 = targetX1 + BLOCK_SIZE;
+  const targetY1 = target.y * BLOCK_SIZE;
+  const targetY2 = targetY1 + BLOCK_SIZE;
   
-  const targetLeft = target.x * BLOCK_SIZE;
-  const targetRight = targetLeft + BLOCK_SIZE;
-  const targetTop = target.y * BLOCK_SIZE;
-  const targetBottom = targetTop + BLOCK_SIZE;
+  // 计算 other 的边界 (x1, y1, x2, y2)
+  const otherX1 = other.x * BLOCK_SIZE;
+  const otherX2 = otherX1 + BLOCK_SIZE;
+  const otherY1 = other.y * BLOCK_SIZE;
+  const otherY2 = otherY1 + BLOCK_SIZE;
   
-  const otherLeft = other.x * BLOCK_SIZE;
-  const otherRight = otherLeft + BLOCK_SIZE;
-  const otherTop = other.y * BLOCK_SIZE;
-  const otherBottom = otherTop + BLOCK_SIZE;
+  // 严格 AABB 碰撞检测
+  // 如果两个矩形在任意轴上不重叠，则无碰撞
+  // 注意：使用 < 和 > 而非 <= 和 >= 确保即使 1px 重叠也能检测到
+  const isOverlapping = !(
+    targetX2 <= otherX1 ||  // target 在 other 左边
+    targetX1 >= otherX2 ||  // target 在 other 右边
+    targetY2 <= otherY1 ||  // target 在 other 上边
+    targetY1 >= otherY2     // target 在 other 下边
+  );
   
-  // 计算实际重叠区域
-  const overlapLeft = Math.max(targetLeft, otherLeft);
-  const overlapRight = Math.min(targetRight, otherRight);
-  const overlapTop = Math.max(targetTop, otherTop);
-  const overlapBottom = Math.min(targetBottom, otherBottom);
-  
-  const overlapWidth = overlapRight - overlapLeft;
-  const overlapHeight = overlapBottom - overlapTop;
-  
-  // 只有当重叠区域的宽和高都超过最小阈值时才算真正遮挡
-  return overlapWidth >= MIN_OVERLAP_PX && overlapHeight >= MIN_OVERLAP_PX;
+  return isOverlapping;
 };
 
 /**
