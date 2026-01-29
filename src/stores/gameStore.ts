@@ -711,13 +711,17 @@ export const useGameStore = create<GameState>((set, get) => ({
     // 撤回槽位里最后一张卡片（最右边的）
     const lastSlotBlock = state.slots[state.slots.length - 1];
     
+    // 从 mapData 中找到原始方块（保留了原始 x, y, z 坐标）
+    const originalBlock = state.mapData.find(b => b.id === lastSlotBlock.id);
+    if (!originalBlock) return;
+    
     // 从槽位移除最后一张
     const newSlots = state.slots.slice(0, -1);
     
-    // 将该卡片放回地图原位置
+    // 将该卡片放回地图原位置（使用 mapData 中保存的原始坐标）
     const updatedMapData = state.mapData.map(b => 
       b.id === lastSlotBlock.id 
-        ? { ...b, status: 'onMap' as const, x: lastSlotBlock.x, y: lastSlotBlock.y, z: lastSlotBlock.z }
+        ? { ...b, status: 'onMap' as const }
         : b
     );
     
