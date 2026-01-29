@@ -458,8 +458,16 @@ export const useGameStore = create<GameState>((set, get) => ({
       audio?.playClickSound();
     }
     
-    // Check game over
-    const isGameOver = finalSlots.length >= MAX_SLOTS && newTempCache.length > 0;
+    // Check game over - slots full with no match = game over
+    const isGameOver = finalSlots.length >= MAX_SLOTS && !matchedType;
+    
+    // Play game over sound
+    if (isGameOver) {
+      setTimeout(() => {
+        const audio = getAudioController();
+        audio?.playGameOverSound();
+      }, 200);
+    }
     
     set({
       slots: finalSlots,
