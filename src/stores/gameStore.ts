@@ -710,7 +710,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     
     const lastEntry = state.historyStack[state.historyStack.length - 1];
     
-    // Restore block to map
+    // 只撤回最后点击的那一张卡片，不恢复被消除的卡片
+    // 1. 将最后点击的卡片从槽位移除（如果它还在槽位中）
+    // 2. 将该卡片放回地图原位置
+    
+    // 从当前槽位中移除该卡片（如果存在）
+    const newSlots = state.slots.filter(s => s.id !== lastEntry.block.id);
+    
+    // 将该卡片放回地图原位置
     const updatedMapData = state.mapData.map(b => 
       b.id === lastEntry.block.id 
         ? { ...lastEntry.block, status: 'onMap' as const }
@@ -722,7 +729,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     
     set({
       mapData: blocksWithLock,
-      slots: lastEntry.previousSlots,
+      slots: newSlots,
       historyStack: state.historyStack.slice(0, -1),
       boostersUsed: { ...state.boostersUsed, undo: true },
       isGameOver: false,
