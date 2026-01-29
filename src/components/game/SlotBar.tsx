@@ -120,52 +120,7 @@ export const SlotBar: React.FC = () => {
   
   return (
     <div className="flex flex-col items-center">
-      {/* Booster Buffer Area */}
-      {tempCache.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="flex items-center justify-center gap-1 mb-3"
-        >
-          {Array.from({ length: BUFFER_SLOTS }).map((_, index) => {
-            const block = tempCache[index];
-            return (
-              <motion.div
-                key={block?.id || `empty-buffer-${index}`}
-                className="relative flex items-center justify-center rounded-lg border-[1.5px]"
-                style={{
-                  width: BUFFER_SLOT_SIZE,
-                  height: BUFFER_SLOT_SIZE,
-                  backgroundColor: block ? '#FFF8E7' : 'transparent',
-                  borderColor: block ? '#555' : 'transparent',
-                  cursor: block ? 'pointer' : 'default',
-                }}
-                onClick={() => block && clickBufferBlock(block.id)}
-                whileHover={block ? { scale: 1.05 } : undefined}
-                whileTap={block ? { scale: 0.95 } : undefined}
-              >
-                <AnimatePresence mode="wait">
-                  {block && (
-                    <motion.img
-                      key={block.id}
-                      src={FRUIT_ICONS[block.type]}
-                      alt={block.type}
-                      draggable={false}
-                      className="w-10 h-10"
-                      initial={{ scale: 0, y: 50, opacity: 0 }}
-                      animate={{ scale: 1, y: 0, opacity: 1 }}
-                      exit={{ scale: 0, y: 50, opacity: 0 }}
-                    />
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-      )}
-      
-      {/* 盲盒堆 - 在木栅栏正上方，左右两侧 */}
+      {/* 盲盒堆 - 在最上方，左右两侧 */}
       {showBlindStacks && (
         <div 
           className="flex items-end justify-between mb-2"
@@ -183,6 +138,50 @@ export const SlotBar: React.FC = () => {
           <BlindStack position="right" />
         </div>
       )}
+      
+      {/* Booster Buffer Area - 在盲盒堆和木栅栏之间 */}
+      <div 
+        className="flex items-center justify-center gap-1 mb-2"
+        style={{ 
+          width: MAX_SLOTS * SLOT_SIZE + (MAX_SLOTS - 1) * 4,
+          height: BUFFER_SLOT_SIZE + 8,
+        }}
+      >
+        {Array.from({ length: BUFFER_SLOTS }).map((_, index) => {
+          const block = tempCache[index];
+          return (
+            <motion.div
+              key={block?.id || `empty-buffer-${index}`}
+              className="relative flex items-center justify-center rounded-xl"
+              style={{
+                width: BUFFER_SLOT_SIZE,
+                height: BUFFER_SLOT_SIZE,
+                backgroundColor: block ? '#FFF8E7' : 'rgba(0,0,0,0.1)',
+                border: block ? '2px solid #555' : '2px dashed rgba(0,0,0,0.2)',
+                cursor: block ? 'pointer' : 'default',
+              }}
+              onClick={() => block && clickBufferBlock(block.id)}
+              whileHover={block ? { scale: 1.05 } : undefined}
+              whileTap={block ? { scale: 0.95 } : undefined}
+            >
+              <AnimatePresence mode="wait">
+                {block && (
+                  <motion.img
+                    key={block.id}
+                    src={FRUIT_ICONS[block.type]}
+                    alt={block.type}
+                    draggable={false}
+                    className="w-10 h-10"
+                    initial={{ scale: 0, y: -30, opacity: 0 }}
+                    animate={{ scale: 1, y: 0, opacity: 1 }}
+                    exit={{ scale: 0, y: 30, opacity: 0 }}
+                  />
+                )}
+              </AnimatePresence>
+            </motion.div>
+          );
+        })}
+      </div>
       
       {/* Main slot bar - 木栅栏 */}
       <div 
