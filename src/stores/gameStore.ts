@@ -67,41 +67,18 @@ const checkIsLocked = (target: FruitBlock, allTiles: FruitBlock[], targetIndex: 
   return false; // 无遮挡，解锁
 };
 
-// 生成盲盒堆数据
-const generateBlindStack = (position: 'left' | 'right', allFruits: FruitType[]): FruitBlock[] => {
-  const blocks: FruitBlock[] = [];
-  const STACK_SIZE = 10;
-  
-  // 从现有水果类型中随机选择
-  for (let i = 0; i < STACK_SIZE; i++) {
-    const randomFruit = allFruits[Math.floor(Math.random() * allFruits.length)];
-    blocks.push({
-      id: generateId(),
-      type: randomFruit,
-      x: 0, // 位置在渲染时确定
-      y: 0,
-      z: STACK_SIZE - i, // 底部z最高，顶部z最低
-      status: 'inBlindStack',
-      isLocked: i > 0, // 只有顶部可点击
-      blindStackPosition: position,
-      blindStackIndex: i,
-    });
-  }
-  
-  return blocks;
-};
-
 // Generate level data with "Hell Algorithm" - 羊了个羊级别难度
 // Key: Total count of each fruit type must be divisible by 3
+// 所有区域（主区域 + 盲盒堆）共享同一个资源池
 const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: FruitBlock[], rightStack: FruitBlock[] } => {
-  const blocks: FruitBlock[] = [];
   
   // Track used coordinates to prevent perfect overlaps
   const usedCoordinates = new Set<string>();
   const coordKey = (x: number, y: number) => `${x.toFixed(2)},${y.toFixed(2)}`;
   
   if (level === 1) {
-    // Level 1: 超简单 - 只有3种水果，每种3个 = 9张卡片，无重叠
+    // Level 1: 超简单 - 只有3种水果，每种3个 = 9张卡片，无重叠，无盲盒堆
+    const blocks: FruitBlock[] = [];
     const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
     const selectedFruits = shuffledFruits.slice(0, 3);
     
@@ -132,112 +109,121 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   }
   
   // ========== Level 2: 羊了个羊级别地狱难度 ==========
+  // 核心：先生成完整的卡片池，然后分配到各个区域
   
-  // 1/4 格偏移量 - 每个方块只被遮住1/4或1/2
+  const BLIND_STACK_SIZE = 10; // 每个盲盒堆10张
+  const NUM_FRUIT_TYPES = 14;
   const QUARTER_OFFSET = 0.25;
   
-  // 深井堆叠点配置 (3-4个中心堆叠点)
+  // 深井堆叠点配置
   const CLUSTER_POINTS = [
-    { x: 2.0, y: 2.0 },  // 左上
-    { x: 4.5, y: 2.0 },  // 右上
-    { x: 3.25, y: 4.5 }, // 中央
-    { x: 1.5, y: 5.5 },  // 左下
-    { x: 5.0, y: 5.5 },  // 右下
+    { x: 2.0, y: 2.0 },
+    { x: 4.5, y: 2.0 },
+    { x: 3.25, y: 4.5 },
+    { x: 1.5, y: 5.5 },
+    { x: 5.0, y: 5.5 },
   ];
-  
-  const WELL_DEPTH = 45; // 每个堆叠点40-50层
-  const NUM_FRUIT_TYPES = 14;
   
   // 打乱水果类型
   const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
   const selectedFruits = shuffledFruits.slice(0, NUM_FRUIT_TYPES);
   
-  // 计算每种水果需要的数量 (必须是3的倍数)
-  // 主区域 70% 约 9个三元组 * 14种 ≈ 378张
-  // 盲盒堆 20张
-  // 总计约 400+ 张牌
-  
-  // 数学死局策略：每种水果分配若干个三元组
-  // 故意让2张在顶层，1张埋在底层
-  
-  interface PlannedBlock {
+  // ===== 第一步：生成完整的卡片池（所有水果数量是3的倍数）=====
+  interface CardInfo {
     type: FruitType;
-    isBottomBuried: boolean; // 是否深埋底层
-    clusterIndex: number; // 分配到哪个堆叠点
+    isBottomBuried: boolean;
   }
   
-  const plannedBlocks: PlannedBlock[] = [];
+  const totalCardPool: CardInfo[] = [];
   
   selectedFruits.forEach((fruitType) => {
     // 每种水果 9-12 个 (必须是3的倍数)
-    const triplets = Math.random() > 0.5 ? 4 : 3; // 3-4个三元组 = 9-12个
+    const triplets = Math.random() > 0.5 ? 4 : 3; // 3-4个三元组
     
     for (let t = 0; t < triplets; t++) {
-      const clusterIndex = Math.floor(Math.random() * CLUSTER_POINTS.length);
-      
-      // 数学死局：每个三元组中，2张放顶层，1张埋底层
+      // 数学死局：每个三元组中，1张深埋，2张顶层
       for (let i = 0; i < 3; i++) {
-        plannedBlocks.push({
+        totalCardPool.push({
           type: fruitType,
-          isBottomBuried: i === 0, // 第一张深埋
-          clusterIndex: i === 0 
-            ? Math.floor(Math.random() * CLUSTER_POINTS.length) // 深埋的分散到不同堆叠点
-            : clusterIndex,
+          isBottomBuried: i === 0,
         });
       }
     }
   });
   
-  // 打乱顺序但保持死局结构
-  const shuffledPlanned = [...plannedBlocks].sort(() => Math.random() - 0.5);
+  // 打乱整个卡片池
+  const shuffledPool = [...totalCardPool].sort(() => Math.random() - 0.5);
   
-  // 为每个堆叠点分配的方块
-  const clusterBlocks: PlannedBlock[][] = CLUSTER_POINTS.map(() => []);
+  // ===== 第二步：从卡片池中分配到盲盒堆 =====
+  const leftStackCards = shuffledPool.splice(0, BLIND_STACK_SIZE);
+  const rightStackCards = shuffledPool.splice(0, BLIND_STACK_SIZE);
   
-  shuffledPlanned.forEach((pb) => {
-    clusterBlocks[pb.clusterIndex].push(pb);
+  // 剩余的卡片放入主区域
+  const mainAreaCards = shuffledPool;
+  
+  // ===== 第三步：生成盲盒堆 FruitBlock =====
+  const createBlindStack = (cards: CardInfo[], position: 'left' | 'right'): FruitBlock[] => {
+    return cards.map((card, index) => ({
+      id: generateId(),
+      type: card.type,
+      x: 0,
+      y: 0,
+      z: BLIND_STACK_SIZE - index, // 底部z最高，顶部z最低
+      status: 'inBlindStack' as const,
+      isLocked: index > 0, // 只有顶部可点击
+      blindStackPosition: position,
+      blindStackIndex: index,
+    }));
+  };
+  
+  const leftStack = createBlindStack(leftStackCards, 'left');
+  const rightStack = createBlindStack(rightStackCards, 'right');
+  
+  // ===== 第四步：生成主区域方块 =====
+  const mainBlocks: FruitBlock[] = [];
+  
+  // 分配到各个堆叠点
+  const clusterCards: CardInfo[][] = CLUSTER_POINTS.map(() => []);
+  
+  mainAreaCards.forEach((card, idx) => {
+    const clusterIndex = idx % CLUSTER_POINTS.length;
+    clusterCards[clusterIndex].push(card);
   });
   
-  // 生成实际方块
-  clusterBlocks.forEach((cluster, clusterIdx) => {
+  // 为每个堆叠点生成方块
+  clusterCards.forEach((cluster, clusterIdx) => {
     const basePoint = CLUSTER_POINTS[clusterIdx];
     
     // 分离深埋块和顶层块
-    const buriedBlocks = cluster.filter(b => b.isBottomBuried);
-    const topBlocks = cluster.filter(b => !b.isBottomBuried);
+    const buriedCards = cluster.filter(c => c.isBottomBuried);
+    const topCards = cluster.filter(c => !c.isBottomBuried);
     
     // 先放置深埋块在底层
-    buriedBlocks.forEach((pb, idx) => {
-      // 底层使用 1/4 偏移创建紧密交错
+    buriedCards.forEach((card, idx) => {
       const offsetX = (idx % 4) * QUARTER_OFFSET - 0.375;
       const offsetY = Math.floor(idx / 4) * QUARTER_OFFSET - 0.375;
       
       const x = Math.max(0, Math.min(GRID_COLS - 1, basePoint.x + offsetX));
       const y = Math.max(0, Math.min(GRID_ROWS - 1, basePoint.y + offsetY));
-      const z = idx; // 最底层
+      const z = idx;
       
-      const key = coordKey(x, y);
-      if (!usedCoordinates.has(key)) {
-        usedCoordinates.add(key);
-        blocks.push({
-          id: generateId(),
-          type: pb.type,
-          x,
-          y,
-          z,
-          status: 'onMap',
-          isLocked: false,
-        });
-      }
+      mainBlocks.push({
+        id: generateId(),
+        type: card.type,
+        x,
+        y,
+        z,
+        status: 'onMap',
+        isLocked: false,
+      });
+      usedCoordinates.add(coordKey(x, y));
     });
     
-    // 在顶层放置其他方块，使用1/4偏移
-    topBlocks.forEach((pb, idx) => {
-      // 顶层使用更紧密的1/4偏移
+    // 在顶层放置其他方块
+    topCards.forEach((card, idx) => {
       const spiralIdx = idx % 16;
       const layer = Math.floor(idx / 16);
       
-      // 螺旋式偏移 - 1/4格步进
       const offsetPatterns = [
         { dx: 0, dy: 0 },
         { dx: QUARTER_OFFSET, dy: 0 },
@@ -260,57 +246,42 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
       const pattern = offsetPatterns[spiralIdx];
       const x = Math.max(0, Math.min(GRID_COLS - 1, basePoint.x + pattern.dx + layer * 0.1));
       const y = Math.max(0, Math.min(GRID_ROWS - 1, basePoint.y + pattern.dy + layer * 0.1));
-      const z = buriedBlocks.length + idx + layer * 16; // 在深埋块之上
+      const z = buriedCards.length + idx + layer * 16;
       
-      const key = coordKey(x, y);
-      // 允许部分重叠（这是1/4偏移的关键）
-      usedCoordinates.add(key);
-      blocks.push({
+      mainBlocks.push({
         id: generateId(),
-        type: pb.type,
+        type: card.type,
         x,
         y,
         z,
         status: 'onMap',
         isLocked: false,
       });
+      usedCoordinates.add(coordKey(x, y));
     });
   });
   
-  // 30% 的边缘散布方块 (增加迷惑性)
-  const edgeCount = Math.floor(blocks.length * 0.15);
-  const edgeFruits = selectedFruits.slice(0, 7); // 用前7种水果
-  
-  for (let i = 0; i < edgeCount; i++) {
+  // 添加边缘散布方块（从主区域抽取一些放到边缘）
+  const edgeCount = Math.floor(mainBlocks.length * 0.1);
+  for (let i = 0; i < edgeCount && i < mainBlocks.length; i++) {
+    const block = mainBlocks[i];
     const isLeft = Math.random() > 0.5;
-    const x = isLeft ? Math.random() * 1.5 : GRID_COLS - 1.5 + Math.random() * 1;
-    const y = Math.random() * (GRID_ROWS - 1);
-    const z = Math.floor(Math.random() * 20); // 较低的z值
-    
-    blocks.push({
-      id: generateId(),
-      type: edgeFruits[i % edgeFruits.length],
-      x: Math.max(0, Math.min(GRID_COLS - 1, x)),
-      y: Math.max(0, Math.min(GRID_ROWS - 1, y)),
-      z,
-      status: 'onMap',
-      isLocked: false,
-    });
+    block.x = isLeft 
+      ? Math.random() * 1.5 
+      : GRID_COLS - 1.5 + Math.random() * 1;
+    block.y = Math.random() * (GRID_ROWS - 1);
+    block.z = Math.floor(Math.random() * 15);
+    block.x = Math.max(0, Math.min(GRID_COLS - 1, block.x));
+    block.y = Math.max(0, Math.min(GRID_ROWS - 1, block.y));
   }
   
-  // 确保总数是3的倍数 (通过调整)
-  const remainder = blocks.length % 3;
-  if (remainder > 0) {
-    // 移除多余的方块
-    blocks.splice(-remainder, remainder);
-  }
-  
-  // 生成盲盒堆
-  const leftStack = generateBlindStack('left', selectedFruits);
-  const rightStack = generateBlindStack('right', selectedFruits);
+  // 验证总数是3的倍数
+  const totalCount = mainBlocks.length + leftStack.length + rightStack.length;
+  console.log(`[Level 2] Total cards: ${totalCount} (main: ${mainBlocks.length}, left: ${leftStack.length}, right: ${rightStack.length})`);
+  console.log(`[Level 2] Is multiple of 3: ${totalCount % 3 === 0}`);
   
   return { 
-    mainBlocks: blocks.sort((a, b) => a.z - b.z), 
+    mainBlocks: mainBlocks.sort((a, b) => a.z - b.z), 
     leftStack, 
     rightStack 
   };
