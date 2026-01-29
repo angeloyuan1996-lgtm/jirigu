@@ -92,16 +92,14 @@ const isExactSamePosition = (x1: number, y1: number, z1: number, x2: number, y2:
          z1 === z2;
 };
 
-// 允许的偏移量：只能是 1/4 (0.25) 或 1/2 (0.5) 卡片尺寸
-// 禁止完全重叠（0）和 3/4 偏移
-const ALLOWED_OFFSETS = [0.25, 0.5]; // 四分之一 或 四分之二
+// 允许的偏移量（1/4, 1/2, 3/4 卡片尺寸）
+const ALLOWED_OFFSETS = [1, 2, 3]; // 对应 0.25, 0.5, 0.75
 
-// 生成强制偏移（确保上下层不会完全重叠）
+// 生成阶梯式偏移（确保只产生规则的 1/4、1/2、3/4 遮挡）
 const generateStaircaseOffset = (): { dx: number, dy: number } => {
-  const offsetX = ALLOWED_OFFSETS[Math.floor(Math.random() * ALLOWED_OFFSETS.length)];
-  const offsetY = ALLOWED_OFFSETS[Math.floor(Math.random() * ALLOWED_OFFSETS.length)];
-  const dx = offsetX * (Math.random() > 0.5 ? 1 : -1);
-  const dy = offsetY * (Math.random() > 0.5 ? 1 : -1);
+  const offsetUnits = ALLOWED_OFFSETS[Math.floor(Math.random() * ALLOWED_OFFSETS.length)];
+  const dx = offsetUnits * GRID_UNIT * (Math.random() > 0.5 ? 1 : -1);
+  const dy = offsetUnits * GRID_UNIT * (Math.random() > 0.5 ? 1 : -1);
   return { dx, dy };
 };
 
@@ -284,8 +282,7 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     return 'half-y'; // 15% half-y
   };
   
-  // 根据层级和随机种子获取偏移量
-  // 强制：偏移只能是 0.25 或 0.5，禁止完全重叠
+  // 根据层级和随机种子获取偏移量（更随机化）
   const getLayerOffset = (layerIndex: number, posIndex: number): { dx: number, dy: number } => {
     const seed = layerIndex * 31 + posIndex * 7;
     const pattern = getRandomOverlapMode(seed);
@@ -294,19 +291,13 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     const dirX = Math.sin(seed * 17) > 0 ? 1 : -1;
     const dirY = Math.sin(seed * 23) > 0 ? 1 : -1;
     
-    // 随机选择偏移量：0.25（四分之一）或 0.5（四分之二）
-    const offsetAmount = Math.sin(seed * 41) > 0 ? 0.5 : 0.25;
-    
     switch (pattern) {
       case 'half-x':
-        // X方向偏移，Y方向也要有偏移避免完全对齐
-        return { dx: offsetAmount * dirX, dy: 0.25 * dirY };
+        return { dx: 0.5 * dirX, dy: 0 };
       case 'half-y':
-        // Y方向偏移，X方向也要有偏移避免完全对齐
-        return { dx: 0.25 * dirX, dy: offsetAmount * dirY };
+        return { dx: 0, dy: 0.5 * dirY };
       case 'corner':
-        // 两个方向都偏移
-        return { dx: offsetAmount * dirX, dy: offsetAmount * dirY };
+        return { dx: 0.5 * dirX, dy: 0.5 * dirY };
       default:
         return { dx: 0.5 * dirX, dy: 0.5 * dirY };
     }
@@ -400,9 +391,9 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
           const baseX = col * 1.0; // 原本是col，现在加大间距
           const baseY = row * 1.0;
           
-          // 添加随机抖动（0.25 或 0.5），禁止0避免完全重叠
-          const jitterX = Math.sin(layerIndex * 23 + col * 7 + row * 11) > 0 ? 0.5 : 0.25;
-          const jitterY = Math.sin(layerIndex * 29 + col * 11 + row * 7) > 0 ? 0.5 : 0.25;
+          // 添加随机抖动（0 或 0.5）
+          const jitterX = Math.sin(layerIndex * 23 + col * 7 + row * 11) > 0 ? 0.5 : 0;
+          const jitterY = Math.sin(layerIndex * 29 + col * 11 + row * 7) > 0 ? 0.5 : 0;
           
           let x = baseX + dx + jitterX;
           let y = baseY + dy + jitterY;
