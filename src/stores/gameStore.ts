@@ -13,8 +13,12 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 /**
  * AABB 矩形碰撞检测 - 判断两个方块是否重叠
  * 使用像素级坐标进行精确碰撞检测
+ * 添加最小重叠阈值，确保只有真正覆盖时才判定为遮挡
  */
 const checkOverlap = (target: FruitBlock, other: FruitBlock): boolean => {
+  // 最小重叠量（像素）- 至少有这么多像素的重叠才算遮挡
+  const MIN_OVERLAP_PX = 4;
+  
   const targetLeft = target.x * BLOCK_SIZE;
   const targetRight = targetLeft + BLOCK_SIZE;
   const targetTop = target.y * BLOCK_SIZE;
@@ -25,15 +29,17 @@ const checkOverlap = (target: FruitBlock, other: FruitBlock): boolean => {
   const otherTop = other.y * BLOCK_SIZE;
   const otherBottom = otherTop + BLOCK_SIZE;
   
-  // AABB 碰撞检测：如果任意边界不重叠，则无碰撞
-  const isOverlapping = !(
-    targetRight <= otherLeft ||
-    targetLeft >= otherRight ||
-    targetBottom <= otherTop ||
-    targetTop >= otherBottom
-  );
+  // 计算实际重叠区域
+  const overlapLeft = Math.max(targetLeft, otherLeft);
+  const overlapRight = Math.min(targetRight, otherRight);
+  const overlapTop = Math.max(targetTop, otherTop);
+  const overlapBottom = Math.min(targetBottom, otherBottom);
   
-  return isOverlapping;
+  const overlapWidth = overlapRight - overlapLeft;
+  const overlapHeight = overlapBottom - overlapTop;
+  
+  // 只有当重叠区域的宽和高都超过最小阈值时才算真正遮挡
+  return overlapWidth >= MIN_OVERLAP_PX && overlapHeight >= MIN_OVERLAP_PX;
 };
 
 /**
