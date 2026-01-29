@@ -13,23 +13,25 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 /**
  * AABB 矩形碰撞检测 - 判断两个方块是否重叠
  * 严格像素级检测：只要有任何像素重叠就判定为遮挡
+ * 
+ * 注意：使用逻辑坐标（grid units）而不是像素坐标
+ * 这样可以避免浮点数精度问题
  */
 const checkOverlap = (target: FruitBlock, other: FruitBlock): boolean => {
-  // 计算 target 的边界 (x1, y1, x2, y2)
-  const targetX1 = target.x * BLOCK_SIZE;
-  const targetX2 = targetX1 + BLOCK_SIZE;
-  const targetY1 = target.y * BLOCK_SIZE;
-  const targetY2 = targetY1 + BLOCK_SIZE;
+  // 使用逻辑坐标进行碰撞检测（单位：grid units，每个方块占1格）
+  const targetX1 = target.x;
+  const targetX2 = target.x + 1; // 每个方块宽度为1个grid unit
+  const targetY1 = target.y;
+  const targetY2 = target.y + 1;
   
-  // 计算 other 的边界 (x1, y1, x2, y2)
-  const otherX1 = other.x * BLOCK_SIZE;
-  const otherX2 = otherX1 + BLOCK_SIZE;
-  const otherY1 = other.y * BLOCK_SIZE;
-  const otherY2 = otherY1 + BLOCK_SIZE;
+  const otherX1 = other.x;
+  const otherX2 = other.x + 1;
+  const otherY1 = other.y;
+  const otherY2 = other.y + 1;
   
   // 严格 AABB 碰撞检测
   // 如果两个矩形在任意轴上不重叠，则无碰撞
-  // 注意：使用 < 和 > 而非 <= 和 >= 确保即使 1px 重叠也能检测到
+  // 使用 < 确保即使微小重叠也能检测到
   const isOverlapping = !(
     targetX2 <= otherX1 ||  // target 在 other 左边
     targetX1 >= otherX2 ||  // target 在 other 右边
@@ -42,26 +44,19 @@ const checkOverlap = (target: FruitBlock, other: FruitBlock): boolean => {
 
 /**
  * 判定方块是否被遮挡的算法
- * 检查是否有任何更高层或同层但后渲染的方块遮挡目标方块
+ * 只检查 z 值更高的方块（真正在上层的方块）
  * @param target 目标方块
- * @param allTiles 所有方块（已按 z 排序，同 z 时按数组顺序渲染）
- * @param targetIndex 目标方块在数组中的索引
+ * @param allTiles 所有方块
  */
-const checkIsLocked = (target: FruitBlock, allTiles: FruitBlock[], targetIndex: number): boolean => {
-  // 遍历所有在目标之后渲染的方块（这些方块会在视觉上覆盖目标）
-  // 包括：1. z > target.z 的方块  2. z == target.z 但数组索引更大的方块
-  for (let i = 0; i < allTiles.length; i++) {
-    const tile = allTiles[i];
-    
+const checkIsLocked = (target: FruitBlock, allTiles: FruitBlock[]): boolean => {
+  for (const tile of allTiles) {
     // 跳过自己和已移除的方块
     if (tile.id === target.id || tile.status !== 'onMap') continue;
     
-    // 判断这个 tile 是否在视觉上覆盖 target
-    // 条件：z 更高，或者 z 相同但在数组中位置更靠后（后渲染 = 在上面）
-    const isVisuallyAbove = tile.z > target.z || (tile.z === target.z && i > targetIndex);
-    
-    if (isVisuallyAbove && checkOverlap(target, tile)) {
-      return true; // 被遮挡，锁定
+    // 只有 z 值严格大于 target 的方块才能遮挡它
+    // 同层方块不能互相遮挡（它们是并排的，只是渲染顺序不同）
+    if (tile.z > target.z && checkOverlap(target, tile)) {
+      return true; // 被上层方块遮挡，锁定
     }
   }
   return false; // 无遮挡，解锁
@@ -149,11 +144,11 @@ const generateLevel = (level: number): FruitBlock[] => {
  * 遍历所有方块更新锁定状态
  */
 const calculateLockStatus = (blocks: FruitBlock[]): FruitBlock[] => {
-  return blocks.map((block, index) => {
+  return blocks.map((block) => {
     if (block.status !== 'onMap') {
       return { ...block, isLocked: false };
     }
-    return { ...block, isLocked: checkIsLocked(block, blocks, index) };
+    return { ...block, isLocked: checkIsLocked(block, blocks) };
   });
 };
 
