@@ -1,7 +1,7 @@
 export type FruitType = 
   | 'apple' | 'banana' | 'cherry' | 'grape' | 'lemon'
-  | 'orange' | 'peach' | 'pear' | 'pineapple' | 'strawberry'
-  | 'watermelon' | 'dragonfruit' | 'kiwi' | 'blueberry';
+  | 'orange' | 'peach' | 'pear' | 'coconut' | 'strawberry'
+  | 'watermelon' | 'tomato' | 'kiwi' | 'blueberry';
 
 export interface FruitBlock {
   id: string;
@@ -70,10 +70,10 @@ export const FRUIT_EMOJIS: Record<FruitType, string> = {
   orange: '🍊',
   peach: '🍑',
   pear: '🍐',
-  pineapple: '🍍',
+  coconut: '🥥',
   strawberry: '🍓',
   watermelon: '🍉',
-  dragonfruit: '🐉',
+  tomato: '🍅',
   kiwi: '🥝',
   blueberry: '🫐',
 };
@@ -89,10 +89,10 @@ export const FRUIT_ICONS: Record<FruitType, string> = {
   orange: 'https://openmoji.org/data/color/svg/1F34A.svg',
   peach: 'https://openmoji.org/data/color/svg/1F351.svg',
   pear: 'https://openmoji.org/data/color/svg/1F350.svg',
-  pineapple: 'https://openmoji.org/data/color/svg/1F34D.svg',
+  coconut: 'https://openmoji.org/data/color/svg/1F965.svg',
   strawberry: 'https://openmoji.org/data/color/svg/1F353.svg',
   watermelon: 'https://openmoji.org/data/color/svg/1F349.svg',
-  dragonfruit: 'https://openmoji.org/data/color/svg/1F409.svg', // Dragon as placeholder
+  tomato: 'https://openmoji.org/data/color/svg/1F345.svg',
   kiwi: 'https://openmoji.org/data/color/svg/1F95D.svg',
   blueberry: 'https://openmoji.org/data/color/svg/1FAD0.svg',
 };
@@ -106,16 +106,16 @@ export const FRUIT_COLORS: Record<FruitType, string> = {
   orange: '#FB923C',
   peach: '#FBBF24',
   pear: '#84CC16',
-  pineapple: '#FACC15',
+  coconut: '#8B4513',
   strawberry: '#F43F5E',
   watermelon: '#22C55E',
-  dragonfruit: '#FF1493',
+  tomato: '#FF6347',
   kiwi: '#65A30D',
   blueberry: '#6366F1',
 };
 
 export const ALL_FRUITS: FruitType[] = [
   'apple', 'banana', 'cherry', 'grape', 'lemon',
-  'orange', 'peach', 'pear', 'pineapple', 'strawberry',
-  'watermelon', 'dragonfruit', 'kiwi', 'blueberry'
+  'orange', 'peach', 'pear', 'coconut', 'strawberry',
+  'watermelon', 'tomato', 'kiwi', 'blueberry'
 ];
