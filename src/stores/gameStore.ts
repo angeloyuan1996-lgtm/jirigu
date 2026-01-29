@@ -351,61 +351,6 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     return mask;
   };
   
-  // 追踪所有已放置位置（用于检测完全重叠）
-  const placedPositions: { x: number, y: number, z: number }[] = [];
-  
-  // 检查是否与已有位置完全重叠（同XY坐标，相邻层级）
-  const hasFullOverlap = (x: number, y: number, z: number): boolean => {
-    const snappedX = snapToGrid(x);
-    const snappedY = snapToGrid(y);
-    
-    // 检查相邻3层（当前层、上一层、下一层）
-    for (const pos of placedPositions) {
-      if (Math.abs(pos.z - z) <= 2) { // 相邻层
-        if (snapToGrid(pos.x) === snappedX && snapToGrid(pos.y) === snappedY) {
-          return true; // 发现完全重叠
-        }
-      }
-    }
-    return false;
-  };
-  
-  // 强制偏移以避免完全重叠
-  const forceOffset = (x: number, y: number, z: number, seed: number): { x: number, y: number } => {
-    // 尝试不同的偏移方向
-    const offsets = [
-      { dx: 0.5, dy: 0 },
-      { dx: -0.5, dy: 0 },
-      { dx: 0, dy: 0.5 },
-      { dx: 0, dy: -0.5 },
-      { dx: 0.5, dy: 0.5 },
-      { dx: -0.5, dy: 0.5 },
-      { dx: 0.5, dy: -0.5 },
-      { dx: -0.5, dy: -0.5 },
-      { dx: 0.25, dy: 0.25 },
-      { dx: -0.25, dy: 0.25 },
-    ];
-    
-    // 使用种子选择起始偏移
-    const startIdx = Math.floor(Math.abs(Math.sin(seed * 17)) * offsets.length);
-    
-    for (let i = 0; i < offsets.length; i++) {
-      const idx = (startIdx + i) % offsets.length;
-      const newX = Math.max(0, Math.min(GRID_COLS - 1, x + offsets[idx].dx));
-      const newY = Math.max(0, Math.min(GRID_ROWS - 1, y + offsets[idx].dy));
-      
-      if (!hasFullOverlap(newX, newY, z)) {
-        return { x: newX, y: newY };
-      }
-    }
-    
-    // 如果所有偏移都失败，返回带0.5偏移的位置
-    return { 
-      x: Math.max(0, Math.min(GRID_COLS - 1, x + 0.5)), 
-      y: Math.max(0, Math.min(GRID_ROWS - 1, y + 0.5)) 
-    };
-  };
-  
   // 生成"乱中有序"的网格位置 - 避免整齐并排，强制错位遮挡
   const generateChaoticGridPositions = (count: number, baseZ: number): { x: number, y: number, z: number }[] => {
     const positions: { x: number, y: number, z: number }[] = [];
@@ -443,7 +388,7 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
           const { dx, dy } = getLayerOffset(layerIndex, col * 100 + row);
           
           // 基础位置使用更大的间距 + 随机0.5偏移
-          const baseX = col * 1.0;
+          const baseX = col * 1.0; // 原本是col，现在加大间距
           const baseY = row * 1.0;
           
           // 添加随机抖动（0 或 0.5）
@@ -453,16 +398,9 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
           let x = baseX + dx + jitterX;
           let y = baseY + dy + jitterY;
           
-          // 确保在边界内
+          // 确保在边界内（留出1个单位的边距，因为卡片占1个单位）
           x = Math.max(0, Math.min(x, GRID_COLS - 1));
           y = Math.max(0, Math.min(y, GRID_ROWS - 1));
-          
-          // ★ 关键：检查并避免完全重叠 ★
-          if (hasFullOverlap(x, y, currentZ)) {
-            const corrected = forceOffset(x, y, currentZ, layerIndex * 1000 + col * 100 + row);
-            x = corrected.x;
-            y = corrected.y;
-          }
           
           layerPositions.push({ x, y });
         }
@@ -474,18 +412,7 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
       // 添加位置
       for (const pos of layerPositions) {
         if (positions.length >= count) break;
-        
-        // 再次检查完全重叠（因为同层也可能重复）
-        let finalX = pos.x;
-        let finalY = pos.y;
-        if (hasFullOverlap(finalX, finalY, currentZ)) {
-          const corrected = forceOffset(finalX, finalY, currentZ, globalPosIndex * 7);
-          finalX = corrected.x;
-          finalY = corrected.y;
-        }
-        
-        positions.push({ x: finalX, y: finalY, z: currentZ });
-        placedPositions.push({ x: finalX, y: finalY, z: currentZ }); // 记录已放置位置
+        positions.push({ x: pos.x, y: pos.y, z: currentZ });
         globalPosIndex++;
       }
       
