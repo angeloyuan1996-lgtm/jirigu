@@ -26,7 +26,7 @@ export const SlotBar: React.FC = () => {
               key={block.id}
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="flex items-center justify-center rounded-lg border-[2px] border-[#333]"
+              className="flex items-center justify-center rounded-lg border-[1.5px] border-[#555]"
               style={{
                 width: SLOT_SIZE - 4,
                 height: SLOT_SIZE - 4,
@@ -106,7 +106,7 @@ export const SlotBar: React.FC = () => {
                   },
                   opacity: { duration: 0.2 },
                 }}
-                className="flex items-center justify-center rounded-lg border-[3px] border-[#333]"
+                className="flex items-center justify-center rounded-lg border-[1.5px] border-[#555]"
                 style={{
                   width: SLOT_SIZE,
                   height: SLOT_SIZE,
