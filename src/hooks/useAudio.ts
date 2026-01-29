@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import { useGameStore } from '@/stores/gameStore';
 
 // Web Audio API for generating game sounds
 export const useAudio = () => {
@@ -11,8 +12,11 @@ export const useAudio = () => {
     return audioContextRef.current;
   }, []);
   
+  const isSoundEnabled = () => useGameStore.getState().soundEnabled;
+  
   // Match-3 success sound - triumphant ascending tone
   const playMatchSound = useCallback(() => {
+    if (!isSoundEnabled()) return;
     try {
       const ctx = getAudioContext();
       const currentTime = ctx.currentTime;
@@ -57,6 +61,7 @@ export const useAudio = () => {
   
   // Click/tap sound
   const playClickSound = useCallback(() => {
+    if (!isSoundEnabled()) return;
     try {
       const ctx = getAudioContext();
       const currentTime = ctx.currentTime;
@@ -83,6 +88,7 @@ export const useAudio = () => {
   
   // Game over sound
   const playGameOverSound = useCallback(() => {
+    if (!isSoundEnabled()) return;
     try {
       const ctx = getAudioContext();
       const currentTime = ctx.currentTime;
@@ -109,6 +115,7 @@ export const useAudio = () => {
   
   // Victory sound
   const playVictorySound = useCallback(() => {
+    if (!isSoundEnabled()) return;
     try {
       const ctx = getAudioContext();
       const currentTime = ctx.currentTime;

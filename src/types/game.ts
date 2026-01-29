@@ -49,6 +49,10 @@ export interface GameState {
   totalBlocks: number;
   remainingBlocks: number;
   
+  // Settings
+  soundEnabled: boolean;
+  musicEnabled: boolean;
+  
   // Actions
   initLevel: (level: number) => void;
   clickBlock: (blockId: string) => void;
@@ -60,6 +64,9 @@ export interface GameState {
   reviveWithWhatsApp: () => void;
   restartGame: () => void;
   updateLockStatus: () => void;
+  toggleSound: () => void;
+  toggleMusic: () => void;
+  abandonGame: () => void;
 }
 
 export const FRUIT_EMOJIS: Record<FruitType, string> = {
