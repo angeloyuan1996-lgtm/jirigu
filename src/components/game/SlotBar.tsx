@@ -155,13 +155,6 @@ export const SlotBar: React.FC = () => {
           </AnimatePresence>
         </div>
         
-        {/* 木纹纹理 - 水平木条 */}
-        <div 
-          className="absolute inset-0 rounded-xl opacity-15 pointer-events-none"
-          style={{
-            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(0,0,0,0.2) 8px, rgba(0,0,0,0.2) 9px)',
-          }}
-        />
       </div>
     </div>
   );
