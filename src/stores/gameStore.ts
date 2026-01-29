@@ -259,24 +259,40 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   const leftStack = createBlindStack(leftStackCards, 'left');
   const rightStack = createBlindStack(rightStackCards, 'right');
   
-  // ===== 简单网格布局（无阶梯偏移） =====
+  // ===== 整齐阶梯堆叠生成 =====
+  // 只允许 0.25 和 0.5 的偏移（对应遮住1个角 或 2个角/一半）
+  // 关键：相邻层之间的偏移是规则的阶梯形
+  
   const mainBlocks: FruitBlock[] = [];
   
   // 基础网格尺寸
   const BASE_GRID_COLS = 5;
   const BASE_GRID_ROWS = 6;
   
-  // 生成简单网格位置（无偏移）
-  const generateGridPositions = (count: number, baseZ: number): { x: number, y: number, z: number }[] => {
+  // 生成整齐阶梯堆叠的位置
+  // 每一层相对于上一层偏移 0.25 或 0.5（遮住1角或2角）
+  const generateStaircasePositions = (count: number, baseZ: number): { x: number, y: number, z: number }[] => {
     const positions: { x: number, y: number, z: number }[] = [];
     let currentZ = baseZ;
     
     while (positions.length < count) {
+      // 计算当前层的偏移
+      // 层级越高，整体偏移越大，形成阶梯效果
+      const layerIndex = currentZ - baseZ;
+      
+      // 每层固定偏移 0.25（1/4卡片 = 遮住1个角）
+      // 或者每2层偏移 0.5（1/2卡片 = 遮住2个角）
+      const xOffset = (layerIndex % 4) * 0.25;  // 0, 0.25, 0.5, 0.75, 0, ...
+      const yOffset = (layerIndex % 4) * 0.25;  // 同步偏移
+      
+      // 在当前层按紧密网格排列
       for (let row = 0; row < BASE_GRID_ROWS && positions.length < count; row++) {
         for (let col = 0; col < BASE_GRID_COLS && positions.length < count; col++) {
-          const x = col + 0.5;
-          const y = row + 0.5;
+          // 整数网格位置 + 层级偏移
+          const x = col + xOffset + 0.5; // +0.5 居中
+          const y = row + yOffset + 0.5;
           
+          // 确保在边界内
           if (x >= 0 && x <= GRID_COLS - 1 && y >= 0 && y <= GRID_ROWS - 1) {
             positions.push({ x, y, z: currentZ });
           }
@@ -293,8 +309,8 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   const mainMiddle = mainAreaCards.filter(c => c.layer === 'middle');
   const mainTop = mainAreaCards.filter(c => c.layer === 'top');
   
-  // 底层
-  const bottomPositions = generateGridPositions(mainBottom.length, 0);
+  // 底层：z = 0 开始
+  const bottomPositions = generateStaircasePositions(mainBottom.length, 0);
   mainBottom.forEach((card, idx) => {
     const pos = bottomPositions[idx];
     mainBlocks.push({
@@ -310,8 +326,8 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   
   const maxBottomZ = Math.max(...mainBlocks.map(b => b.z), 0);
   
-  // 中层
-  const middlePositions = generateGridPositions(mainMiddle.length, maxBottomZ + 1);
+  // 中层：紧接底层
+  const middlePositions = generateStaircasePositions(mainMiddle.length, maxBottomZ + 1);
   mainMiddle.forEach((card, idx) => {
     const pos = middlePositions[idx];
     mainBlocks.push({
@@ -327,8 +343,8 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   
   const maxMiddleZ = Math.max(...mainBlocks.map(b => b.z), 0);
   
-  // 顶层
-  const topPositions = generateGridPositions(mainTop.length, maxMiddleZ + 1);
+  // 顶层：最上面
+  const topPositions = generateStaircasePositions(mainTop.length, maxMiddleZ + 1);
   mainTop.forEach((card, idx) => {
     const pos = topPositions[idx];
     mainBlocks.push({
@@ -345,6 +361,7 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   const totalCount = mainBlocks.length + leftStack.length + rightStack.length;
   console.log(`[Level 2] Total cards: ${totalCount} (main: ${mainBlocks.length}, left: ${leftStack.length}, right: ${rightStack.length})`);
   console.log(`[Level 2] Is multiple of 3: ${totalCount % 3 === 0}`);
+  console.log(`[Level 2] Grid alignment: Neat 1/4 and 1/2 offsets only`);
   
   return { 
     mainBlocks: mainBlocks.sort((a, b) => a.z - b.z), 
