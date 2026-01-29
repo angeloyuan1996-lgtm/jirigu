@@ -88,9 +88,15 @@ const generateLevel = (level: number): FruitBlock[] => {
       }
     });
   } else {
-    // Level 2: 地狱难度 - 14种水果，每种6-9个，50层堆叠
+    // Level 2: 地狱难度 - 14种水果，每种6-9个，多层堆叠
+    // 使用 Grid-Based Offset System：坐标必须是 1/2 格的倍数
     const numFruitTypes = 14;
-    const maxZ = 50;
+    const maxZ = 30; // 减少层数以提高可玩性
+    
+    // 半格网格系统：所有坐标必须是 0.5 的倍数
+    // 这样确保方块重叠时呈现整齐的 1/4, 1/2, 3/4 覆盖效果
+    const HALF_GRID_COLS = GRID_COLS * 2 - 1; // 可用的半格列数 (0, 0.5, 1, 1.5, ... 6)
+    const HALF_GRID_ROWS = GRID_ROWS * 2 - 1; // 可用的半格行数 (0, 0.5, 1, 1.5, ... 7)
     
     const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
     const selectedFruits = shuffledFruits.slice(0, numFruitTypes);
@@ -99,9 +105,13 @@ const generateLevel = (level: number): FruitBlock[] => {
       const blocksPerType = Math.random() > 0.5 ? 9 : 6;
       
       for (let i = 0; i < blocksPerType; i++) {
-        // 地狱模式：密集堆叠，大量重叠
-        const x = Math.floor(Math.random() * GRID_COLS) + (Math.random() * 0.6 - 0.3);
-        const y = Math.floor(Math.random() * GRID_ROWS) + (Math.random() * 0.6 - 0.3);
+        // Grid-Based Offset System: 坐标 = 半格单位 * 0.5
+        // 例如：randomColumn = 5 → x = 5 * 0.5 = 2.5
+        const randomColumn = Math.floor(Math.random() * HALF_GRID_COLS);
+        const randomRow = Math.floor(Math.random() * HALF_GRID_ROWS);
+        
+        const x = randomColumn * 0.5; // 精确到半格
+        const y = randomRow * 0.5;    // 精确到半格
         const z = Math.floor(Math.random() * maxZ);
         
         blocks.push({
