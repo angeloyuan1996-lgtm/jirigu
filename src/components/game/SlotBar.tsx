@@ -1,7 +1,7 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useGameStore } from '@/stores/gameStore';
-import { FRUIT_EMOJIS } from '@/types/game';
+import { FRUIT_ICONS } from '@/types/game';
 
 const SLOT_SIZE = 42;
 const MAX_SLOTS = 7;
@@ -33,9 +33,12 @@ export const SlotBar: React.FC = () => {
                 backgroundColor: '#FFFEF5',
               }}
             >
-              <span className="text-xl">
-                {FRUIT_EMOJIS[block.type]}
-              </span>
+              <img 
+                src={FRUIT_ICONS[block.type]}
+                alt={block.type}
+                draggable={false}
+                className="w-7 h-7"
+              />
             </motion.div>
           ))}
         </motion.div>
@@ -110,9 +113,12 @@ export const SlotBar: React.FC = () => {
                   backgroundColor: '#FFFEF5',
                 }}
               >
-                <span className="text-xl" style={{ textShadow: '0 1px 0 #333' }}>
-                  {FRUIT_EMOJIS[block.type]}
-                </span>
+              <img 
+                src={FRUIT_ICONS[block.type]}
+                alt={block.type}
+                draggable={false}
+                className="w-8 h-8"
+              />
               </motion.div>
             ))}
           </AnimatePresence>
