@@ -67,26 +67,44 @@ const checkIsLocked = (target: FruitBlock, allTiles: FruitBlock[], targetIndex: 
   return false; // 无遮挡，解锁
 };
 
-// Generate level data with "Hell Algorithm"
+// 生成盲盒堆数据
+const generateBlindStack = (position: 'left' | 'right', allFruits: FruitType[]): FruitBlock[] => {
+  const blocks: FruitBlock[] = [];
+  const STACK_SIZE = 10;
+  
+  // 从现有水果类型中随机选择
+  for (let i = 0; i < STACK_SIZE; i++) {
+    const randomFruit = allFruits[Math.floor(Math.random() * allFruits.length)];
+    blocks.push({
+      id: generateId(),
+      type: randomFruit,
+      x: 0, // 位置在渲染时确定
+      y: 0,
+      z: STACK_SIZE - i, // 底部z最高，顶部z最低
+      status: 'inBlindStack',
+      isLocked: i > 0, // 只有顶部可点击
+      blindStackPosition: position,
+      blindStackIndex: i,
+    });
+  }
+  
+  return blocks;
+};
+
+// Generate level data with "Hell Algorithm" - 羊了个羊级别难度
 // Key: Total count of each fruit type must be divisible by 3
-// Only 2 levels: Super easy Level 1 (9 cards) and Hell Level 2
-// IMPORTANT: Zero Perfect Overlap policy - no two tiles can have same (x, y)
-const generateLevel = (level: number): FruitBlock[] => {
+const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: FruitBlock[], rightStack: FruitBlock[] } => {
   const blocks: FruitBlock[] = [];
   
   // Track used coordinates to prevent perfect overlaps
   const usedCoordinates = new Set<string>();
   const coordKey = (x: number, y: number) => `${x.toFixed(2)},${y.toFixed(2)}`;
   
-  // Staircase offset - 30% of tile size for clear visibility
-  const MIN_OFFSET = 0.3; // 30% offset creates classic staircase effect
-  
   if (level === 1) {
     // Level 1: 超简单 - 只有3种水果，每种3个 = 9张卡片，无重叠
     const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
-    const selectedFruits = shuffledFruits.slice(0, 3); // 只选3种水果
+    const selectedFruits = shuffledFruits.slice(0, 3);
     
-    // 在网格中均匀分布，避免重叠
     const positions = [
       { x: 1, y: 1 }, { x: 3, y: 1 }, { x: 5, y: 1 },
       { x: 1, y: 3 }, { x: 3, y: 3 }, { x: 5, y: 3 },
@@ -102,105 +120,200 @@ const generateLevel = (level: number): FruitBlock[] => {
           type: fruitType,
           x: pos.x,
           y: pos.y,
-          z: 0, // 全部在同一层，无遮挡
+          z: 0,
           status: 'onMap',
           isLocked: false,
         });
         usedCoordinates.add(coordKey(pos.x, pos.y));
       }
     });
-  } else {
-    // Level 2: 极限地狱难度 - 14种水果，每种9-12个，更多层堆叠
-    // Zero Perfect Overlap: Every tile must be partially visible
-    const numFruitTypes = 14;
-    const maxZ = 45; // 更多层级，更难
     
-    // Grid system: coordinates in 0.5 increments
-    const GRID_STEP = 0.5;
-    const MAX_X = (GRID_COLS - 1); // 0 to 6
-    const MAX_Y = (GRID_ROWS - 1); // 0 to 7
+    return { mainBlocks: blocks.sort((a, b) => a.z - b.z), leftStack: [], rightStack: [] };
+  }
+  
+  // ========== Level 2: 羊了个羊级别地狱难度 ==========
+  
+  // 1/4 格偏移量 - 每个方块只被遮住1/4或1/2
+  const QUARTER_OFFSET = 0.25;
+  
+  // 深井堆叠点配置 (3-4个中心堆叠点)
+  const CLUSTER_POINTS = [
+    { x: 2.0, y: 2.0 },  // 左上
+    { x: 4.5, y: 2.0 },  // 右上
+    { x: 3.25, y: 4.5 }, // 中央
+    { x: 1.5, y: 5.5 },  // 左下
+    { x: 5.0, y: 5.5 },  // 右下
+  ];
+  
+  const WELL_DEPTH = 45; // 每个堆叠点40-50层
+  const NUM_FRUIT_TYPES = 14;
+  
+  // 打乱水果类型
+  const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
+  const selectedFruits = shuffledFruits.slice(0, NUM_FRUIT_TYPES);
+  
+  // 计算每种水果需要的数量 (必须是3的倍数)
+  // 主区域 70% 约 9个三元组 * 14种 ≈ 378张
+  // 盲盒堆 20张
+  // 总计约 400+ 张牌
+  
+  // 数学死局策略：每种水果分配若干个三元组
+  // 故意让2张在顶层，1张埋在底层
+  
+  interface PlannedBlock {
+    type: FruitType;
+    isBottomBuried: boolean; // 是否深埋底层
+    clusterIndex: number; // 分配到哪个堆叠点
+  }
+  
+  const plannedBlocks: PlannedBlock[] = [];
+  
+  selectedFruits.forEach((fruitType) => {
+    // 每种水果 9-12 个 (必须是3的倍数)
+    const triplets = Math.random() > 0.5 ? 4 : 3; // 3-4个三元组 = 9-12个
     
-    const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
-    const selectedFruits = shuffledFruits.slice(0, numFruitTypes);
-    
-    // Helper: Find a unique coordinate with offset from existing tiles
-    const findUniquePosition = (preferredX: number, preferredY: number): { x: number, y: number } => {
-      // Check if preferred position is available
-      if (!usedCoordinates.has(coordKey(preferredX, preferredY))) {
-        return { x: preferredX, y: preferredY };
+    for (let t = 0; t < triplets; t++) {
+      const clusterIndex = Math.floor(Math.random() * CLUSTER_POINTS.length);
+      
+      // 数学死局：每个三元组中，2张放顶层，1张埋底层
+      for (let i = 0; i < 3; i++) {
+        plannedBlocks.push({
+          type: fruitType,
+          isBottomBuried: i === 0, // 第一张深埋
+          clusterIndex: i === 0 
+            ? Math.floor(Math.random() * CLUSTER_POINTS.length) // 深埋的分散到不同堆叠点
+            : clusterIndex,
+        });
       }
-      
-      // Apply staircase offset - diagonal cascading like classic games
-      // Prioritize diagonal offsets for authentic staircase look
-      const offsets = [
-        { dx: MIN_OFFSET, dy: MIN_OFFSET },      // Primary: down-right diagonal
-        { dx: -MIN_OFFSET, dy: MIN_OFFSET },     // Down-left diagonal
-        { dx: MIN_OFFSET, dy: -MIN_OFFSET },     // Up-right diagonal
-        { dx: -MIN_OFFSET, dy: -MIN_OFFSET },    // Up-left diagonal
-        { dx: MIN_OFFSET * 2, dy: MIN_OFFSET },  // Extended down-right
-        { dx: -MIN_OFFSET * 2, dy: MIN_OFFSET }, // Extended down-left
-        { dx: MIN_OFFSET, dy: MIN_OFFSET * 2 },  // Extended diagonal
-        { dx: MIN_OFFSET * 2, dy: MIN_OFFSET * 2 }, // Double diagonal
-        { dx: MIN_OFFSET, dy: 0 },               // Fallback: horizontal
-        { dx: 0, dy: MIN_OFFSET },               // Fallback: vertical
-      ];
-      
-      for (const offset of offsets) {
-        const newX = Math.max(0, Math.min(MAX_X, preferredX + offset.dx));
-        const newY = Math.max(0, Math.min(MAX_Y, preferredY + offset.dy));
-        
-        if (!usedCoordinates.has(coordKey(newX, newY))) {
-          return { x: newX, y: newY };
-        }
-      }
-      
-      // Last resort: find any available position
-      for (let attempt = 0; attempt < 50; attempt++) {
-        const randX = Math.floor(Math.random() * (MAX_X / GRID_STEP + 1)) * GRID_STEP;
-        const randY = Math.floor(Math.random() * (MAX_Y / GRID_STEP + 1)) * GRID_STEP;
-        
-        if (!usedCoordinates.has(coordKey(randX, randY))) {
-          return { x: randX, y: randY };
-        }
-      }
-      
-      // Absolute fallback - extend beyond normal grid slightly
-      const fallbackX = (usedCoordinates.size % 13) * GRID_STEP;
-      const fallbackY = Math.floor(usedCoordinates.size / 13) * GRID_STEP;
-      return { x: fallbackX % MAX_X, y: fallbackY % MAX_Y };
-    };
+    }
+  });
+  
+  // 打乱顺序但保持死局结构
+  const shuffledPlanned = [...plannedBlocks].sort(() => Math.random() - 0.5);
+  
+  // 为每个堆叠点分配的方块
+  const clusterBlocks: PlannedBlock[][] = CLUSTER_POINTS.map(() => []);
+  
+  shuffledPlanned.forEach((pb) => {
+    clusterBlocks[pb.clusterIndex].push(pb);
+  });
+  
+  // 生成实际方块
+  clusterBlocks.forEach((cluster, clusterIdx) => {
+    const basePoint = CLUSTER_POINTS[clusterIdx];
     
-    selectedFruits.forEach((fruitType) => {
-      // 更多方块：9-12个，增加难度
-      const blocksPerType = Math.random() > 0.4 ? 12 : 9;
+    // 分离深埋块和顶层块
+    const buriedBlocks = cluster.filter(b => b.isBottomBuried);
+    const topBlocks = cluster.filter(b => !b.isBottomBuried);
+    
+    // 先放置深埋块在底层
+    buriedBlocks.forEach((pb, idx) => {
+      // 底层使用 1/4 偏移创建紧密交错
+      const offsetX = (idx % 4) * QUARTER_OFFSET - 0.375;
+      const offsetY = Math.floor(idx / 4) * QUARTER_OFFSET - 0.375;
       
-      for (let i = 0; i < blocksPerType; i++) {
-        // Generate base position
-        const baseX = Math.floor(Math.random() * (MAX_X / GRID_STEP + 1)) * GRID_STEP;
-        const baseY = Math.floor(Math.random() * (MAX_Y / GRID_STEP + 1)) * GRID_STEP;
-        const z = Math.floor(Math.random() * maxZ);
-        
-        // Find unique position (no perfect overlap)
-        const { x, y } = findUniquePosition(baseX, baseY);
-        
+      const x = Math.max(0, Math.min(GRID_COLS - 1, basePoint.x + offsetX));
+      const y = Math.max(0, Math.min(GRID_ROWS - 1, basePoint.y + offsetY));
+      const z = idx; // 最底层
+      
+      const key = coordKey(x, y);
+      if (!usedCoordinates.has(key)) {
+        usedCoordinates.add(key);
         blocks.push({
           id: generateId(),
-          type: fruitType,
+          type: pb.type,
           x,
           y,
           z,
           status: 'onMap',
           isLocked: false,
         });
-        
-        // Mark this coordinate as used
-        usedCoordinates.add(coordKey(x, y));
       }
+    });
+    
+    // 在顶层放置其他方块，使用1/4偏移
+    topBlocks.forEach((pb, idx) => {
+      // 顶层使用更紧密的1/4偏移
+      const spiralIdx = idx % 16;
+      const layer = Math.floor(idx / 16);
+      
+      // 螺旋式偏移 - 1/4格步进
+      const offsetPatterns = [
+        { dx: 0, dy: 0 },
+        { dx: QUARTER_OFFSET, dy: 0 },
+        { dx: QUARTER_OFFSET * 2, dy: 0 },
+        { dx: 0, dy: QUARTER_OFFSET },
+        { dx: QUARTER_OFFSET, dy: QUARTER_OFFSET },
+        { dx: QUARTER_OFFSET * 2, dy: QUARTER_OFFSET },
+        { dx: 0, dy: QUARTER_OFFSET * 2 },
+        { dx: QUARTER_OFFSET, dy: QUARTER_OFFSET * 2 },
+        { dx: -QUARTER_OFFSET, dy: 0 },
+        { dx: -QUARTER_OFFSET, dy: QUARTER_OFFSET },
+        { dx: 0, dy: -QUARTER_OFFSET },
+        { dx: QUARTER_OFFSET, dy: -QUARTER_OFFSET },
+        { dx: -QUARTER_OFFSET, dy: -QUARTER_OFFSET },
+        { dx: QUARTER_OFFSET * 2, dy: -QUARTER_OFFSET },
+        { dx: -QUARTER_OFFSET * 2, dy: 0 },
+        { dx: -QUARTER_OFFSET * 2, dy: QUARTER_OFFSET },
+      ];
+      
+      const pattern = offsetPatterns[spiralIdx];
+      const x = Math.max(0, Math.min(GRID_COLS - 1, basePoint.x + pattern.dx + layer * 0.1));
+      const y = Math.max(0, Math.min(GRID_ROWS - 1, basePoint.y + pattern.dy + layer * 0.1));
+      const z = buriedBlocks.length + idx + layer * 16; // 在深埋块之上
+      
+      const key = coordKey(x, y);
+      // 允许部分重叠（这是1/4偏移的关键）
+      usedCoordinates.add(key);
+      blocks.push({
+        id: generateId(),
+        type: pb.type,
+        x,
+        y,
+        z,
+        status: 'onMap',
+        isLocked: false,
+      });
+    });
+  });
+  
+  // 30% 的边缘散布方块 (增加迷惑性)
+  const edgeCount = Math.floor(blocks.length * 0.15);
+  const edgeFruits = selectedFruits.slice(0, 7); // 用前7种水果
+  
+  for (let i = 0; i < edgeCount; i++) {
+    const isLeft = Math.random() > 0.5;
+    const x = isLeft ? Math.random() * 1.5 : GRID_COLS - 1.5 + Math.random() * 1;
+    const y = Math.random() * (GRID_ROWS - 1);
+    const z = Math.floor(Math.random() * 20); // 较低的z值
+    
+    blocks.push({
+      id: generateId(),
+      type: edgeFruits[i % edgeFruits.length],
+      x: Math.max(0, Math.min(GRID_COLS - 1, x)),
+      y: Math.max(0, Math.min(GRID_ROWS - 1, y)),
+      z,
+      status: 'onMap',
+      isLocked: false,
     });
   }
   
-  // Sort by z for proper rendering (lower z first)
-  return blocks.sort((a, b) => a.z - b.z);
+  // 确保总数是3的倍数 (通过调整)
+  const remainder = blocks.length % 3;
+  if (remainder > 0) {
+    // 移除多余的方块
+    blocks.splice(-remainder, remainder);
+  }
+  
+  // 生成盲盒堆
+  const leftStack = generateBlindStack('left', selectedFruits);
+  const rightStack = generateBlindStack('right', selectedFruits);
+  
+  return { 
+    mainBlocks: blocks.sort((a, b) => a.z - b.z), 
+    leftStack, 
+    rightStack 
+  };
 };
 
 /**
@@ -221,6 +334,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   slots: [],
   tempCache: [],
   historyStack: [],
+  blindStackLeft: [],
+  blindStackRight: [],
   isGameOver: false,
   isGameWon: false,
   currentLevel: 1,
@@ -241,14 +356,18 @@ export const useGameStore = create<GameState>((set, get) => ({
   
 
   initLevel: (level: number) => {
-    const blocks = generateLevel(level);
-    const blocksWithLock = calculateLockStatus(blocks);
+    const { mainBlocks, leftStack, rightStack } = generateLevel(level);
+    const blocksWithLock = calculateLockStatus(mainBlocks);
+    
+    const totalCount = mainBlocks.length + leftStack.length + rightStack.length;
     
     set({
       mapData: blocksWithLock,
       slots: [],
       tempCache: [],
       historyStack: [],
+      blindStackLeft: leftStack,
+      blindStackRight: rightStack,
       isGameOver: false,
       isGameWon: false,
       currentLevel: level,
@@ -263,8 +382,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         undo: false,
         shuffle: false,
       },
-      totalBlocks: blocks.length,
-      remainingBlocks: blocks.length,
+      totalBlocks: totalCount,
+      remainingBlocks: totalCount,
     });
   },
 
@@ -599,6 +718,105 @@ export const useGameStore = create<GameState>((set, get) => ({
     set((state) => ({ soundEnabled: !state.soundEnabled }));
   },
 
+  // 点击盲盒堆顶部方块
+  clickBlindStackBlock: (position: 'left' | 'right') => {
+    const state = get();
+    const stack = position === 'left' ? state.blindStackLeft : state.blindStackRight;
+    
+    if (stack.length === 0) return;
+    if (state.slots.length >= MAX_SLOTS) return;
+    
+    // 获取顶部方块 (index 0)
+    const topBlock = stack[0];
+    
+    // 从盲盒堆移除
+    const newStack = stack.slice(1).map((b, idx) => ({
+      ...b,
+      isLocked: idx > 0, // 新的顶部解锁
+      blindStackIndex: idx,
+    }));
+    
+    // 智能插入到槽位
+    let insertIndex = state.slots.length;
+    for (let i = 0; i < state.slots.length; i++) {
+      if (state.slots[i].type === topBlock.type) {
+        let lastSameType = i;
+        while (lastSameType < state.slots.length - 1 && 
+               state.slots[lastSameType + 1].type === topBlock.type) {
+          lastSameType++;
+        }
+        insertIndex = lastSameType + 1;
+        break;
+      }
+    }
+    
+    const newSlots = [...state.slots];
+    newSlots.splice(insertIndex, 0, { ...topBlock, status: 'inSlot' as const });
+    
+    // 检查三消
+    const typeCount: Record<string, number> = {};
+    newSlots.forEach(s => {
+      typeCount[s.type] = (typeCount[s.type] || 0) + 1;
+    });
+    
+    let finalSlots = newSlots;
+    let matchedType: FruitType | null = null;
+    
+    for (const [type, count] of Object.entries(typeCount)) {
+      if (count >= 3) {
+        matchedType = type as FruitType;
+        break;
+      }
+    }
+    
+    if (matchedType) {
+      const audio = getAudioController();
+      audio?.playMatchSound();
+      
+      let removed = 0;
+      finalSlots = newSlots.filter(s => {
+        if (s.type === matchedType && removed < 3) {
+          removed++;
+          return false;
+        }
+        return true;
+      });
+    } else {
+      const audio = getAudioController();
+      audio?.playClickSound();
+    }
+    
+    // 计算剩余
+    const remaining = state.mapData.filter(b => b.status === 'onMap').length +
+      (position === 'left' ? newStack.length : state.blindStackLeft.length) +
+      (position === 'right' ? newStack.length : state.blindStackRight.length);
+    
+    // 检查游戏结束
+    const isGameOver = finalSlots.length >= MAX_SLOTS && !matchedType;
+    const isGameWon = remaining === 0 && finalSlots.length === 0 && state.tempCache.length === 0;
+    
+    if (isGameOver) {
+      setTimeout(() => {
+        const audio = getAudioController();
+        audio?.playGameOverSound();
+      }, 200);
+    }
+    if (isGameWon) {
+      setTimeout(() => {
+        const audio = getAudioController();
+        audio?.playVictorySound();
+      }, 200);
+    }
+    
+    set({
+      slots: finalSlots,
+      blindStackLeft: position === 'left' ? newStack : state.blindStackLeft,
+      blindStackRight: position === 'right' ? newStack : state.blindStackRight,
+      isGameOver,
+      isGameWon,
+      remainingBlocks: remaining,
+    });
+  },
 
   abandonGame: () => {
     // Reset to level 1 (home page placeholder - just restart at level 1)
