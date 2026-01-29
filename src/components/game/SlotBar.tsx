@@ -4,6 +4,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { FRUIT_ICONS } from '@/types/game';
 
 const SLOT_SIZE = 42;
+const BUFFER_SLOT_SIZE = 48; // Same as FruitCard default size
 const MAX_SLOTS = 7;
 const BUFFER_SLOTS = 3;
 
@@ -28,8 +29,8 @@ export const SlotBar: React.FC = () => {
                 key={block?.id || `empty-buffer-${index}`}
                 className="relative flex items-center justify-center rounded-lg border-[1.5px]"
                 style={{
-                  width: SLOT_SIZE,
-                  height: SLOT_SIZE,
+                  width: BUFFER_SLOT_SIZE,
+                  height: BUFFER_SLOT_SIZE,
                   backgroundColor: block ? '#FFF8E7' : 'transparent',
                   borderColor: block ? '#555' : 'transparent',
                   cursor: block ? 'pointer' : 'default',
@@ -45,7 +46,7 @@ export const SlotBar: React.FC = () => {
                       src={FRUIT_ICONS[block.type]}
                       alt={block.type}
                       draggable={false}
-                      className="w-8 h-8"
+                      className="w-10 h-10"
                       initial={{ scale: 0, y: 50, opacity: 0 }}
                       animate={{ 
                         scale: 1, 
