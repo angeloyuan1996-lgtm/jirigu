@@ -271,49 +271,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     // Calculate remaining
     const remaining = blocksWithLock.filter(b => b.status === 'onMap').length;
     
-    // Try to return tempCache blocks back to slots if there's space
-    let returnedSlots = finalSlots;
-    let returnedTempCache = state.tempCache;
+    // No automatic return of tempCache blocks - player must click them manually
     
-    // Only return blocks if we have tempCache and enough space
-    if (state.tempCache.length > 0 && finalSlots.length + state.tempCache.length <= MAX_SLOTS) {
-      // Return temp blocks to slots
-      returnedSlots = [
-        ...finalSlots,
-        ...state.tempCache.map(b => ({ ...b, status: 'inSlot' as const }))
-      ];
-      returnedTempCache = [];
-      
-      // Check for new matches after returning
-      const newTypeCount: Record<string, number> = {};
-      returnedSlots.forEach(s => {
-        newTypeCount[s.type] = (newTypeCount[s.type] || 0) + 1;
-      });
-      
-      for (const [type, count] of Object.entries(newTypeCount)) {
-        if (count >= 3) {
-          const newMatchType = type as FruitType;
-          let newRemoved = 0;
-          returnedSlots = returnedSlots.filter(s => {
-            if (s.type === newMatchType && newRemoved < 3) {
-              newRemoved++;
-              return false;
-            }
-            return true;
-          });
-          // Play match sound for returning match
-          setTimeout(() => {
-            const audio = getAudioController();
-            audio?.playMatchSound();
-          }, 300);
-          break;
-        }
-      }
-    }
-    
-    // Check game over
-    const isGameOver = returnedSlots.length >= MAX_SLOTS && !matchedType;
-    const isGameWon = remaining === 0 && returnedSlots.length === 0;
+    // Check game over - now also considers if tempCache is blocking
+    const isGameOver = finalSlots.length >= MAX_SLOTS && !matchedType;
+    const isGameWon = remaining === 0 && finalSlots.length === 0 && state.tempCache.length === 0;
     
     // Play sounds for game end states
     if (isGameOver) {
@@ -331,8 +293,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     
     set({
       mapData: blocksWithLock,
-      slots: returnedSlots,
-      tempCache: returnedTempCache,
+      slots: finalSlots,
       historyStack: [...state.historyStack, historyEntry],
       isGameOver,
       isGameWon,
@@ -345,14 +306,88 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (state.boostersUsed.moveOut || state.tempCache.length > 0) return;
     if (state.slots.length < 3) return;
     
+    // Take the first 3 blocks from slots and move to tempCache
     const movedBlocks = state.slots.slice(0, 3);
     const remainingSlots = state.slots.slice(3);
     
     set({
       slots: remainingSlots,
-      tempCache: movedBlocks.map(b => ({ ...b, status: 'inTemp' })),
+      tempCache: movedBlocks.map(b => ({ ...b, status: 'inTemp' as const })),
       boostersUsed: { ...state.boostersUsed, moveOut: true },
-      isGameOver: false, // Reset game over since we freed slots
+      isGameOver: false,
+    });
+  },
+
+  clickBufferBlock: (blockId: string) => {
+    const state = get();
+    const blockIndex = state.tempCache.findIndex(b => b.id === blockId);
+    
+    if (blockIndex === -1) return;
+    if (state.slots.length >= MAX_SLOTS) return; // No space in slots
+    
+    const block = state.tempCache[blockIndex];
+    
+    // Remove from tempCache
+    const newTempCache = state.tempCache.filter(b => b.id !== blockId);
+    
+    // Find insertion position using smart insertion (same as clickBlock)
+    let insertIndex = state.slots.length;
+    for (let i = 0; i < state.slots.length; i++) {
+      if (state.slots[i].type === block.type) {
+        let lastSameType = i;
+        while (lastSameType < state.slots.length - 1 && 
+               state.slots[lastSameType + 1].type === block.type) {
+          lastSameType++;
+        }
+        insertIndex = lastSameType + 1;
+        break;
+      }
+    }
+    
+    // Insert into slots
+    const newSlots = [...state.slots];
+    newSlots.splice(insertIndex, 0, { ...block, status: 'inSlot' as const });
+    
+    // Check for triple match
+    const typeCount: Record<string, number> = {};
+    newSlots.forEach(s => {
+      typeCount[s.type] = (typeCount[s.type] || 0) + 1;
+    });
+    
+    let finalSlots = newSlots;
+    let matchedType: FruitType | null = null;
+    
+    for (const [type, count] of Object.entries(typeCount)) {
+      if (count >= 3) {
+        matchedType = type as FruitType;
+        break;
+      }
+    }
+    
+    if (matchedType) {
+      const audio = getAudioController();
+      audio?.playMatchSound();
+      
+      let removed = 0;
+      finalSlots = newSlots.filter(s => {
+        if (s.type === matchedType && removed < 3) {
+          removed++;
+          return false;
+        }
+        return true;
+      });
+    } else {
+      const audio = getAudioController();
+      audio?.playClickSound();
+    }
+    
+    // Check game over
+    const isGameOver = finalSlots.length >= MAX_SLOTS && newTempCache.length > 0;
+    
+    set({
+      slots: finalSlots,
+      tempCache: newTempCache,
+      isGameOver,
     });
   },
 

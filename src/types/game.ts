@@ -52,6 +52,7 @@ export interface GameState {
   // Actions
   initLevel: (level: number) => void;
   clickBlock: (blockId: string) => void;
+  clickBufferBlock: (blockId: string) => void;
   useMoveOut: () => void;
   useUndo: () => void;
   useShuffle: () => void;

@@ -5,42 +5,77 @@ import { FRUIT_ICONS } from '@/types/game';
 
 const SLOT_SIZE = 42;
 const MAX_SLOTS = 7;
+const BUFFER_SLOTS = 3;
 
 export const SlotBar: React.FC = () => {
-  const { slots, tempCache } = useGameStore();
+  const { slots, tempCache, clickBufferBlock } = useGameStore();
   
   return (
     <div className="flex flex-col items-center">
-      {/* Temp cache area - 木质风格 */}
+      {/* Booster Buffer Area - 3 slots, always visible when has items */}
       {tempCache.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-center gap-1 p-2 rounded-xl border-[3px] border-[#333] mb-3"
+          exit={{ opacity: 0, y: -20 }}
+          className="flex items-center justify-center gap-2 p-2 rounded-xl border-[3px] border-[#333] mb-3"
           style={{
             backgroundColor: 'hsl(25 70% 35%)',
           }}
         >
-          {tempCache.map((block) => (
-            <motion.div
-              key={block.id}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="flex items-center justify-center rounded-lg border-[1.5px] border-[#555]"
-              style={{
-                width: SLOT_SIZE - 4,
-                height: SLOT_SIZE - 4,
-                backgroundColor: '#FFF8E7',
-              }}
-            >
-              <img 
-                src={FRUIT_ICONS[block.type]}
-                alt={block.type}
-                draggable={false}
-                className="w-7 h-7"
-              />
-            </motion.div>
-          ))}
+          {/* Render 3 buffer slots */}
+          {Array.from({ length: BUFFER_SLOTS }).map((_, index) => {
+            const block = tempCache[index];
+            return (
+              <motion.div
+                key={block?.id || `empty-buffer-${index}`}
+                className="relative flex items-center justify-center rounded-lg border-[1.5px]"
+                style={{
+                  width: SLOT_SIZE,
+                  height: SLOT_SIZE,
+                  backgroundColor: block ? '#FFF8E7' : 'hsl(25 50% 25%)',
+                  borderColor: block ? '#555' : 'hsl(25 60% 18%)',
+                  cursor: block ? 'pointer' : 'default',
+                }}
+                onClick={() => block && clickBufferBlock(block.id)}
+                whileHover={block ? { scale: 1.05 } : undefined}
+                whileTap={block ? { scale: 0.95 } : undefined}
+              >
+                <AnimatePresence mode="wait">
+                  {block && (
+                    <motion.img
+                      key={block.id}
+                      src={FRUIT_ICONS[block.type]}
+                      alt={block.type}
+                      draggable={false}
+                      className="w-8 h-8"
+                      initial={{ scale: 0, y: 50, opacity: 0 }}
+                      animate={{ 
+                        scale: 1, 
+                        y: 0, 
+                        opacity: 1,
+                        transition: {
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 20,
+                        }
+                      }}
+                      exit={{ 
+                        scale: 0, 
+                        y: 50, 
+                        opacity: 0,
+                        transition: {
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 25,
+                        }
+                      }}
+                    />
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
         </motion.div>
       )}
       
@@ -48,9 +83,7 @@ export const SlotBar: React.FC = () => {
       <div 
         className="relative flex items-center justify-center gap-1 p-3 rounded-2xl"
         style={{
-          // 纯色木质背景，无渐变
           backgroundColor: 'hsl(25 70% 35%)',
-          // 粗深色描边
           border: '5px solid hsl(25 70% 22%)',
         }}
       >
