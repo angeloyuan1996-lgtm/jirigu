@@ -1,7 +1,7 @@
 export type FruitType = 
   | 'apple' | 'banana' | 'cherry' | 'grape' | 'lemon'
   | 'orange' | 'peach' | 'pear' | 'pineapple' | 'strawberry'
-  | 'watermelon' | 'mango' | 'kiwi' | 'blueberry';
+  | 'watermelon' | 'dragonfruit' | 'kiwi' | 'blueberry';
 
 export interface FruitBlock {
   id: string;
@@ -73,7 +73,7 @@ export const FRUIT_EMOJIS: Record<FruitType, string> = {
   pineapple: '🍍',
   strawberry: '🍓',
   watermelon: '🍉',
-  mango: '🥭',
+  dragonfruit: '🐉',
   kiwi: '🥝',
   blueberry: '🫐',
 };
@@ -90,7 +90,7 @@ export const FRUIT_COLORS: Record<FruitType, string> = {
   pineapple: '#FACC15',
   strawberry: '#F43F5E',
   watermelon: '#22C55E',
-  mango: '#F59E0B',
+  dragonfruit: '#FF1493',
   kiwi: '#65A30D',
   blueberry: '#6366F1',
 };
@@ -98,5 +98,5 @@ export const FRUIT_COLORS: Record<FruitType, string> = {
 export const ALL_FRUITS: FruitType[] = [
   'apple', 'banana', 'cherry', 'grape', 'lemon',
   'orange', 'peach', 'pear', 'pineapple', 'strawberry',
-  'watermelon', 'mango', 'kiwi', 'blueberry'
+  'watermelon', 'dragonfruit', 'kiwi', 'blueberry'
 ];
