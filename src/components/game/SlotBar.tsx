@@ -120,30 +120,10 @@ export const SlotBar: React.FC = () => {
   
   return (
     <div className="flex flex-col items-center">
-      {/* 盲盒堆 - 在最上方，左右两侧 */}
-      {showBlindStacks && (
-        <div 
-          className="flex items-end justify-between mb-2"
-          style={{ 
-            width: MAX_SLOTS * SLOT_SIZE + (MAX_SLOTS - 1) * 4 + 24, // 与木栅栏同宽
-          }}
-        >
-          {/* 左侧盲盒堆 */}
-          <BlindStack position="left" />
-          
-          {/* 中间空白 */}
-          <div className="flex-1" />
-          
-          {/* 右侧盲盒堆 */}
-          <BlindStack position="right" />
-        </div>
-      )}
-      
-      {/* Booster Buffer Area - 在盲盒堆和木栅栏之间 */}
+      {/* Booster Buffer Area - 在木栅栏正上方中央 */}
       <div 
         className="flex items-center justify-center gap-1 mb-2"
         style={{ 
-          width: MAX_SLOTS * SLOT_SIZE + (MAX_SLOTS - 1) * 4,
           height: BUFFER_SLOT_SIZE + 8,
         }}
       >
@@ -183,76 +163,85 @@ export const SlotBar: React.FC = () => {
         })}
       </div>
       
-      {/* Main slot bar - 木栅栏 */}
-      <div 
-        className="relative flex items-center justify-center gap-1 p-3 rounded-2xl"
-        style={{
-          backgroundColor: 'hsl(25 70% 35%)',
-          border: '5px solid hsl(25 70% 22%)',
-        }}
-      >
-        {/* 木栅栏装饰 */}
-        <div 
-          className="absolute -left-2 top-1/2 -translate-y-1/2 w-3 h-12 rounded-full"
-          style={{
-            backgroundColor: 'hsl(25 60% 28%)',
-            border: '2px solid hsl(25 70% 18%)',
-          }}
-        />
-        <div 
-          className="absolute -right-2 top-1/2 -translate-y-1/2 w-3 h-12 rounded-full"
-          style={{
-            backgroundColor: 'hsl(25 60% 28%)',
-            border: '2px solid hsl(25 70% 18%)',
-          }}
-        />
+      {/* 底部区域：盲盒堆 + 木栅栏 + 盲盒堆 水平排列 */}
+      <div className="flex items-end justify-center gap-3">
+        {/* 左侧盲盒堆 */}
+        {showBlindStacks && <BlindStack position="left" />}
         
-        {/* Slot placeholders */}
-        {Array.from({ length: MAX_SLOTS }).map((_, index) => (
-          <div
-            key={index}
-            className="flex items-center justify-center rounded-lg"
+        {/* Main slot bar - 木栅栏 */}
+        <div 
+          className="relative flex items-center justify-center gap-1 p-3 rounded-2xl"
+          style={{
+            backgroundColor: 'hsl(25 70% 35%)',
+            border: '5px solid hsl(25 70% 22%)',
+          }}
+        >
+          {/* 木栅栏装饰 */}
+          <div 
+            className="absolute -left-2 top-1/2 -translate-y-1/2 w-3 h-12 rounded-full"
             style={{
-              width: SLOT_SIZE,
-              height: SLOT_SIZE,
-              backgroundColor: 'hsl(25 50% 25%)',
-              border: '2px solid hsl(25 60% 18%)',
+              backgroundColor: 'hsl(25 60% 28%)',
+              border: '2px solid hsl(25 70% 18%)',
             }}
           />
-        ))}
-        
-        {/* Actual slots overlay */}
-        <div className="absolute inset-3 flex items-center gap-1">
-          <AnimatePresence mode="popLayout">
-            {slots.map((block) => (
-              <motion.div
-                key={block.id}
-                layout
-                initial={{ scale: 0.5, y: -100, opacity: 0 }}
-                animate={{ scale: 1, y: 0, opacity: 1 }}
-                exit={{ scale: 0, opacity: 0, y: -20 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 400,
-                  damping: 25,
-                }}
-                className="flex items-center justify-center rounded-lg border-[1.5px] border-[#555]"
-                style={{
-                  width: SLOT_SIZE,
-                  height: SLOT_SIZE,
-                  backgroundColor: '#FFF8E7',
-                }}
-              >
-                <img 
-                  src={FRUIT_ICONS[block.type]}
-                  alt={block.type}
-                  draggable={false}
-                  className="w-8 h-8"
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
+          <div 
+            className="absolute -right-2 top-1/2 -translate-y-1/2 w-3 h-12 rounded-full"
+            style={{
+              backgroundColor: 'hsl(25 60% 28%)',
+              border: '2px solid hsl(25 70% 18%)',
+            }}
+          />
+          
+          {/* Slot placeholders */}
+          {Array.from({ length: MAX_SLOTS }).map((_, index) => (
+            <div
+              key={index}
+              className="flex items-center justify-center rounded-lg"
+              style={{
+                width: SLOT_SIZE,
+                height: SLOT_SIZE,
+                backgroundColor: 'hsl(25 50% 25%)',
+                border: '2px solid hsl(25 60% 18%)',
+              }}
+            />
+          ))}
+          
+          {/* Actual slots overlay */}
+          <div className="absolute inset-3 flex items-center gap-1">
+            <AnimatePresence mode="popLayout">
+              {slots.map((block) => (
+                <motion.div
+                  key={block.id}
+                  layout
+                  initial={{ scale: 0.5, y: -100, opacity: 0 }}
+                  animate={{ scale: 1, y: 0, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0, y: -20 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 25,
+                  }}
+                  className="flex items-center justify-center rounded-lg border-[1.5px] border-[#555]"
+                  style={{
+                    width: SLOT_SIZE,
+                    height: SLOT_SIZE,
+                    backgroundColor: '#FFF8E7',
+                  }}
+                >
+                  <img 
+                    src={FRUIT_ICONS[block.type]}
+                    alt={block.type}
+                    draggable={false}
+                    className="w-8 h-8"
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
         </div>
+        
+        {/* 右侧盲盒堆 */}
+        {showBlindStacks && <BlindStack position="right" />}
       </div>
     </div>
   );
