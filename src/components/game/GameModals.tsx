@@ -1,7 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RotateCcw, Share2 } from 'lucide-react';
+import { RotateCcw, Share2, Trophy } from 'lucide-react';
 import { useGameStore } from '@/stores/gameStore';
+
+const MAX_LEVEL = 2; // 游戏只有2关
 
 export const GameOverModal: React.FC = () => {
   const { 
@@ -120,8 +122,24 @@ export const GameWonModal: React.FC = () => {
     initLevel,
   } = useGameStore();
   
+  const isLastLevel = currentLevel >= MAX_LEVEL;
+  
   const handleNextLevel = () => {
     initLevel(currentLevel + 1);
+  };
+  
+  const handlePlayAgain = () => {
+    initLevel(1);
+  };
+  
+  const handleWhatsAppShare = () => {
+    const message = encodeURIComponent(`🎉 我成功通关了水果消消乐全部${MAX_LEVEL}关！你也来挑战吧！🍎🍓🍇`);
+    window.open(`https://wa.me/?text=${message}`, '_blank');
+  };
+  
+  const handleViewLeaderboard = () => {
+    // TODO: 实现排行榜功能
+    alert('排行榜功能即将上线！');
   };
   
   return (
@@ -150,28 +168,76 @@ export const GameWonModal: React.FC = () => {
               transition={{ delay: 0.2, type: 'spring' }}
               className="text-6xl mb-4"
             >
-              🎉
+              {isLastLevel ? '🏆' : '🎉'}
             </motion.div>
             
             <h2 className="text-2xl font-bold text-[#333] mb-2">
-              恭喜通关!
+              {isLastLevel ? '恭喜通关全部关卡!' : '恭喜通关!'}
             </h2>
             <p className="text-[#166534] font-medium mb-6">
-              第 {currentLevel} 关完成!
+              {isLastLevel ? '你已成功挑战所有关卡！' : `第 ${currentLevel} 关完成!`}
             </p>
             
-            <motion.button
-              onClick={handleNextLevel}
-              whileTap={{ y: 2 }}
-              className="w-full h-12 text-white font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
-              style={{
-                backgroundColor: '#22C55E',
-                borderBottomWidth: '5px',
-                borderBottomColor: '#166534',
-              }}
-            >
-              下一关 →
-            </motion.button>
+            {isLastLevel ? (
+              // 最后一关通关：显示分享、再玩一次、排行榜
+              <div className="flex flex-col gap-3">
+                <motion.button
+                  onClick={handleWhatsAppShare}
+                  whileTap={{ y: 2 }}
+                  className="w-full h-12 text-white font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
+                  style={{
+                    backgroundColor: '#22C55E',
+                    borderBottomWidth: '5px',
+                    borderBottomColor: '#166534',
+                  }}
+                >
+                  <Share2 className="w-5 h-5" strokeWidth={2.5} />
+                  分享到 WhatsApp
+                </motion.button>
+                
+                <motion.button
+                  onClick={handlePlayAgain}
+                  whileTap={{ y: 2 }}
+                  className="w-full h-12 text-white font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
+                  style={{
+                    backgroundColor: 'hsl(217 85% 55%)',
+                    borderBottomWidth: '5px',
+                    borderBottomColor: 'hsl(217 85% 38%)',
+                  }}
+                >
+                  <RotateCcw className="w-5 h-5" strokeWidth={2.5} />
+                  再玩一次
+                </motion.button>
+                
+                <motion.button
+                  onClick={handleViewLeaderboard}
+                  whileTap={{ y: 2 }}
+                  className="w-full h-12 text-[#333] font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
+                  style={{
+                    backgroundColor: '#FDE68A',
+                    borderBottomWidth: '5px',
+                    borderBottomColor: '#D97706',
+                  }}
+                >
+                  <Trophy className="w-5 h-5" strokeWidth={2.5} />
+                  查看排行榜
+                </motion.button>
+              </div>
+            ) : (
+              // 非最后一关：显示下一关按钮
+              <motion.button
+                onClick={handleNextLevel}
+                whileTap={{ y: 2 }}
+                className="w-full h-12 text-white font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
+                style={{
+                  backgroundColor: '#22C55E',
+                  borderBottomWidth: '5px',
+                  borderBottomColor: '#166534',
+                }}
+              >
+                下一关 →
+              </motion.button>
+            )}
           </motion.div>
         </motion.div>
       )}
