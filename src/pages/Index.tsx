@@ -47,12 +47,11 @@ const Index = () => {
           </div>
         </div>
         
-        {/* Bottom section - 纯色背景 */}
+        {/* Bottom section - 统一浅绿色背景 */}
         <div 
           className="relative z-20 pb-safe px-2"
           style={{
-            // 底部微妙的深色区域
-            backgroundColor: 'hsl(90 50% 50%)',
+            backgroundColor: '#A2E16F',
             paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
           }}
         >
