@@ -6,7 +6,6 @@ import { BoosterBar } from '@/components/game/BoosterBar';
 import { GameHeader } from '@/components/game/GameHeader';
 import { AudioProvider } from '@/components/game/AudioProvider';
 import { GameOverModal, GameWonModal } from '@/components/game/GameModals';
-import { BlindStackPanel } from '@/components/game/BlindStackPanel';
 
 const Index = () => {
   const { initLevel, currentLevel } = useGameStore();
@@ -20,14 +19,13 @@ const Index = () => {
       <div 
         className="h-screen w-screen max-w-full flex flex-col overflow-hidden"
         style={{
-          // 羊了个羊风格：纯色亮绿色背景，无渐变
           backgroundColor: '#A2E16F',
         }}
       >
         {/* Header */}
         <GameHeader />
         
-        {/* Level indicator - 卡通风格 */}
+        {/* Level indicator */}
         <div className="text-center py-1">
           <span 
             className="text-sm font-bold px-4 py-1 rounded-full border-[2px] border-[#333] inline-block"
@@ -40,19 +38,15 @@ const Index = () => {
           </span>
         </div>
         
-        {/* Main game area - 靠上对齐，给底部腾空间 */}
+        {/* Main game area */}
         <div className="flex-1 relative flex flex-col items-center justify-start overflow-hidden px-2 pt-2">
-          {/* 盲盒堆 - 左右两侧 */}
-          <BlindStackPanel position="left" />
-          <BlindStackPanel position="right" />
-          
           {/* Game board */}
           <div className="relative">
             <GameBoard />
           </div>
         </div>
         
-        {/* Bottom section - 统一浅绿色背景 */}
+        {/* Bottom section */}
         <div 
           className="relative z-20 pb-safe px-2"
           style={{
@@ -60,7 +54,7 @@ const Index = () => {
             paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
           }}
         >
-          {/* Slot bar */}
+          {/* Slot bar with blind stacks */}
           <div className="mb-3">
             <SlotBar />
           </div>
