@@ -42,17 +42,26 @@ const checkOverlap = (target: FruitBlock, other: FruitBlock): boolean => {
 
 /**
  * 判定方块是否被遮挡的算法
- * 只有 Z 轴更大的方块才可能造成遮挡
+ * 检查是否有任何更高层或同层但后渲染的方块遮挡目标方块
+ * @param target 目标方块
+ * @param allTiles 所有方块（已按 z 排序，同 z 时按数组顺序渲染）
+ * @param targetIndex 目标方块在数组中的索引
  */
-const checkIsLocked = (target: FruitBlock, allTiles: FruitBlock[]): boolean => {
-  // 筛选出在当前方块上方且仍在地图上的方块
-  const tilesAbove = allTiles.filter(
-    tile => tile.z > target.z && tile.status === 'onMap'
-  );
-  
-  for (const topTile of tilesAbove) {
-    if (checkOverlap(target, topTile)) {
-      return true; // 被上方方块重叠，锁定
+const checkIsLocked = (target: FruitBlock, allTiles: FruitBlock[], targetIndex: number): boolean => {
+  // 遍历所有在目标之后渲染的方块（这些方块会在视觉上覆盖目标）
+  // 包括：1. z > target.z 的方块  2. z == target.z 但数组索引更大的方块
+  for (let i = 0; i < allTiles.length; i++) {
+    const tile = allTiles[i];
+    
+    // 跳过自己和已移除的方块
+    if (tile.id === target.id || tile.status !== 'onMap') continue;
+    
+    // 判断这个 tile 是否在视觉上覆盖 target
+    // 条件：z 更高，或者 z 相同但在数组中位置更靠后（后渲染 = 在上面）
+    const isVisuallyAbove = tile.z > target.z || (tile.z === target.z && i > targetIndex);
+    
+    if (isVisuallyAbove && checkOverlap(target, tile)) {
+      return true; // 被遮挡，锁定
     }
   }
   return false; // 无遮挡，解锁
@@ -140,11 +149,11 @@ const generateLevel = (level: number): FruitBlock[] => {
  * 遍历所有方块更新锁定状态
  */
 const calculateLockStatus = (blocks: FruitBlock[]): FruitBlock[] => {
-  return blocks.map(block => {
+  return blocks.map((block, index) => {
     if (block.status !== 'onMap') {
       return { ...block, isLocked: false };
     }
-    return { ...block, isLocked: checkIsLocked(block, blocks) };
+    return { ...block, isLocked: checkIsLocked(block, blocks, index) };
   });
 };
 
