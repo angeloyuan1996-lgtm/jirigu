@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/stores/gameStore';
 import { FruitCard } from './FruitCard';
@@ -15,21 +15,6 @@ export const GameBoard: React.FC = () => {
   // Calculate dynamic sizing based on viewport
   const boardWidth = GRID_COLS * BLOCK_SIZE;
   const boardHeight = GRID_ROWS * BLOCK_SIZE;
-  
-  // Normalize block positions to ensure they stay within bounds
-  const normalizedBlocks = useMemo(() => {
-    return visibleBlocks.map(block => {
-      // Clamp x and y to stay within the grid bounds
-      const clampedX = Math.max(0, Math.min(block.x, GRID_COLS - 1));
-      const clampedY = Math.max(0, Math.min(block.y, GRID_ROWS - 1));
-      
-      return {
-        ...block,
-        x: clampedX,
-        y: clampedY,
-      };
-    });
-  }, [visibleBlocks]);
   
   return (
     <div className="relative flex items-center justify-center overflow-hidden">
@@ -51,7 +36,7 @@ export const GameBoard: React.FC = () => {
           }}
         >
           <AnimatePresence>
-            {normalizedBlocks.map(block => (
+            {visibleBlocks.map(block => (
               <FruitCard
                 key={block.id}
                 block={block}
