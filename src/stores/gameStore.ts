@@ -272,24 +272,36 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   const BASE_GRID_ROWS = 8;
   
   // 羊了个羊式遮挡模式
-  type OverlapMode = 'half-x' | 'half-y' | 'corner' | 'none';
+  type OverlapMode = 'half-x' | 'half-y' | 'corner';
   
-  // 每层的偏移模式（相对于下层）
-  const LAYER_PATTERNS: OverlapMode[] = ['corner', 'half-x', 'corner', 'half-y'];
+  // 更丰富的偏移模式，增加变化感
+  const OVERLAP_OPTIONS: { mode: OverlapMode, dirX: number, dirY: number }[] = [
+    { mode: 'corner', dirX: 1, dirY: 1 },    // 右下角
+    { mode: 'corner', dirX: -1, dirY: 1 },   // 左下角
+    { mode: 'corner', dirX: 1, dirY: -1 },   // 右上角
+    { mode: 'corner', dirX: -1, dirY: -1 },  // 左上角
+    { mode: 'half-x', dirX: 1, dirY: 0 },    // 向右半格
+    { mode: 'half-x', dirX: -1, dirY: 0 },   // 向左半格
+    { mode: 'half-y', dirX: 0, dirY: 1 },    // 向下半格
+    { mode: 'half-y', dirX: 0, dirY: -1 },   // 向上半格
+  ];
   
-  // 根据模式获取偏移量
+  // 根据层级获取偏移量 - 每层随机选择不同的偏移方向
   const getLayerOffset = (layerIndex: number): { dx: number, dy: number } => {
-    const pattern = LAYER_PATTERNS[layerIndex % LAYER_PATTERNS.length];
-    switch (pattern) {
+    // 使用伪随机确保可重现
+    const seed = layerIndex * 31 + 17;
+    const randomIndex = Math.abs(Math.floor(Math.sin(seed) * 1000)) % OVERLAP_OPTIONS.length;
+    const option = OVERLAP_OPTIONS[randomIndex];
+    
+    switch (option.mode) {
       case 'half-x':
-        return { dx: 0.5, dy: 0 };
+        return { dx: 0.5 * option.dirX, dy: 0 };
       case 'half-y':
-        return { dx: 0, dy: 0.5 };
+        return { dx: 0, dy: 0.5 * option.dirY };
       case 'corner':
-        return { dx: 0.5, dy: 0.5 };
-      case 'none':
+        return { dx: 0.5 * option.dirX, dy: 0.5 * option.dirY };
       default:
-        return { dx: 0, dy: 0 };
+        return { dx: 0.5, dy: 0.5 };
     }
   };
   
@@ -346,22 +358,27 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     const positions: { x: number, y: number, z: number }[] = [];
     let currentZ = baseZ;
     
-    // 累计偏移（每层叠加0.5）
-    let accumulatedX = 0.5; // 从中心偏移开始
-    let accumulatedY = 0.5;
-    
+    // 每层独立计算偏移，不再累加，而是根据层级产生更大的变化
     while (positions.length < count) {
       const layerIndex = currentZ - baseZ;
       
-      // 获取当前层相对于上一层的偏移
-      if (layerIndex > 0) {
-        const { dx, dy } = getLayerOffset(layerIndex);
-        accumulatedX += dx;
-        accumulatedY += dy;
-        
-        // 防止偏移过大，周期性回绕
-        if (accumulatedX > 1.5) accumulatedX -= 1;
-        if (accumulatedY > 1.5) accumulatedY -= 1;
+      // 每层独立的偏移 - 使用层级产生变化
+      const { dx, dy } = getLayerOffset(layerIndex);
+      
+      // 基于层级计算偏移量，交替变化，让每层看起来都不同
+      // 偶数层和奇数层使用不同的基础偏移
+      let layerOffsetX = (layerIndex % 2 === 0) ? 0 : 0.5;
+      let layerOffsetY = (layerIndex % 2 === 0) ? 0.5 : 0;
+      
+      // 叠加当前层的随机偏移
+      layerOffsetX += dx;
+      layerOffsetY += dy;
+      
+      // 每3层额外增加一个大偏移，产生更明显的层次感
+      if (layerIndex % 3 === 0 && layerIndex > 0) {
+        const extraSeed = layerIndex * 47;
+        layerOffsetX += (Math.sin(extraSeed) > 0 ? 0.5 : -0.5);
+        layerOffsetY += (Math.cos(extraSeed) > 0 ? 0.5 : -0.5);
       }
       
       // 生成当前层的不规则掩码
@@ -374,11 +391,11 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
         for (let col = 0; col < BASE_GRID_COLS; col++) {
           if (!mask[row][col]) continue; // 跳过被掩码标记的位置
           
-          const x = col + accumulatedX;
-          const y = row + accumulatedY;
+          const x = col + layerOffsetX;
+          const y = row + layerOffsetY;
           
-          // 确保在边界内
-          if (x >= 0 && x <= GRID_COLS - 0.5 && y >= 0 && y <= GRID_ROWS - 0.5) {
+          // 确保在边界内（允许更大的偏移范围）
+          if (x >= -0.5 && x <= GRID_COLS && y >= -0.5 && y <= GRID_ROWS) {
             layerPositions.push({ x, y });
           }
         }
