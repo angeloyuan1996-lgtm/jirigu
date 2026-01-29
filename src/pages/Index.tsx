@@ -6,6 +6,7 @@ import { BoosterBar } from '@/components/game/BoosterBar';
 import { GameHeader } from '@/components/game/GameHeader';
 import { AudioProvider } from '@/components/game/AudioProvider';
 import { GameOverModal, GameWonModal } from '@/components/game/GameModals';
+import { BlindStackPanel } from '@/components/game/BlindStackPanel';
 
 const Index = () => {
   const { initLevel, currentLevel } = useGameStore();
@@ -41,6 +42,10 @@ const Index = () => {
         
         {/* Main game area - 靠上对齐，给底部腾空间 */}
         <div className="flex-1 relative flex flex-col items-center justify-start overflow-hidden px-2 pt-2">
+          {/* 盲盒堆 - 左右两侧 */}
+          <BlindStackPanel position="left" />
+          <BlindStackPanel position="right" />
+          
           {/* Game board */}
           <div className="relative">
             <GameBoard />

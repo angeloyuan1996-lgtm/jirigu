@@ -9,8 +9,10 @@ export interface FruitBlock {
   x: number;
   y: number;
   z: number;
-  status: 'onMap' | 'inSlot' | 'inTemp' | 'removed';
+  status: 'onMap' | 'inSlot' | 'inTemp' | 'removed' | 'inBlindStack';
   isLocked: boolean;
+  blindStackPosition?: 'left' | 'right'; // 盲盒堆位置
+  blindStackIndex?: number; // 盲盒堆中的索引，0为最顶层
 }
 
 export interface HistoryEntry {
@@ -24,6 +26,8 @@ export interface GameState {
   slots: FruitBlock[];
   tempCache: FruitBlock[];
   historyStack: HistoryEntry[];
+  blindStackLeft: FruitBlock[]; // 左侧盲盒堆
+  blindStackRight: FruitBlock[]; // 右侧盲盒堆
   
   // Game status
   isGameOver: boolean;
@@ -56,6 +60,7 @@ export interface GameState {
   initLevel: (level: number) => void;
   clickBlock: (blockId: string) => void;
   clickBufferBlock: (blockId: string) => void;
+  clickBlindStackBlock: (position: 'left' | 'right') => void; // 点击盲盒堆顶部
   useMoveOut: () => void;
   useUndo: () => void;
   useShuffle: () => void;
