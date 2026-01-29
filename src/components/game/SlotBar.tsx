@@ -7,124 +7,120 @@ const SLOT_SIZE = 42;
 const BUFFER_SLOT_SIZE = 48;
 const MAX_SLOTS = 7;
 const BUFFER_SLOTS = 3;
-const BLIND_CARD_SIZE = 40;
+const BLIND_CARD_SIZE = 44; // 与游戏区卡片大小一致
 
-// 盲盒堆组件 - 内联版本
+// 盲盒堆组件 - 与游戏区卡片结构一致
 const BlindStack: React.FC<{ position: 'left' | 'right' }> = ({ position }) => {
   const { blindStackLeft, blindStackRight, clickBlindStackBlock, currentLevel } = useGameStore();
   
   const stack = position === 'left' ? blindStackLeft : blindStackRight;
   
-  // Level 1 没有盲盒堆
   if (currentLevel === 1 || stack.length === 0) return null;
   
   const topBlock = stack[0];
   const hiddenCount = stack.length - 1;
   
   return (
-    <div className="relative flex flex-col items-center">
-      {/* 堆叠效果 */}
-      <div className="relative" style={{ width: BLIND_CARD_SIZE, height: BLIND_CARD_SIZE + 10 }}>
-        {/* 底层阴影卡片 */}
-        {hiddenCount > 0 && (
-          <>
-            {hiddenCount >= 3 && (
-              <div 
-                className="absolute rounded-lg"
-                style={{
-                  width: BLIND_CARD_SIZE,
-                  height: BLIND_CARD_SIZE,
-                  backgroundColor: '#8B7355',
-                  border: '2px solid #654321',
-                  top: 8,
-                  opacity: 0.4,
-                }}
-              />
-            )}
-            {hiddenCount >= 2 && (
-              <div 
-                className="absolute rounded-lg"
-                style={{
-                  width: BLIND_CARD_SIZE,
-                  height: BLIND_CARD_SIZE,
-                  backgroundColor: '#9B8365',
-                  border: '2px solid #654321',
-                  top: 5,
-                  opacity: 0.6,
-                }}
-              />
-            )}
+    <div className="relative" style={{ width: BLIND_CARD_SIZE, height: BLIND_CARD_SIZE + 12 }}>
+      {/* 底层阴影卡片 - 显示堆叠效果 */}
+      {hiddenCount > 0 && (
+        <>
+          {hiddenCount >= 3 && (
             <div 
-              className="absolute rounded-lg"
+              className="absolute rounded-lg border-[1.5px] border-[#555]"
               style={{
                 width: BLIND_CARD_SIZE,
                 height: BLIND_CARD_SIZE,
-                backgroundColor: '#AB9375',
-                border: '2px solid #654321',
-                top: 2,
-                opacity: 0.8,
+                backgroundColor: 'hsl(80 40% 25% / 0.7)',
+                top: 8,
+                left: 0,
               }}
             />
-          </>
-        )}
-        
-        {/* 可点击的顶部卡片 */}
-        <AnimatePresence mode="popLayout">
-          <motion.div
-            key={topBlock.id}
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.5, opacity: 0, y: -20 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => clickBlindStackBlock(position)}
-            className="absolute top-0 rounded-lg shadow-lg cursor-pointer"
+          )}
+          {hiddenCount >= 2 && (
+            <div 
+              className="absolute rounded-lg border-[1.5px] border-[#555]"
+              style={{
+                width: BLIND_CARD_SIZE,
+                height: BLIND_CARD_SIZE,
+                backgroundColor: 'hsl(80 40% 30% / 0.7)',
+                top: 5,
+                left: 0,
+              }}
+            />
+          )}
+          <div 
+            className="absolute rounded-lg border-[1.5px] border-[#555]"
             style={{
               width: BLIND_CARD_SIZE,
               height: BLIND_CARD_SIZE,
-              backgroundColor: '#FFF8E7',
-              border: '2px solid #333',
+              backgroundColor: 'hsl(80 40% 35% / 0.7)',
+              top: 2,
+              left: 0,
             }}
-          >
-            <div className="w-full h-full flex items-center justify-center p-0.5">
-              <img 
-                src={FRUIT_ICONS[topBlock.type]} 
-                alt={topBlock.type}
-                className="w-full h-full object-contain"
-                draggable={false}
-              />
-            </div>
-          </motion.div>
-        </AnimatePresence>
-        
-        {/* 剩余数量标签 */}
-        {hiddenCount > 0 && (
-          <div 
-            className="absolute left-1/2 transform -translate-x-1/2 px-1.5 py-0.5 rounded-full font-bold"
-            style={{
-              bottom: -8,
-              backgroundColor: '#FF6B6B',
-              color: 'white',
-              border: '1px solid #333',
-              fontSize: '9px',
-              lineHeight: 1,
+          />
+        </>
+      )}
+      
+      {/* 可点击的顶部卡片 - 与游戏区卡片样式完全一致 */}
+      <AnimatePresence mode="popLayout">
+        <motion.div
+          key={topBlock.id}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.5, opacity: 0, y: -20 }}
+          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.05 }}
+          onClick={() => clickBlindStackBlock(position)}
+          className="absolute top-0 left-0 rounded-lg border-[1.5px] border-[#555] cursor-pointer flex items-center justify-center"
+          style={{
+            width: BLIND_CARD_SIZE,
+            height: BLIND_CARD_SIZE,
+            backgroundColor: '#FFF8E7',
+          }}
+        >
+          <img 
+            src={FRUIT_ICONS[topBlock.type]} 
+            alt={topBlock.type}
+            className="pointer-events-none"
+            style={{ 
+              width: BLIND_CARD_SIZE * 0.95,
+              height: BLIND_CARD_SIZE * 0.95,
             }}
-          >
-            +{hiddenCount}
-          </div>
-        )}
-      </div>
+            draggable={false}
+          />
+        </motion.div>
+      </AnimatePresence>
+      
+      {/* 剩余数量标签 */}
+      {hiddenCount > 0 && (
+        <div 
+          className="absolute left-1/2 transform -translate-x-1/2 px-1.5 py-0.5 rounded-full font-bold"
+          style={{
+            bottom: -4,
+            backgroundColor: '#FF6B6B',
+            color: 'white',
+            border: '1.5px solid #333',
+            fontSize: '10px',
+            lineHeight: 1,
+            zIndex: 10,
+          }}
+        >
+          +{hiddenCount}
+        </div>
+      )}
     </div>
   );
 };
 
 export const SlotBar: React.FC = () => {
-  const { slots, tempCache, clickBufferBlock, currentLevel } = useGameStore();
+  const { slots, tempCache, clickBufferBlock, currentLevel, blindStackLeft, blindStackRight } = useGameStore();
   
-  const showBlindStacks = currentLevel > 1;
+  const showBlindStacks = currentLevel > 1 && (blindStackLeft.length > 0 || blindStackRight.length > 0);
   
   return (
     <div className="flex flex-col items-center">
-      {/* Booster Buffer Area - 3 slots, always visible when has items */}
+      {/* Booster Buffer Area */}
       {tempCache.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -132,7 +128,6 @@ export const SlotBar: React.FC = () => {
           exit={{ opacity: 0, y: -20 }}
           className="flex items-center justify-center gap-1 mb-3"
         >
-          {/* Render 3 buffer slots */}
           {Array.from({ length: BUFFER_SLOTS }).map((_, index) => {
             const block = tempCache[index];
             return (
@@ -159,26 +154,8 @@ export const SlotBar: React.FC = () => {
                       draggable={false}
                       className="w-10 h-10"
                       initial={{ scale: 0, y: 50, opacity: 0 }}
-                      animate={{ 
-                        scale: 1, 
-                        y: 0, 
-                        opacity: 1,
-                        transition: {
-                          type: "spring",
-                          stiffness: 300,
-                          damping: 20,
-                        }
-                      }}
-                      exit={{ 
-                        scale: 0, 
-                        y: 50, 
-                        opacity: 0,
-                        transition: {
-                          type: "spring",
-                          stiffness: 400,
-                          damping: 25,
-                        }
-                      }}
+                      animate={{ scale: 1, y: 0, opacity: 1 }}
+                      exit={{ scale: 0, y: 50, opacity: 0 }}
                     />
                   )}
                 </AnimatePresence>
@@ -188,16 +165,36 @@ export const SlotBar: React.FC = () => {
         </motion.div>
       )}
       
-      {/* 主槽位区域 + 盲盒堆 */}
-      <div className="flex items-center gap-2">
-        {/* 左侧盲盒堆 */}
+      {/* 盲盒堆 + 木栅栏容器 */}
+      <div className="relative">
+        {/* 盲盒堆 - 在木栅栏上方左右两侧 */}
         {showBlindStacks && (
-          <div className="flex-shrink-0">
-            <BlindStack position="left" />
-          </div>
+          <>
+            {/* 左侧盲盒堆 */}
+            <div 
+              className="absolute z-30"
+              style={{ 
+                left: -BLIND_CARD_SIZE - 8,
+                bottom: 8,
+              }}
+            >
+              <BlindStack position="left" />
+            </div>
+            
+            {/* 右侧盲盒堆 */}
+            <div 
+              className="absolute z-30"
+              style={{ 
+                right: -BLIND_CARD_SIZE - 8,
+                bottom: 8,
+              }}
+            >
+              <BlindStack position="right" />
+            </div>
+          </>
         )}
         
-        {/* Main slot bar - 木栅栏/木槽风格 */}
+        {/* Main slot bar - 木栅栏 */}
         <div 
           className="relative flex items-center justify-center gap-1 p-3 rounded-2xl"
           style={{
@@ -205,7 +202,7 @@ export const SlotBar: React.FC = () => {
             border: '5px solid hsl(25 70% 22%)',
           }}
         >
-          {/* 木栅栏装饰 - 左右两侧的竖条 */}
+          {/* 木栅栏装饰 */}
           <div 
             className="absolute -left-2 top-1/2 -translate-y-1/2 w-3 h-12 rounded-full"
             style={{
@@ -221,7 +218,7 @@ export const SlotBar: React.FC = () => {
             }}
           />
           
-          {/* Slot placeholders - 凹槽效果 */}
+          {/* Slot placeholders */}
           {Array.from({ length: MAX_SLOTS }).map((_, index) => (
             <div
               key={index}
@@ -249,13 +246,6 @@ export const SlotBar: React.FC = () => {
                     type: "spring",
                     stiffness: 400,
                     damping: 25,
-                    mass: 0.8,
-                    y: {
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 20,
-                    },
-                    opacity: { duration: 0.2 },
                   }}
                   className="flex items-center justify-center rounded-lg border-[1.5px] border-[#555]"
                   style={{
@@ -264,24 +254,17 @@ export const SlotBar: React.FC = () => {
                     backgroundColor: '#FFF8E7',
                   }}
                 >
-                <img 
-                  src={FRUIT_ICONS[block.type]}
-                  alt={block.type}
-                  draggable={false}
-                  className="w-8 h-8"
-                />
+                  <img 
+                    src={FRUIT_ICONS[block.type]}
+                    alt={block.type}
+                    draggable={false}
+                    className="w-8 h-8"
+                  />
                 </motion.div>
               ))}
             </AnimatePresence>
           </div>
         </div>
-        
-        {/* 右侧盲盒堆 */}
-        {showBlindStacks && (
-          <div className="flex-shrink-0">
-            <BlindStack position="right" />
-          </div>
-        )}
       </div>
     </div>
   );
