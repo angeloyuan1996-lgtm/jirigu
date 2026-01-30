@@ -144,7 +144,6 @@ export type Database = {
         Returns: {
           country_code: string
           total_completions: number
-          user_count: number
         }[]
       }
       refresh_country_leaderboard_cache: { Args: never; Returns: undefined }
