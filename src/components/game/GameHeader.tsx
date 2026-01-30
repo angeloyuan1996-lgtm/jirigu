@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { SettingsModal } from './SettingsModal';
+import { UsernameDisplay } from './UsernameDisplay';
 
 export const GameHeader: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -32,6 +33,9 @@ export const GameHeader: React.FC = () => {
           <Settings className="w-6 h-6 text-white" strokeWidth={2.5} />
         </motion.button>
         
+        {/* Username display - 可点击修改 */}
+        <UsernameDisplay />
+        
         {/* Date display - 卡通标签风格 */}
         <div 
           className="px-4 py-2 rounded-full text-sm font-bold border-[2px] border-[#333]"
@@ -42,9 +46,6 @@ export const GameHeader: React.FC = () => {
         >
           - {dateStr} -
         </div>
-        
-        {/* Placeholder for right side */}
-        <div className="w-12" />
       </div>
       
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />

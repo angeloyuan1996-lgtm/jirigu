@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Volume2, VolumeX, Home, Download, Mail } from 'lucide-react';
+import { X, Volume2, VolumeX, Home, Download, Mail, Users } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useGameStore } from '@/stores/gameStore';
 import { AuthModal } from './AuthModal';
+import { FriendSearch } from './FriendSearch';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -151,6 +152,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     onCheckedChange={toggleSound}
                     className="data-[state=checked]:bg-[#22C55E]"
                   />
+                </div>
+                
+                {/* 好友搜索区域 */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-[#333] font-bold">
+                    <Users className="w-5 h-5" strokeWidth={2.5} />
+                    <span>添加好友</span>
+                  </div>
+                  <FriendSearch currentUserId={user?.id || null} />
                 </div>
               </div>
               
