@@ -366,11 +366,10 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     return !globalPositionMap.has(key);
   };
   
-  // 标记位置已使用
+  // 标记位置已使用（内部函数，由 findValidPosition2 调用）
   const markPositionUsed = (x: number, y: number): void => {
     const key = xyKey(x, y);
     globalPositionMap.set(key, true);
-    console.log(`[Position] Marked: (${snapToGrid(x).toFixed(2)}, ${snapToGrid(y).toFixed(2)})`);
   };
   
   // 强制偏移量列表 - 必须偏移0.5单位，产生"半边"或"角"遮挡
@@ -386,16 +385,17 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   ];
   
   // 找到一个有效位置（如果原位置被占用，则强制偏移0.5）
+  // 重要：找到后立即标记，防止同层重复！
   const findValidPosition2 = (baseX: number, baseY: number, seed: number): { x: number, y: number } | null => {
     const snapX = snapToGrid(baseX);
     const snapY = snapToGrid(baseY);
     
     // 首先检查原位置是否可用
     if (isPositionAvailable(snapX, snapY)) {
+      // 立即标记！这是关键！
+      markPositionUsed(snapX, snapY);
       return { x: snapX, y: snapY };
     }
-    
-    console.log(`[Overlap] Position (${snapX.toFixed(2)}, ${snapY.toFixed(2)}) occupied, finding offset...`);
     
     // 原位置被占用，必须偏移！使用伪随机打乱偏移顺序
     const shuffledOffsets = [...OFFSET_OPTIONS].sort((a, b) => {
@@ -411,7 +411,8 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
       // 确保在边界内
       if (newX >= 0 && newX <= GRID_COLS - 1 && newY >= 0 && newY <= GRID_ROWS - 1) {
         if (isPositionAvailable(newX, newY)) {
-          console.log(`[Overlap] Found valid offset: (${newX.toFixed(2)}, ${newY.toFixed(2)})`);
+          // 立即标记！
+          markPositionUsed(newX, newY);
           return { x: newX, y: newY };
         }
       }
@@ -426,14 +427,14 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
         const newY = snapToGrid(baseY + dy);
         if (newX >= 0 && newX <= GRID_COLS - 1 && newY >= 0 && newY <= GRID_ROWS - 1) {
           if (isPositionAvailable(newX, newY)) {
-            console.log(`[Overlap] Found extended offset: (${newX.toFixed(2)}, ${newY.toFixed(2)})`);
+            // 立即标记！
+            markPositionUsed(newX, newY);
             return { x: newX, y: newY };
           }
         }
       }
     }
     
-    console.warn(`[Overlap] No valid position found for (${baseX}, ${baseY})`);
     return null;
   };
   
@@ -499,11 +500,10 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
       // 随机打乱这层的位置顺序
       layerPositions.sort(() => Math.sin(currentZ * 31 + globalPosIndex * 7) - 0.5);
       
-      // 添加位置并记录到全局位置追踪
+      // 添加位置（位置已在 findValidPosition2 中标记过了）
       for (const pos of layerPositions) {
         if (positions.length >= count) break;
         positions.push({ x: pos.x, y: pos.y, z: currentZ });
-        markPositionUsed(pos.x, pos.y); // 标记位置已使用
         globalPosIndex++;
       }
       
