@@ -136,7 +136,6 @@ const getCountryName = (code: string): string => {
 interface CountryRanking {
   country_code: string;
   total_completions: number;
-  user_count: number;
 }
 
 interface LeaderboardModalProps {
