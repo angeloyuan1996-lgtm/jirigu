@@ -261,94 +261,70 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   
   // ===== 羊了个羊式"乱中有序"堆叠 =====
   // 核心规则：
-  // 1. 遮住一半 = X或Y方向偏移0.5
-  // 2. 遮住一个角 = X和Y方向都偏移0.5
-  // 3. 不规则外形 = 随机跳过某些位置，边缘参差不齐
+  // 1. 随机散点分布，打破网格感
+  // 2. 聚簇效应 - 某些区域密集，某些区域稀疏
+  // 3. 半格偏移（0.5单位）创造错位感
+  // 4. 边缘参差不齐，不规则轮廓
   
   const mainBlocks: FruitBlock[] = [];
   
-  // 基础网格尺寸（整数坐标）
-  const BASE_GRID_COLS = 7;
-  const BASE_GRID_ROWS = 8;
+  // 游戏区域边界（留出一点边距）
+  const AREA_MIN_X = 0.5;
+  const AREA_MAX_X = GRID_COLS - 1.5;
+  const AREA_MIN_Y = 0.5;
+  const AREA_MAX_Y = GRID_ROWS - 1.5;
   
-  // 羊了个羊式遮挡模式
-  type OverlapMode = 'half-x' | 'half-y' | 'corner';
-  
-  // 大幅增加"一角遮挡"(corner)的比例 - 70%是corner，30%是half
-  const getRandomOverlapMode = (seed: number): OverlapMode => {
-    const rand = Math.sin(seed * 13.7) * 0.5 + 0.5;
-    if (rand < 0.7) return 'corner'; // 70% corner
-    if (rand < 0.85) return 'half-x'; // 15% half-x
-    return 'half-y'; // 15% half-y
-  };
-  
-  // 根据层级和随机种子获取偏移量（更随机化）
-  const getLayerOffset = (layerIndex: number, posIndex: number): { dx: number, dy: number } => {
-    const seed = layerIndex * 31 + posIndex * 7;
-    const pattern = getRandomOverlapMode(seed);
+  // 生成随机聚类中心（每层不同）
+  const generateClusterCenters = (layerIndex: number, count: number = 4): { x: number, y: number }[] => {
+    const centers: { x: number, y: number }[] = [];
+    const seed = layerIndex * 137 + 42;
     
-    // 随机决定偏移方向（正或负）
-    const dirX = Math.sin(seed * 17) > 0 ? 1 : -1;
-    const dirY = Math.sin(seed * 23) > 0 ? 1 : -1;
-    
-    switch (pattern) {
-      case 'half-x':
-        return { dx: 0.5 * dirX, dy: 0 };
-      case 'half-y':
-        return { dx: 0, dy: 0.5 * dirY };
-      case 'corner':
-        return { dx: 0.5 * dirX, dy: 0.5 * dirY };
-      default:
-        return { dx: 0.5 * dirX, dy: 0.5 * dirY };
-    }
-  };
-  
-  // 生成不规则形状掩码 - 决定哪些位置要跳过
-  const generateIrregularMask = (cols: number, rows: number, layerIndex: number): boolean[][] => {
-    const mask: boolean[][] = [];
-    const seed = layerIndex * 17 + 42; // 伪随机种子
-    
-    for (let row = 0; row < rows; row++) {
-      mask[row] = [];
-      for (let col = 0; col < cols; col++) {
-        // 中心区域更密集，边缘更稀疏
-        const distFromCenterX = Math.abs(col - cols / 2) / (cols / 2);
-        const distFromCenterY = Math.abs(row - rows / 2) / (rows / 2);
-        const distFromCenter = Math.max(distFromCenterX, distFromCenterY);
-        
-        // 边缘有更高概率被跳过
-        const skipProbability = distFromCenter > 0.7 ? 0.5 : (distFromCenter > 0.5 ? 0.3 : 0.15);
-        
-        // 使用确定性随机（基于位置和层级）
-        const randomValue = Math.sin(seed + col * 7 + row * 13) * 0.5 + 0.5;
-        
-        // 如果是边角，增加跳过概率
-        const isCorner = (col === 0 || col === cols - 1) && (row === 0 || row === rows - 1);
-        const isEdge = col === 0 || col === cols - 1 || row === 0 || row === rows - 1;
-        
-        let shouldSkip = false;
-        if (isCorner) {
-          shouldSkip = randomValue < 0.6; // 角落60%跳过
-        } else if (isEdge) {
-          shouldSkip = randomValue < skipProbability + 0.2; // 边缘额外20%
-        } else {
-          shouldSkip = randomValue < skipProbability;
-        }
-        
-        // 每层使用不同的跳过模式
-        if (layerIndex % 2 === 0) {
-          // 偶数层：棋盘格式稀疏
-          if ((col + row) % 3 === 0) shouldSkip = shouldSkip || randomValue < 0.3;
-        } else {
-          // 奇数层：对角线式稀疏
-          if (Math.abs(col - row) % 4 === 0) shouldSkip = shouldSkip || randomValue < 0.25;
-        }
-        
-        mask[row][col] = !shouldSkip;
-      }
+    for (let i = 0; i < count; i++) {
+      // 使用确定性随机
+      const rx = Math.sin(seed + i * 17) * 0.5 + 0.5;
+      const ry = Math.sin(seed + i * 31 + 7) * 0.5 + 0.5;
+      
+      centers.push({
+        x: AREA_MIN_X + rx * (AREA_MAX_X - AREA_MIN_X),
+        y: AREA_MIN_Y + ry * (AREA_MAX_Y - AREA_MIN_Y),
+      });
     }
     
-    return mask;
+    return centers;
+  };
+  
+  // 生成真正随机的位置（围绕聚类中心散布）
+  const generateScatteredPosition = (layerIndex: number, posIndex: number): { x: number, y: number } => {
+    const seed = layerIndex * 1000 + posIndex * 7;
+    
+    // 获取这层的聚类中心
+    const clusterCount = 3 + (layerIndex % 3); // 3-5个聚类中心
+    const centers = generateClusterCenters(layerIndex, clusterCount);
+    
+    // 随机选择一个聚类中心
+    const centerIdx = Math.floor((Math.sin(seed * 13) * 0.5 + 0.5) * centers.length);
+    const center = centers[centerIdx % centers.length];
+    
+    // 围绕中心散布（高斯分布感觉）
+    const spreadX = (Math.sin(seed * 17) + Math.sin(seed * 29) * 0.5) * 2.5;
+    const spreadY = (Math.sin(seed * 23) + Math.sin(seed * 37) * 0.5) * 2.5;
+    
+    // 添加半格偏移（0, 0.5随机）
+    const halfOffsetX = Math.sin(seed * 41) > 0 ? 0.5 : 0;
+    const halfOffsetY = Math.sin(seed * 47) > 0 ? 0.5 : 0;
+    
+    let x = center.x + spreadX + halfOffsetX;
+    let y = center.y + spreadY + halfOffsetY;
+    
+    // 对齐到0.5网格
+    x = Math.round(x * 2) / 2;
+    y = Math.round(y * 2) / 2;
+    
+    // 确保在边界内
+    x = Math.max(0, Math.min(x, GRID_COLS - 1));
+    y = Math.max(0, Math.min(y, GRID_ROWS - 1));
+    
+    return { x, y };
   };
   
   // ========== 跨层位置追踪系统 ==========
@@ -438,76 +414,49 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     return null;
   };
   
-  // 生成"乱中有序"的网格位置 - 避免整齐并排，强制错位遮挡
-  const generateChaoticGridPositions = (count: number, baseZ: number): { x: number, y: number, z: number }[] => {
+  // 生成"乱中有序"的散点位置 - 使用聚类 + 随机散布
+  const generateScatteredPositions = (count: number, baseZ: number): { x: number, y: number, z: number }[] => {
     const positions: { x: number, y: number, z: number }[] = [];
     let currentZ = baseZ;
     let globalPosIndex = 0;
     
+    // 每层大约放置的卡片数（让层数更多，每层更稀疏）
+    const cardsPerLayer = Math.max(8, Math.floor(count / 6));
+    
     while (positions.length < count) {
       const layerIndex = currentZ - baseZ;
-      
-      // 生成当前层的不规则掩码
-      const mask = generateIrregularMask(BASE_GRID_COLS, BASE_GRID_ROWS, layerIndex);
-      
-      // 收集这层所有有效位置（使用散点布局避免并排）
       const layerPositions: { x: number, y: number }[] = [];
       
-      for (let row = 0; row < BASE_GRID_ROWS; row++) {
-        for (let col = 0; col < BASE_GRID_COLS; col++) {
-          if (!mask[row][col]) continue;
-          
-          // 使用1.5间距的稀疏网格（避免并排）
-          const sparseRow = row % 2;
-          const sparseCol = col % 2;
-          
-          // 棋盘式稀疏
-          const layerOffset = layerIndex % 2;
-          const shouldPlace = (sparseRow + sparseCol + layerOffset) % 2 === 0;
-          
-          if (!shouldPlace && Math.sin(layerIndex * 7 + col * 13 + row * 17) > -0.3) {
-            continue;
-          }
-          
-          // 每张卡片独立获取随机偏移
-          const { dx, dy } = getLayerOffset(layerIndex, col * 100 + row);
-          
-          // 基础位置
-          const baseX = col * 1.0;
-          const baseY = row * 1.0;
-          
-          // 添加随机抖动（0 或 0.5）
-          const jitterX = Math.sin(layerIndex * 23 + col * 7 + row * 11) > 0 ? 0.5 : 0;
-          const jitterY = Math.sin(layerIndex * 29 + col * 11 + row * 7) > 0 ? 0.5 : 0;
-          
-          let candidateX = baseX + dx + jitterX;
-          let candidateY = baseY + dy + jitterY;
-          
-          // 确保在边界内
-          candidateX = Math.max(0, Math.min(candidateX, GRID_COLS - 1));
-          candidateY = Math.max(0, Math.min(candidateY, GRID_ROWS - 1));
-          
-          // 找到一个不与其他层完全重叠的位置
-          const seed = currentZ * 1000 + col * 100 + row;
-          const validPos = findValidPosition2(candidateX, candidateY, seed);
-          
-          if (validPos) {
-            layerPositions.push(validPos);
-          }
+      // 这层需要放置的卡片数
+      const remainingCount = count - positions.length;
+      const targetCount = Math.min(cardsPerLayer + Math.floor(Math.sin(layerIndex * 17) * 3), remainingCount);
+      
+      // 生成散点位置
+      let attempts = 0;
+      const maxAttempts = targetCount * 5;
+      
+      while (layerPositions.length < targetCount && attempts < maxAttempts) {
+        const pos = generateScatteredPosition(layerIndex, globalPosIndex + attempts);
+        
+        // 检查位置是否可用
+        const validPos = findValidPosition2(pos.x, pos.y, currentZ * 1000 + attempts);
+        
+        if (validPos) {
+          layerPositions.push(validPos);
         }
+        attempts++;
       }
       
-      // 随机打乱这层的位置顺序
-      layerPositions.sort(() => Math.sin(currentZ * 31 + globalPosIndex * 7) - 0.5);
-      
-      // 添加位置（位置已在 findValidPosition2 中标记过了）
+      // 添加位置
       for (const pos of layerPositions) {
-        if (positions.length >= count) break;
         positions.push({ x: pos.x, y: pos.y, z: currentZ });
         globalPosIndex++;
       }
       
       currentZ++;
+      
+      // 防止无限循环
+      if (currentZ - baseZ > 50) break;
     }
     
     return positions;
@@ -519,7 +468,7 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   const mainTop = mainAreaCards.filter(c => c.layer === 'top');
   
   // 底层：z = 0 开始
-  const bottomPositions = generateChaoticGridPositions(mainBottom.length, 0);
+  const bottomPositions = generateScatteredPositions(mainBottom.length, 0);
   mainBottom.forEach((card, idx) => {
     const pos = bottomPositions[idx];
     mainBlocks.push({
@@ -536,7 +485,7 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   const maxBottomZ = Math.max(...mainBlocks.map(b => b.z), 0);
   
   // 中层：紧接底层
-  const middlePositions = generateChaoticGridPositions(mainMiddle.length, maxBottomZ + 1);
+  const middlePositions = generateScatteredPositions(mainMiddle.length, maxBottomZ + 1);
   mainMiddle.forEach((card, idx) => {
     const pos = middlePositions[idx];
     mainBlocks.push({
@@ -553,7 +502,7 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   const maxMiddleZ = Math.max(...mainBlocks.map(b => b.z), 0);
   
   // 顶层：最上面
-  const topPositions = generateChaoticGridPositions(mainTop.length, maxMiddleZ + 1);
+  const topPositions = generateScatteredPositions(mainTop.length, maxMiddleZ + 1);
   mainTop.forEach((card, idx) => {
     const pos = topPositions[idx];
     mainBlocks.push({
