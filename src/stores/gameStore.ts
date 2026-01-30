@@ -140,62 +140,72 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   };
   
   if (level === 1) {
-    // Level 1: 简单 - 3种水果，每种6个 = 18张卡片，分2层，有部分重叠
+    // Level 1: 教学关 - 3种水果，每种9个 = 27张卡片
+    // 布局: 3x3网格，3层堆叠，有半格偏移制造遮挡效果
     const blocks: FruitBlock[] = [];
     const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
     const selectedFruits = shuffledFruits.slice(0, 3);
     
-    // 底层9张卡片的位置（3x3网格）
-    const layer0Positions = [
-      { x: 1, y: 1 }, { x: 3, y: 1 }, { x: 5, y: 1 },
-      { x: 1, y: 3 }, { x: 3, y: 3 }, { x: 5, y: 3 },
-      { x: 1, y: 5 }, { x: 3, y: 5 }, { x: 5, y: 5 },
+    // 3x3 网格基础位置
+    const basePositions = [
+      { x: 1.5, y: 1.5 }, { x: 3, y: 1.5 }, { x: 4.5, y: 1.5 },
+      { x: 1.5, y: 3 },   { x: 3, y: 3 },   { x: 4.5, y: 3 },
+      { x: 1.5, y: 4.5 }, { x: 3, y: 4.5 }, { x: 4.5, y: 4.5 },
     ];
     
-    // 上层9张卡片的位置（偏移0.5，制造半遮挡效果）
-    const layer1Positions = [
-      { x: 2, y: 2 }, { x: 4, y: 2 }, { x: 2, y: 4 },
-      { x: 4, y: 4 }, { x: 3, y: 3 }, { x: 1.5, y: 1.5 },
-      { x: 4.5, y: 1.5 }, { x: 1.5, y: 4.5 }, { x: 4.5, y: 4.5 },
+    // 每层的偏移量（制造半遮挡效果）
+    const layerOffsets = [
+      { dx: 0, dy: 0 },      // 底层：无偏移
+      { dx: 0.5, dy: 0.5 },  // 中层：右下偏移半格
+      { dx: 0, dy: 0 },      // 顶层：无偏移（与底层对齐）
     ];
     
-    // 每种水果6张：3张在底层，3张在上层
-    let layer0Index = 0;
-    let layer1Index = 0;
+    // 生成27张卡片（3种水果 x 9张 = 3组三连 x 3）
+    // 每种水果在每层放3张
+    let cardIndex = 0;
+    const allCards: { type: FruitType; layer: number; posIndex: number }[] = [];
     
+    // 为每种水果分配9张卡片（每层3张）
     selectedFruits.forEach((fruitType) => {
-      // 底层3张
-      for (let i = 0; i < 3; i++) {
-        const pos = layer0Positions[layer0Index++];
-        const snappedX = snapToGrid(pos.x);
-        const snappedY = snapToGrid(pos.y);
-        blocks.push({
-          id: generateId(),
-          type: fruitType,
-          x: snappedX,
-          y: snappedY,
-          z: 0,
-          status: 'onMap',
-          isLocked: false,
-        });
-        usedPositions.set(coordKey(snappedX, snappedY, 0), { x: snappedX, y: snappedY, z: 0 });
+      for (let layer = 0; layer < 3; layer++) {
+        for (let i = 0; i < 3; i++) {
+          allCards.push({ type: fruitType, layer, posIndex: -1 });
+        }
       }
-      // 上层3张
-      for (let i = 0; i < 3; i++) {
-        const pos = layer1Positions[layer1Index++];
-        const snappedX = snapToGrid(pos.x);
-        const snappedY = snapToGrid(pos.y);
-        blocks.push({
-          id: generateId(),
-          type: fruitType,
-          x: snappedX,
-          y: snappedY,
-          z: 1,
-          status: 'onMap',
-          isLocked: false,
-        });
-        usedPositions.set(coordKey(snappedX, snappedY, 1), { x: snappedX, y: snappedY, z: 1 });
-      }
+    });
+    
+    // 打乱卡片顺序
+    const shuffledCards = allCards.sort(() => Math.random() - 0.5);
+    
+    // 按层分配位置
+    const positionsByLayer = [
+      [...Array(9).keys()], // 底层9个位置
+      [...Array(9).keys()], // 中层9个位置
+      [...Array(9).keys()], // 顶层9个位置
+    ];
+    positionsByLayer.forEach(arr => arr.sort(() => Math.random() - 0.5));
+    
+    const layerCounters = [0, 0, 0];
+    
+    shuffledCards.forEach((card) => {
+      const layer = card.layer;
+      const posIndex = positionsByLayer[layer][layerCounters[layer]++];
+      const basePos = basePositions[posIndex];
+      const offset = layerOffsets[layer];
+      
+      const x = snapToGrid(basePos.x + offset.dx);
+      const y = snapToGrid(basePos.y + offset.dy);
+      
+      blocks.push({
+        id: generateId(),
+        type: card.type,
+        x,
+        y,
+        z: layer,
+        status: 'onMap',
+        isLocked: false,
+      });
+      usedPositions.set(coordKey(x, y, layer), { x, y, z: layer });
     });
     
     return { mainBlocks: blocks.sort((a, b) => a.z - b.z), leftStack: [], rightStack: [] };
