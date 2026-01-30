@@ -5,6 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { useGameStore } from '@/stores/gameStore';
 import { AuthModal } from './AuthModal';
 import { FriendSearch } from './FriendSearch';
+import { UsernameDisplay } from './UsernameDisplay';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -128,9 +129,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               </motion.button>
               
               {/* Header */}
-              <h2 className="text-xl font-bold text-[#333] text-center mb-6">
+              <h2 className="text-xl font-bold text-[#333] text-center mb-2">
                 设置
               </h2>
+              
+              {/* Username display */}
+              <div className="flex justify-center mb-4">
+                <UsernameDisplay />
+              </div>
               
               {/* Settings options */}
               <div className="space-y-4">
