@@ -223,14 +223,19 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onCl
                             <Users className="w-3 h-3" />
                             <span>{item.user_count} players</span>
                           </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+            
+            {/* Footer */}
+            <div className="text-center pt-3 mt-3 border-t border-[#E5E2D3]">
+              <span className="text-xs text-[#999]">Updates every 24 hours</span>
             </div>
-          </motion.div>
+          </div>
+        </motion.div>
         </motion.div>
       )}
     </AnimatePresence>

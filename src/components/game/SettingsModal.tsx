@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Volume2, VolumeX, Home, Download, Mail, UserPlus } from 'lucide-react';
+import { X, Volume2, VolumeX, Home, Download, Mail, UserPlus, Trophy } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useGameStore } from '@/stores/gameStore';
 import { AuthModal } from './AuthModal';
@@ -8,6 +8,7 @@ import { FriendSearch } from './FriendSearch';
 import { FriendRequestsList } from './FriendRequestsList';
 import { FriendsList } from './FriendsList';
 import { UsernameDisplay } from './UsernameDisplay';
+import { LeaderboardModal } from './LeaderboardModal';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -29,6 +30,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [friendsRefreshTrigger, setFriendsRefreshTrigger] = useState(0);
   
@@ -167,6 +169,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   />
                 </div>
 
+                {/* Country Leaderboard button */}
+                <motion.button
+                  onClick={() => setShowLeaderboard(true)}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full flex items-center justify-between p-3 rounded-xl border-[2px] border-[#333]"
+                  style={{ backgroundColor: '#FEF3C7' }}
+                >
+                  <div className="flex items-center gap-3">
+                    <Trophy className="w-5 h-5 text-[#D97706]" strokeWidth={2.5} />
+                    <span className="font-bold text-[#333]">Country Leaderboard</span>
+                  </div>
+                  <span className="text-lg">🏆</span>
+                </motion.button>
+
                 {/* 好友功能区域 */}
                 {user ? (
                   <>
@@ -288,6 +304,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       <AuthModal 
         isOpen={showAuthModal} 
         onClose={() => setShowAuthModal(false)} 
+      />
+
+      {/* Leaderboard Modal */}
+      <LeaderboardModal 
+        isOpen={showLeaderboard} 
+        onClose={() => setShowLeaderboard(false)} 
       />
     </>
   );
