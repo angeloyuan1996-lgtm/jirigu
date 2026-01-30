@@ -140,13 +140,13 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   };
   
   if (level === 1) {
-    // Level 1: 教学关 - 3种水果，每种9个 = 27张卡片
-    // 布局: 3x3网格，3层堆叠，有半格偏移制造遮挡效果
+    // Level 1: 教学关 - 3种水果，每种6个 = 18张卡片
+    // 布局: 9个位置，2层堆叠
     const blocks: FruitBlock[] = [];
     const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
     const selectedFruits = shuffledFruits.slice(0, 3);
     
-    // 3x3 网格基础位置
+    // 9个位置（3x3网格）
     const basePositions = [
       { x: 1.5, y: 1.5 }, { x: 3, y: 1.5 }, { x: 4.5, y: 1.5 },
       { x: 1.5, y: 3 },   { x: 3, y: 3 },   { x: 4.5, y: 3 },
@@ -156,20 +156,17 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     // 每层的偏移量（制造半遮挡效果）
     const layerOffsets = [
       { dx: 0, dy: 0 },      // 底层：无偏移
-      { dx: 0.5, dy: 0.5 },  // 中层：右下偏移半格
-      { dx: 0, dy: 0 },      // 顶层：无偏移（与底层对齐）
+      { dx: 0.5, dy: 0.5 },  // 顶层：右下偏移半格
     ];
     
-    // 生成27张卡片（3种水果 x 9张 = 3组三连 x 3）
-    // 每种水果在每层放3张
-    let cardIndex = 0;
-    const allCards: { type: FruitType; layer: number; posIndex: number }[] = [];
+    // 生成18张卡片（3种水果 x 6张 = 2组三连 x 3）
+    const allCards: { type: FruitType; layer: number }[] = [];
     
-    // 为每种水果分配9张卡片（每层3张）
+    // 为每种水果分配6张卡片（每层3张）
     selectedFruits.forEach((fruitType) => {
-      for (let layer = 0; layer < 3; layer++) {
+      for (let layer = 0; layer < 2; layer++) {
         for (let i = 0; i < 3; i++) {
-          allCards.push({ type: fruitType, layer, posIndex: -1 });
+          allCards.push({ type: fruitType, layer });
         }
       }
     });
@@ -180,12 +177,11 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     // 按层分配位置
     const positionsByLayer = [
       [...Array(9).keys()], // 底层9个位置
-      [...Array(9).keys()], // 中层9个位置
       [...Array(9).keys()], // 顶层9个位置
     ];
     positionsByLayer.forEach(arr => arr.sort(() => Math.random() - 0.5));
     
-    const layerCounters = [0, 0, 0];
+    const layerCounters = [0, 0];
     
     shuffledCards.forEach((card) => {
       const layer = card.layer;
