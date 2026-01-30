@@ -35,7 +35,7 @@ export const FruitCard: React.FC<FruitCardProps> = ({
       className={cn(
         // 羊了个羊风格：方形、细描边、纯色
         "flex items-center justify-center select-none",
-        "rounded-lg", // border-radius: 8px
+        "rounded-lg overflow-hidden", // 圆角 + 裁剪溢出
         "transition-all duration-300 ease-in-out",
         isInSlot && "relative",
         isInTemp && "relative",
