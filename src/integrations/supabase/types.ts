@@ -19,19 +19,16 @@ export type Database = {
           country_code: string
           last_updated: string
           total_completions: number
-          user_count: number
         }
         Insert: {
           country_code: string
           last_updated?: string
           total_completions?: number
-          user_count?: number
         }
         Update: {
           country_code?: string
           last_updated?: string
           total_completions?: number
-          user_count?: number
         }
         Relationships: []
       }
