@@ -140,22 +140,33 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   };
   
   if (level === 1) {
-    // Level 1: 超简单 - 只有3种水果，每种3个 = 9张卡片，无重叠，无盲盒堆
+    // Level 1: 简单 - 3种水果，每种6个 = 18张卡片，分2层，有部分重叠
     const blocks: FruitBlock[] = [];
     const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
     const selectedFruits = shuffledFruits.slice(0, 3);
     
-    // 网格对齐的位置（每个位置间隔 2 个卡片单位 = 8 个网格单位）
-    const positions = [
+    // 底层9张卡片的位置（3x3网格）
+    const layer0Positions = [
       { x: 1, y: 1 }, { x: 3, y: 1 }, { x: 5, y: 1 },
       { x: 1, y: 3 }, { x: 3, y: 3 }, { x: 5, y: 3 },
       { x: 1, y: 5 }, { x: 3, y: 5 }, { x: 5, y: 5 },
     ];
     
-    let posIndex = 0;
+    // 上层9张卡片的位置（偏移0.5，制造半遮挡效果）
+    const layer1Positions = [
+      { x: 2, y: 2 }, { x: 4, y: 2 }, { x: 2, y: 4 },
+      { x: 4, y: 4 }, { x: 3, y: 3 }, { x: 1.5, y: 1.5 },
+      { x: 4.5, y: 1.5 }, { x: 1.5, y: 4.5 }, { x: 4.5, y: 4.5 },
+    ];
+    
+    // 每种水果6张：3张在底层，3张在上层
+    let layer0Index = 0;
+    let layer1Index = 0;
+    
     selectedFruits.forEach((fruitType) => {
+      // 底层3张
       for (let i = 0; i < 3; i++) {
-        const pos = positions[posIndex++];
+        const pos = layer0Positions[layer0Index++];
         const snappedX = snapToGrid(pos.x);
         const snappedY = snapToGrid(pos.y);
         blocks.push({
@@ -168,6 +179,22 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
           isLocked: false,
         });
         usedPositions.set(coordKey(snappedX, snappedY, 0), { x: snappedX, y: snappedY, z: 0 });
+      }
+      // 上层3张
+      for (let i = 0; i < 3; i++) {
+        const pos = layer1Positions[layer1Index++];
+        const snappedX = snapToGrid(pos.x);
+        const snappedY = snapToGrid(pos.y);
+        blocks.push({
+          id: generateId(),
+          type: fruitType,
+          x: snappedX,
+          y: snappedY,
+          z: 1,
+          status: 'onMap',
+          isLocked: false,
+        });
+        usedPositions.set(coordKey(snappedX, snappedY, 1), { x: snappedX, y: snappedY, z: 1 });
       }
     });
     
