@@ -122,11 +122,11 @@ export const GameOverModal: React.FC = () => {
     
     try {
       await navigator.clipboard.writeText(inviteText);
-      toast.success('邀请内容已复制！');
+      toast.success('Invite copied!');
       setIsWaitingForShare(true);
       setCountdown(SHARE_COUNTDOWN_SECONDS);
     } catch (err) {
-      toast.error('复制失败，请手动复制');
+      toast.error('Copy failed, please try again');
     }
   }, []);
   
@@ -186,17 +186,17 @@ export const GameOverModal: React.FC = () => {
               {/* Header */}
               <div className="text-center mb-4">
                 <h2 className="text-2xl font-bold text-[#333]">
-                  游戏结束! 😢
+                  Game Over! 😢
                 </h2>
                 <p className="text-[#666] mt-1 font-medium">
-                  第 {currentLevel} 关
+                  Level {currentLevel}
                 </p>
               </div>
               
               {/* Progress */}
               <div className="mb-6">
                 <div className="flex items-center justify-between text-sm text-[#333] font-bold mb-2">
-                  <span>进度</span>
+                  <span>Progress</span>
                   <span>{progress}%</span>
                 </div>
                 <div 
@@ -229,7 +229,7 @@ export const GameOverModal: React.FC = () => {
                     }}
                   >
                     <Share2 className="w-5 h-5" strokeWidth={2.5} />
-                    分享复活
+                    Share to Revive
                   </motion.button>
                 )}
                 
@@ -244,13 +244,13 @@ export const GameOverModal: React.FC = () => {
                   }}
                 >
                   <RotateCcw className="w-5 h-5" strokeWidth={2.5} />
-                  重新开始
+                  Restart
                 </motion.button>
               </div>
               
               {hasRevived && (
                 <p className="text-center text-sm text-[#666] font-medium mt-4">
-                  你已经使用过复活机会了，下次好运！🍀
+                  You've already used your revival chance. Good luck next time! 🍀
                 </p>
               )}
             </motion.div>
@@ -285,16 +285,16 @@ export const GameWonModal: React.FC = () => {
     try {
       await navigator.clipboard.writeText(inviteText);
       setCopied(true);
-      toast.success('邀请内容已复制！');
+      toast.success('Invite copied!');
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      toast.error('复制失败，请手动复制');
+      toast.error('Copy failed, please try again');
     }
   };
   
   const handleViewLeaderboard = () => {
-    // TODO: 实现排行榜功能
-    alert('排行榜功能即将上线！');
+    // TODO: Implement leaderboard
+    alert('Leaderboard coming soon!');
   };
   
   return (
@@ -327,14 +327,14 @@ export const GameWonModal: React.FC = () => {
             </motion.div>
             
             <h2 className="text-2xl font-bold text-[#333] mb-2">
-              {isLastLevel ? '恭喜通关全部关卡!' : '恭喜通关!'}
+              {isLastLevel ? 'Congratulations! All Levels Cleared!' : 'Level Complete!'}
             </h2>
             <p className="text-[#166534] font-medium mb-6">
-              {isLastLevel ? '你已成功挑战所有关卡！' : `第 ${currentLevel} 关完成!`}
+              {isLastLevel ? 'You have conquered all challenges!' : `Level ${currentLevel} complete!`}
             </p>
             
             {isLastLevel ? (
-              // 最后一关通关：显示分享、再玩一次、排行榜
+              // Last level: show share, play again, leaderboard
               <div className="flex flex-col gap-3">
                 <motion.button
                   onClick={handleShare}
@@ -347,7 +347,7 @@ export const GameWonModal: React.FC = () => {
                   }}
                 >
                   <Share2 className="w-5 h-5" strokeWidth={2.5} />
-                  {copied ? '已复制!' : '分享给好友'}
+                  {copied ? 'Copied!' : 'Share with Friends'}
                 </motion.button>
                 
                 <motion.button
@@ -361,7 +361,7 @@ export const GameWonModal: React.FC = () => {
                   }}
                 >
                   <RotateCcw className="w-5 h-5" strokeWidth={2.5} />
-                  再玩一次
+                  Play Again
                 </motion.button>
                 
                 <motion.button
@@ -375,11 +375,11 @@ export const GameWonModal: React.FC = () => {
                   }}
                 >
                   <Trophy className="w-5 h-5" strokeWidth={2.5} />
-                  查看排行榜
+                  Leaderboard
                 </motion.button>
               </div>
             ) : (
-              // 非最后一关：显示下一关按钮
+              // Not last level: show next level button
               <motion.button
                 onClick={handleNextLevel}
                 whileTap={{ y: 2 }}
@@ -390,7 +390,7 @@ export const GameWonModal: React.FC = () => {
                   borderBottomColor: '#166534',
                 }}
               >
-                下一关 →
+                Next Level →
               </motion.button>
             )}
           </motion.div>

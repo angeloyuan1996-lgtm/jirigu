@@ -137,7 +137,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               
               {/* Header */}
               <h2 className="text-xl font-bold text-[#333] text-center mb-2">
-                设置
+                Settings
               </h2>
               
               {/* Username display */}
@@ -158,7 +158,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     ) : (
                       <VolumeX className="w-5 h-5 text-[#999]" strokeWidth={2.5} />
                     )}
-                    <span className="font-bold text-[#333]">音效</span>
+                    <span className="font-bold text-[#333]">Sound</span>
                   </div>
                   <Switch 
                     checked={soundEnabled} 
@@ -186,7 +186,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-[#333] font-bold">
                         <UserPlus className="w-5 h-5" strokeWidth={2.5} />
-                        <span>添加好友</span>
+                        <span>Add Friends</span>
                       </div>
                       <FriendSearch currentUserId={user.id} />
                     </div>
@@ -197,7 +197,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     style={{ backgroundColor: '#FEF3C7' }}
                   >
                     <UserPlus className="w-8 h-8 mx-auto mb-2 text-[#F59E0B]" />
-                    <p className="text-sm font-bold text-[#333]">登录后查看好友列表和添加好友</p>
+                    <p className="text-sm font-bold text-[#333]">Login to see friends and add new ones</p>
                   </div>
                 )}
               </div>
@@ -214,7 +214,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 }}
               >
                 <Home className="w-5 h-5" strokeWidth={2.5} />
-                放弃挑战
+                Quit Game
               </motion.button>
               
               {/* Install button - 只在可以安装时显示 */}
@@ -232,13 +232,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   disabled={!deferredPrompt}
                 >
                   <Download className="w-5 h-5" strokeWidth={2.5} />
-                  {deferredPrompt ? '添加到屏幕' : '请用浏览器打开'}
+                  {deferredPrompt ? 'Add to Home Screen' : 'Open in Browser'}
                 </motion.button>
               )}
               
               {isInstalled && (
                 <div className="w-full mt-3 text-center text-sm text-[#22C55E] font-medium">
-                  ✓ 已安装到屏幕
+                  ✓ Installed
                 </div>
               )}
 
@@ -246,7 +246,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               {user ? (
                 <div className="mt-3 space-y-2">
                   <div className="text-center text-sm text-[#22C55E] font-medium truncate">
-                    ✓ 已登录: {user.email}
+                    ✓ Logged in: {user.email}
                   </div>
                   <motion.button
                     onClick={handleLogout}
@@ -258,10 +258,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                       borderBottomWidth: '5px',
                       borderBottomColor: '#D1D5DB',
                     }}
-                  >
-                    <Mail className="w-5 h-5" strokeWidth={2.5} />
-                    退出登录
-                  </motion.button>
+                    >
+                      <Mail className="w-5 h-5" strokeWidth={2.5} />
+                      Log Out
+                    </motion.button>
                 </div>
               ) : (
                 <motion.button
@@ -274,10 +274,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     borderBottomWidth: '5px',
                     borderBottomColor: '#6D28D9',
                   }}
-                >
-                  <Mail className="w-5 h-5" strokeWidth={2.5} />
-                  邮箱登录
-                </motion.button>
+                  >
+                    <Mail className="w-5 h-5" strokeWidth={2.5} />
+                    Email Login
+                  </motion.button>
               )}
             </motion.div>
           </motion.div>

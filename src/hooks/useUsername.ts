@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-// 随机名称生成器（用于未登录用户）
+// Random name generator for guest users
 const generateRandomUsername = (): string => {
-  const adjectives = ['快乐的', '勇敢的', '聪明的', '可爱的', '神秘的', '闪亮的', '飞翔的', '奔跑的', '微笑的', '沉默的'];
-  const nouns = ['小猫', '小狗', '兔子', '熊猫', '老虎', '狐狸', '龙', '凤凰', '独角兽', '精灵'];
+  const adjectives = ['Happy', 'Brave', 'Clever', 'Cute', 'Mystic', 'Shiny', 'Flying', 'Swift', 'Smiling', 'Silent'];
+  const nouns = ['Cat', 'Dog', 'Bunny', 'Panda', 'Tiger', 'Fox', 'Dragon', 'Phoenix', 'Unicorn', 'Elf'];
   
   const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
   const noun = nouns[Math.floor(Math.random() * nouns.length)];

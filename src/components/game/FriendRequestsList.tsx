@@ -52,7 +52,7 @@ export const FriendRequestsList: React.FC<FriendRequestsListProps> = ({
       const formattedRequests: FriendRequest[] = (data || []).map(item => ({
         id: item.id,
         user_id: item.user_id,
-        username: (item.profiles as any)?.username || '未知用户',
+        username: (item.profiles as any)?.username || 'Unknown',
         requested_at: item.requested_at,
       }));
 
@@ -81,8 +81,8 @@ export const FriendRequestsList: React.FC<FriendRequestsListProps> = ({
       if (error) {
         console.error('Error accepting request:', error);
         toast({
-          title: '操作失败',
-          description: '请稍后再试',
+          title: 'Action failed',
+          description: 'Please try again',
           variant: 'destructive',
         });
         return;
@@ -90,8 +90,8 @@ export const FriendRequestsList: React.FC<FriendRequestsListProps> = ({
 
       setRequests(prev => prev.filter(r => r.id !== requestId));
       toast({
-        title: '已添加好友',
-        description: '你们现在是好友了！',
+        title: 'Friend added',
+        description: 'You are now friends!',
       });
       onRequestHandled?.();
     } catch (err) {
@@ -109,8 +109,8 @@ export const FriendRequestsList: React.FC<FriendRequestsListProps> = ({
       if (error) {
         console.error('Error rejecting request:', error);
         toast({
-          title: '操作失败',
-          description: '请稍后再试',
+          title: 'Action failed',
+          description: 'Please try again',
           variant: 'destructive',
         });
         return;
@@ -118,7 +118,7 @@ export const FriendRequestsList: React.FC<FriendRequestsListProps> = ({
 
       setRequests(prev => prev.filter(r => r.id !== requestId));
       toast({
-        title: '已拒绝请求',
+        title: 'Request declined',
       });
     } catch (err) {
       console.error('Error in handleReject:', err);
@@ -130,7 +130,7 @@ export const FriendRequestsList: React.FC<FriendRequestsListProps> = ({
   if (loading) {
     return (
       <div className="text-center py-2 text-sm text-[#666]">
-        加载中...
+        Loading...
       </div>
     );
   }
@@ -143,7 +143,7 @@ export const FriendRequestsList: React.FC<FriendRequestsListProps> = ({
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-[#333] font-bold">
         <Bell className="w-5 h-5 text-[#F59E0B]" strokeWidth={2.5} />
-        <span>好友请求</span>
+        <span>Friend Requests</span>
         <span className="ml-1 px-2 py-0.5 bg-[#EF4444] text-white text-xs font-bold rounded-full">
           {requests.length}
         </span>

@@ -30,10 +30,10 @@ export const FriendsList: React.FC<FriendsListProps> = ({
     try {
       await navigator.clipboard.writeText(inviteText);
       setCopied(true);
-      toast.success('邀请内容已复制！');
+      toast.success('Invite copied!');
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      toast.error('复制失败，请手动复制');
+      toast.error('Copy failed');
     }
   };
 
@@ -127,7 +127,7 @@ export const FriendsList: React.FC<FriendsListProps> = ({
   if (loading) {
     return (
       <div className="text-center py-4 text-sm text-[#666]">
-        加载中...
+        Loading...
       </div>
     );
   }
@@ -137,7 +137,7 @@ export const FriendsList: React.FC<FriendsListProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-[#333] font-bold">
           <Users className="w-5 h-5" strokeWidth={2.5} />
-          <span>好友列表</span>
+          <span>Friends</span>
           <span className="ml-1 text-sm text-[#666] font-normal">
             ({friends.length})
           </span>
@@ -151,12 +151,12 @@ export const FriendsList: React.FC<FriendsListProps> = ({
           {copied ? (
             <>
               <Check className="w-4 h-4" />
-              已复制
+              Copied
             </>
           ) : (
             <>
               <Share2 className="w-4 h-4" />
-              邀请
+              Invite
             </>
           )}
         </motion.button>
@@ -169,11 +169,11 @@ export const FriendsList: React.FC<FriendsListProps> = ({
       >
         <div className="flex items-center gap-2">
           <Star className="w-4 h-4 text-[#3B82F6]" />
-          <span className="font-bold text-[#333]">我</span>
+          <span className="font-bold text-[#333]">Me</span>
         </div>
         <div className="flex items-center gap-1 text-sm font-bold text-[#3B82F6]">
           <Trophy className="w-4 h-4" />
-          <span>{myCompletionCount} 关</span>
+          <span>{myCompletionCount} Levels</span>
         </div>
       </div>
 
@@ -181,7 +181,7 @@ export const FriendsList: React.FC<FriendsListProps> = ({
         <div 
           className="p-4 rounded-xl border-[2px] border-dashed border-[#D1D5DB] text-center"
         >
-          <p className="text-sm text-[#666]">还没有好友，快去添加吧！</p>
+          <p className="text-sm text-[#666]">No friends yet. Add some!</p>
         </div>
       ) : (
         <div className="space-y-2 max-h-[200px] overflow-y-auto">
@@ -204,7 +204,7 @@ export const FriendsList: React.FC<FriendsListProps> = ({
               </div>
               <div className="flex items-center gap-1 text-sm font-bold text-[#22C55E]">
                 <Trophy className="w-4 h-4" />
-                <span>{friend.completionCount} 关</span>
+                <span>{friend.completionCount} Levels</span>
               </div>
             </motion.div>
           ))}
