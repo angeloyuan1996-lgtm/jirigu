@@ -268,6 +268,7 @@ export const GameWonModal: React.FC = () => {
     initLevel,
   } = useGameStore();
   
+  const [copied, setCopied] = useState(false);
   const isLastLevel = currentLevel >= MAX_LEVEL;
   
   const handleNextLevel = () => {
@@ -278,9 +279,17 @@ export const GameWonModal: React.FC = () => {
     initLevel(1);
   };
   
-  const handleWhatsAppShare = () => {
-    const message = encodeURIComponent(`🎉 我成功通关了水果消消乐全部${MAX_LEVEL}关！你也来挑战吧！🍎🍓🍇`);
-    window.open(`https://wa.me/?text=${message}`, '_blank');
+  const handleShare = async () => {
+    const inviteText = "This game is so addictive—only 0.1% of players ever make it to the end! https://jirigu.com";
+    
+    try {
+      await navigator.clipboard.writeText(inviteText);
+      setCopied(true);
+      toast.success('邀请内容已复制！');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast.error('复制失败，请手动复制');
+    }
   };
   
   const handleViewLeaderboard = () => {
@@ -328,7 +337,7 @@ export const GameWonModal: React.FC = () => {
               // 最后一关通关：显示分享、再玩一次、排行榜
               <div className="flex flex-col gap-3">
                 <motion.button
-                  onClick={handleWhatsAppShare}
+                  onClick={handleShare}
                   whileTap={{ y: 2 }}
                   className="w-full h-12 text-white font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
                   style={{
@@ -338,7 +347,7 @@ export const GameWonModal: React.FC = () => {
                   }}
                 >
                   <Share2 className="w-5 h-5" strokeWidth={2.5} />
-                  分享到 WhatsApp
+                  {copied ? '已复制!' : '分享给好友'}
                 </motion.button>
                 
                 <motion.button
