@@ -167,26 +167,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   />
                 </div>
 
-                {/* 好友请求通知 */}
-                <FriendRequestsList 
-                  currentUserId={user?.id || null} 
-                  onRequestHandled={handleFriendRequestHandled}
-                />
+                {/* 好友功能区域 */}
+                {user ? (
+                  <>
+                    {/* 好友请求通知 */}
+                    <FriendRequestsList 
+                      currentUserId={user.id} 
+                      onRequestHandled={handleFriendRequestHandled}
+                    />
 
-                {/* 好友列表 */}
-                <FriendsList 
-                  currentUserId={user?.id || null}
-                  refreshTrigger={friendsRefreshTrigger}
-                />
-                
-                {/* 好友搜索区域 */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-[#333] font-bold">
-                    <UserPlus className="w-5 h-5" strokeWidth={2.5} />
-                    <span>添加好友</span>
+                    {/* 好友列表 */}
+                    <FriendsList 
+                      currentUserId={user.id}
+                      refreshTrigger={friendsRefreshTrigger}
+                    />
+                    
+                    {/* 好友搜索区域 */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-[#333] font-bold">
+                        <UserPlus className="w-5 h-5" strokeWidth={2.5} />
+                        <span>添加好友</span>
+                      </div>
+                      <FriendSearch currentUserId={user.id} />
+                    </div>
+                  </>
+                ) : (
+                  <div 
+                    className="p-4 rounded-xl border-[2px] border-[#333] text-center"
+                    style={{ backgroundColor: '#FEF3C7' }}
+                  >
+                    <UserPlus className="w-8 h-8 mx-auto mb-2 text-[#F59E0B]" />
+                    <p className="text-sm font-bold text-[#333]">登录后查看好友列表和添加好友</p>
                   </div>
-                  <FriendSearch currentUserId={user?.id || null} />
-                </div>
+                )}
               </div>
               
               {/* Abandon button */}

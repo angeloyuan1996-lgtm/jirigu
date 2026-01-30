@@ -119,15 +119,7 @@ export const FriendSearch: React.FC<FriendSearchProps> = ({ currentUserId }) => 
   };
 
   if (!currentUserId) {
-    return (
-      <div 
-        className="p-4 rounded-xl border-[2px] border-[#333] text-center"
-        style={{ backgroundColor: '#FEF3C7' }}
-      >
-        <Users className="w-8 h-8 mx-auto mb-2 text-[#F59E0B]" />
-        <p className="text-sm font-bold text-[#333]">请先登录以添加好友</p>
-      </div>
-    );
+    return null; // 未登录时不显示，由父组件统一处理
   }
 
   return (
