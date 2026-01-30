@@ -84,8 +84,9 @@ const BlindStack: React.FC<{ position: 'left' | 'right' }> = ({ position }) => {
             alt={topBlock.type}
             className="pointer-events-none"
             style={{ 
-              width: BLIND_CARD_SIZE * 0.95,
-              height: BLIND_CARD_SIZE * 0.95,
+              width: BLIND_CARD_SIZE,
+              height: BLIND_CARD_SIZE,
+              transform: 'scale(1.1)',
             }}
             draggable={false}
           />
