@@ -121,6 +121,14 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: number
       }
+      get_country_leaderboard: {
+        Args: never
+        Returns: {
+          country_code: string
+          total_completions: number
+          user_count: number
+        }[]
+      }
     }
     Enums: {
       friendship_status: "pending" | "accepted" | "rejected" | "blocked"

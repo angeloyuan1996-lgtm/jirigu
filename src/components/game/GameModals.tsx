@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { RotateCcw, Share2, Trophy } from 'lucide-react';
 import { useGameStore } from '@/stores/gameStore';
 import { toast } from 'sonner';
+import { LeaderboardModal } from './LeaderboardModal';
 
 const MAX_LEVEL = 2; // 游戏只有2关
 const SHARE_COUNTDOWN_SECONDS = 12;
@@ -269,6 +270,7 @@ export const GameWonModal: React.FC = () => {
   } = useGameStore();
   
   const [copied, setCopied] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const isLastLevel = currentLevel >= MAX_LEVEL;
   
   const handleNextLevel = () => {
@@ -293,8 +295,7 @@ export const GameWonModal: React.FC = () => {
   };
   
   const handleViewLeaderboard = () => {
-    // TODO: Implement leaderboard
-    alert('Leaderboard coming soon!');
+    setShowLeaderboard(true);
   };
   
   return (
@@ -396,6 +397,12 @@ export const GameWonModal: React.FC = () => {
           </motion.div>
         </motion.div>
       )}
+      
+      {/* Leaderboard Modal */}
+      <LeaderboardModal 
+        isOpen={showLeaderboard} 
+        onClose={() => setShowLeaderboard(false)} 
+      />
     </AnimatePresence>
   );
 };
