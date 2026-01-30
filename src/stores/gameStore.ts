@@ -174,73 +174,77 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     return { mainBlocks: blocks.sort((a, b) => a.z - b.z), leftStack: [], rightStack: [] };
   }
   
-  // ========== Level 2: 整齐网格布局 ==========
-  // 核心：卡片排列整齐，只在 1/4 或 1/2 位置偏移
-  // 类似原版羊了个羊的整齐堆叠效果
+  // ========== Level 2: 深井瓶颈策略 ==========
+  // 核心规则：每组3个同类水果，2个在表面可见，1个埋到最底层
+  // 制造极其紧张的资源博弈：玩家必须"挖"到底层才能凑齐
   
   const BLIND_STACK_SIZE = 10;
   const NUM_FRUIT_TYPES = 14;
   
-  // ===== 生成水果池 =====
+  // ===== 深井瓶颈水果池生成 =====
   const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
   const allFruits = shuffledFruits.slice(0, NUM_FRUIT_TYPES);
-  const easyFruits = allFruits.slice(0, 4);
-  const hellFruits = allFruits;
   
   interface CardInfo {
     type: FruitType;
-    layer: 'top' | 'middle' | 'bottom';
+    layer: 'surface' | 'deep_buried'; // surface=表面可见, deep_buried=深埋底层
+    tripletGroup: number; // 标记属于第几个三连组
   }
   
   const totalCardPool: CardInfo[] = [];
   
-  // 顶层（诱导层）
-  easyFruits.forEach((fruitType) => {
-    const triplets = Math.floor(Math.random() * 2) + 1;
-    for (let t = 0; t < triplets; t++) {
-      for (let i = 0; i < 3; i++) {
-        totalCardPool.push({ type: fruitType, layer: 'top' });
-      }
+  // 核心"深井"策略：
+  // 每种水果生成2-4组三连（每组3张）
+  // 每组三连中：2张放表面层，1张埋到底层
+  let globalTripletGroup = 0;
+  
+  allFruits.forEach((fruitType) => {
+    // 每种水果生成 2-4 组三连
+    const tripletCount = Math.floor(Math.random() * 3) + 2; // 2-4组
+    
+    for (let t = 0; t < tripletCount; t++) {
+      globalTripletGroup++;
+      
+      // 关键！每组三连中：
+      // - 2张卡片放在表面层（容易拿到）
+      // - 1张卡片埋到底层（必须挖穿整个堆叠才能拿到）
+      totalCardPool.push({ 
+        type: fruitType, 
+        layer: 'surface', 
+        tripletGroup: globalTripletGroup 
+      });
+      totalCardPool.push({ 
+        type: fruitType, 
+        layer: 'surface', 
+        tripletGroup: globalTripletGroup 
+      });
+      totalCardPool.push({ 
+        type: fruitType, 
+        layer: 'deep_buried', // 第3张故意埋底层！
+        tripletGroup: globalTripletGroup 
+      });
     }
   });
   
-  // 中层（地狱层）
-  hellFruits.forEach((fruitType) => {
-    const triplets = Math.floor(Math.random() * 3) + 2;
-    for (let t = 0; t < triplets; t++) {
-      for (let i = 0; i < 3; i++) {
-        totalCardPool.push({ type: fruitType, layer: 'middle' });
-      }
-    }
-  });
+  // 分离表面层和深埋层
+  const surfaceCards = totalCardPool.filter(c => c.layer === 'surface');
+  const buriedCards = totalCardPool.filter(c => c.layer === 'deep_buried');
   
-  // 底层
-  hellFruits.forEach((fruitType) => {
-    const triplets = Math.floor(Math.random() * 2) + 1;
-    for (let t = 0; t < triplets; t++) {
-      for (let i = 0; i < 3; i++) {
-        totalCardPool.push({ type: fruitType, layer: 'bottom' });
-      }
-    }
-  });
+  console.log(`[Level 2 - 深井瓶颈] 表面层: ${surfaceCards.length}张 (容易获取)`);
+  console.log(`[Level 2 - 深井瓶颈] 深埋层: ${buriedCards.length}张 (必须挖穿才能拿到)`);
+  console.log(`[Level 2 - 深井瓶颈] 三连组数: ${globalTripletGroup}组 (每组3张，2张表面+1张底层)`);
   
-  const topCards = totalCardPool.filter(c => c.layer === 'top');
-  const middleCards = totalCardPool.filter(c => c.layer === 'middle');
-  const bottomCards = totalCardPool.filter(c => c.layer === 'bottom');
+  // 打乱卡片顺序
+  const shuffledSurface = [...surfaceCards].sort(() => Math.random() - 0.5);
+  const shuffledBuried = [...buriedCards].sort(() => Math.random() - 0.5);
   
-  const shuffledTop = [...topCards].sort(() => Math.random() - 0.5);
-  const shuffledMiddle = [...middleCards].sort(() => Math.random() - 0.5);
-  const shuffledBottom = [...bottomCards].sort(() => Math.random() - 0.5);
+  // 盲盒堆：从深埋层抽取一些（增加瓶颈感）
+  const blindPool = [...shuffledBuried].splice(0, Math.min(BLIND_STACK_SIZE * 2, shuffledBuried.length));
+  const leftStackCards = blindPool.splice(0, BLIND_STACK_SIZE);
+  const rightStackCards = blindPool.splice(0, BLIND_STACK_SIZE);
   
-  console.log(`[Level 2 - 视觉陷阱] 顶层(诱导): ${topCards.length}张 (${easyFruits.length}种水果)`);
-  console.log(`[Level 2 - 视觉陷阱] 中层(地狱): ${middleCards.length}张 (${hellFruits.length}种水果)`);
-  console.log(`[Level 2 - 视觉陷阱] 底层: ${bottomCards.length}张`);
-  
-  // 盲盒堆
-  const nonTopPool = [...shuffledBottom, ...shuffledMiddle].sort(() => Math.random() - 0.5);
-  const leftStackCards = nonTopPool.splice(0, BLIND_STACK_SIZE);
-  const rightStackCards = nonTopPool.splice(0, BLIND_STACK_SIZE);
-  const mainAreaCards = [...nonTopPool, ...shuffledTop];
+  // 剩余的深埋卡片 + 所有表面卡片 = 主区域
+  const remainingBuried = shuffledBuried.slice(BLIND_STACK_SIZE * 2);
   
   const createBlindStack = (cards: CardInfo[], position: 'left' | 'right'): FruitBlock[] => {
     return cards.map((card, index) => ({
@@ -260,27 +264,20 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   const rightStack = createBlindStack(rightStackCards, 'right');
   
   // ===== 羊了个羊式"乱中有序"堆叠 =====
-  // 核心规则：
-  // 1. 随机散点分布，打破网格感
-  // 2. 聚簇效应 - 某些区域密集，某些区域稀疏
-  // 3. 半格偏移（0.5单位）创造错位感
-  // 4. 边缘参差不齐，不规则轮廓
-  
   const mainBlocks: FruitBlock[] = [];
   
-  // 游戏区域边界（留出一点边距）
+  // 游戏区域边界
   const AREA_MIN_X = 0.5;
   const AREA_MAX_X = GRID_COLS - 1.5;
   const AREA_MIN_Y = 0.5;
   const AREA_MAX_Y = GRID_ROWS - 1.5;
   
-  // 生成随机聚类中心（每层不同）
+  // 生成随机聚类中心
   const generateClusterCenters = (layerIndex: number, count: number = 4): { x: number, y: number }[] => {
     const centers: { x: number, y: number }[] = [];
     const seed = layerIndex * 137 + 42;
     
     for (let i = 0; i < count; i++) {
-      // 使用确定性随机
       const rx = Math.sin(seed + i * 17) * 0.5 + 0.5;
       const ry = Math.sin(seed + i * 31 + 7) * 0.5 + 0.5;
       
@@ -293,87 +290,71 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     return centers;
   };
   
-  // 生成真正随机的位置（围绕聚类中心散布）
+  // 生成散布位置
   const generateScatteredPosition = (layerIndex: number, posIndex: number): { x: number, y: number } => {
     const seed = layerIndex * 1000 + posIndex * 7;
     
-    // 获取这层的聚类中心
-    const clusterCount = 3 + (layerIndex % 3); // 3-5个聚类中心
+    const clusterCount = 3 + (layerIndex % 3);
     const centers = generateClusterCenters(layerIndex, clusterCount);
     
-    // 随机选择一个聚类中心
     const centerIdx = Math.floor((Math.sin(seed * 13) * 0.5 + 0.5) * centers.length);
     const center = centers[centerIdx % centers.length];
     
-    // 围绕中心散布（高斯分布感觉）
     const spreadX = (Math.sin(seed * 17) + Math.sin(seed * 29) * 0.5) * 2.5;
     const spreadY = (Math.sin(seed * 23) + Math.sin(seed * 37) * 0.5) * 2.5;
     
-    // 添加半格偏移（0, 0.5随机）
     const halfOffsetX = Math.sin(seed * 41) > 0 ? 0.5 : 0;
     const halfOffsetY = Math.sin(seed * 47) > 0 ? 0.5 : 0;
     
     let x = center.x + spreadX + halfOffsetX;
     let y = center.y + spreadY + halfOffsetY;
     
-    // 对齐到0.5网格
     x = Math.round(x * 2) / 2;
     y = Math.round(y * 2) / 2;
     
-    // 确保在边界内
     x = Math.max(0, Math.min(x, GRID_COLS - 1));
     y = Math.max(0, Math.min(y, GRID_ROWS - 1));
     
     return { x, y };
   };
   
-  // ========== 跨层位置追踪系统 ==========
-  // 使用 coordKey 作为唯一键（只看x,y，忽略z），确保不同层的卡片不会完全重叠
+  // 跨层位置追踪
   const globalPositionMap = new Map<string, boolean>();
   
-  // 生成只包含 x,y 的键（用于跨层检测）
   const xyKey = (x: number, y: number): string => {
     return `${snapToGrid(x).toFixed(2)},${snapToGrid(y).toFixed(2)}`;
   };
   
-  // 检查位置是否有效（不与任何层的任何卡片完全重叠）
   const isPositionAvailable = (x: number, y: number): boolean => {
     const key = xyKey(x, y);
     return !globalPositionMap.has(key);
   };
   
-  // 标记位置已使用（内部函数，由 findValidPosition2 调用）
   const markPositionUsed = (x: number, y: number): void => {
     const key = xyKey(x, y);
     globalPositionMap.set(key, true);
   };
   
-  // 强制偏移量列表 - 必须偏移0.5单位，产生"半边"或"角"遮挡
   const OFFSET_OPTIONS = [
-    { dx: 0.5, dy: 0 },      // 右半
-    { dx: -0.5, dy: 0 },     // 左半
-    { dx: 0, dy: 0.5 },      // 下半
-    { dx: 0, dy: -0.5 },     // 上半
-    { dx: 0.5, dy: 0.5 },    // 右下角
-    { dx: -0.5, dy: 0.5 },   // 左下角
-    { dx: 0.5, dy: -0.5 },   // 右上角
-    { dx: -0.5, dy: -0.5 },  // 左上角
+    { dx: 0.5, dy: 0 },
+    { dx: -0.5, dy: 0 },
+    { dx: 0, dy: 0.5 },
+    { dx: 0, dy: -0.5 },
+    { dx: 0.5, dy: 0.5 },
+    { dx: -0.5, dy: 0.5 },
+    { dx: 0.5, dy: -0.5 },
+    { dx: -0.5, dy: -0.5 },
   ];
   
-  // 找到一个有效位置（如果原位置被占用，则强制偏移0.5）
-  // 重要：找到后立即标记，防止同层重复！
   const findValidPosition2 = (baseX: number, baseY: number, seed: number): { x: number, y: number } | null => {
     const snapX = snapToGrid(baseX);
     const snapY = snapToGrid(baseY);
     
-    // 首先检查原位置是否可用
     if (isPositionAvailable(snapX, snapY)) {
-      // 立即标记！这是关键！
       markPositionUsed(snapX, snapY);
       return { x: snapX, y: snapY };
     }
     
-    // 原位置被占用，必须偏移！使用伪随机打乱偏移顺序
     const shuffledOffsets = [...OFFSET_OPTIONS].sort((a, b) => {
       const valA = Math.sin(seed * 17 + a.dx * 31 + a.dy * 37);
       const valB = Math.sin(seed * 17 + b.dx * 31 + b.dy * 37);
@@ -384,17 +365,14 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
       const newX = snapToGrid(baseX + offset.dx);
       const newY = snapToGrid(baseY + offset.dy);
       
-      // 确保在边界内
       if (newX >= 0 && newX <= GRID_COLS - 1 && newY >= 0 && newY <= GRID_ROWS - 1) {
         if (isPositionAvailable(newX, newY)) {
-          // 立即标记！
           markPositionUsed(newX, newY);
           return { x: newX, y: newY };
         }
       }
     }
     
-    // 如果0.5偏移都不行，尝试更大范围（0.25, 0.75, 1.0）
     const extendedOffsets = [-1, -0.75, -0.25, 0.25, 0.75, 1];
     for (const dx of extendedOffsets) {
       for (const dy of extendedOffsets) {
@@ -403,7 +381,6 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
         const newY = snapToGrid(baseY + dy);
         if (newX >= 0 && newX <= GRID_COLS - 1 && newY >= 0 && newY <= GRID_ROWS - 1) {
           if (isPositionAvailable(newX, newY)) {
-            // 立即标记！
             markPositionUsed(newX, newY);
             return { x: newX, y: newY };
           }
@@ -414,112 +391,124 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     return null;
   };
   
-  // 生成"乱中有序"的散点位置 - 使用聚类 + 随机散布
-  const generateScatteredPositions = (count: number, baseZ: number): { x: number, y: number, z: number }[] => {
+  // ========== 深井瓶颈布局 ==========
+  // 关键策略：
+  // 1. 深埋层（deep_buried）放在 z=0~5 最底层，被大量卡片压着
+  // 2. 表面层（surface）放在 z=30~45 顶部，容易拿到
+  // 3. 中间用大量随机卡片填充，制造"挖穿"的难度
+  
+  const DEEP_LAYER_START = 0;
+  const DEEP_LAYER_END = 5;      // 深埋层 z=0~5
+  const SURFACE_LAYER_START = 35;
+  const SURFACE_LAYER_END = 45;  // 表面层 z=35~45
+  
+  // 生成指定层范围的散点位置
+  const generateLayerPositions = (count: number, minZ: number, maxZ: number): { x: number, y: number, z: number }[] => {
     const positions: { x: number, y: number, z: number }[] = [];
-    let currentZ = baseZ;
     let globalPosIndex = 0;
     
-    // 每层大约放置的卡片数（让层数更多，每层更稀疏）
-    const cardsPerLayer = Math.max(8, Math.floor(count / 6));
+    const layerRange = maxZ - minZ + 1;
+    const cardsPerLayer = Math.ceil(count / layerRange);
     
-    while (positions.length < count) {
-      const layerIndex = currentZ - baseZ;
-      const layerPositions: { x: number, y: number }[] = [];
+    for (let z = minZ; z <= maxZ && positions.length < count; z++) {
+      const remaining = count - positions.length;
+      const targetCount = Math.min(cardsPerLayer, remaining);
       
-      // 这层需要放置的卡片数
-      const remainingCount = count - positions.length;
-      const targetCount = Math.min(cardsPerLayer + Math.floor(Math.sin(layerIndex * 17) * 3), remainingCount);
-      
-      // 生成散点位置
-      let attempts = 0;
-      const maxAttempts = targetCount * 5;
-      
-      while (layerPositions.length < targetCount && attempts < maxAttempts) {
-        const pos = generateScatteredPosition(layerIndex, globalPosIndex + attempts);
-        
-        // 检查位置是否可用
-        const validPos = findValidPosition2(pos.x, pos.y, currentZ * 1000 + attempts);
+      for (let i = 0; i < targetCount; i++) {
+        const pos = generateScatteredPosition(z, globalPosIndex);
+        const validPos = findValidPosition2(pos.x, pos.y, z * 1000 + globalPosIndex);
         
         if (validPos) {
-          layerPositions.push(validPos);
+          positions.push({ x: validPos.x, y: validPos.y, z });
         }
-        attempts++;
-      }
-      
-      // 添加位置
-      for (const pos of layerPositions) {
-        positions.push({ x: pos.x, y: pos.y, z: currentZ });
         globalPosIndex++;
       }
-      
-      currentZ++;
-      
-      // 防止无限循环
-      if (currentZ - baseZ > 50) break;
     }
     
     return positions;
   };
   
-  // 分类主区域卡片
-  const mainBottom = mainAreaCards.filter(c => c.layer === 'bottom');
-  const mainMiddle = mainAreaCards.filter(c => c.layer === 'middle');
-  const mainTop = mainAreaCards.filter(c => c.layer === 'top');
-  
-  // 底层：z = 0 开始
-  const bottomPositions = generateScatteredPositions(mainBottom.length, 0);
-  mainBottom.forEach((card, idx) => {
-    const pos = bottomPositions[idx];
-    mainBlocks.push({
-      id: generateId(),
-      type: card.type,
-      x: pos.x,
-      y: pos.y,
-      z: pos.z,
-      status: 'onMap',
-      isLocked: false,
-    });
+  // 第一步：放置深埋层卡片（z=0~5，最底层）
+  const buriedPositions = generateLayerPositions(remainingBuried.length, DEEP_LAYER_START, DEEP_LAYER_END);
+  remainingBuried.forEach((card, idx) => {
+    const pos = buriedPositions[idx];
+    if (pos) {
+      mainBlocks.push({
+        id: generateId(),
+        type: card.type,
+        x: pos.x,
+        y: pos.y,
+        z: pos.z,
+        status: 'onMap',
+        isLocked: false,
+      });
+    }
   });
   
-  const maxBottomZ = Math.max(...mainBlocks.map(b => b.z), 0);
+  console.log(`[深井瓶颈] 底层(z=0~5): ${mainBlocks.length}张 (每组第3张埋在这里)`);
   
-  // 中层：紧接底层
-  const middlePositions = generateScatteredPositions(mainMiddle.length, maxBottomZ + 1);
-  mainMiddle.forEach((card, idx) => {
-    const pos = middlePositions[idx];
-    mainBlocks.push({
-      id: generateId(),
-      type: card.type,
-      x: pos.x,
-      y: pos.y,
-      z: pos.z,
-      status: 'onMap',
-      isLocked: false,
-    });
+  // 第二步：放置表面层卡片（z=35~45，最顶层）
+  const surfacePositions = generateLayerPositions(shuffledSurface.length, SURFACE_LAYER_START, SURFACE_LAYER_END);
+  shuffledSurface.forEach((card, idx) => {
+    const pos = surfacePositions[idx];
+    if (pos) {
+      mainBlocks.push({
+        id: generateId(),
+        type: card.type,
+        x: pos.x,
+        y: pos.y,
+        z: pos.z,
+        status: 'onMap',
+        isLocked: false,
+      });
+    }
   });
   
-  const maxMiddleZ = Math.max(...mainBlocks.map(b => b.z), 0);
+  console.log(`[深井瓶颈] 表面层(z=35~45): ${shuffledSurface.length}张 (每组的2张在这里)`);
   
-  // 顶层：最上面
-  const topPositions = generateScatteredPositions(mainTop.length, maxMiddleZ + 1);
-  mainTop.forEach((card, idx) => {
-    const pos = topPositions[idx];
-    mainBlocks.push({
-      id: generateId(),
-      type: card.type,
-      x: pos.x,
-      y: pos.y,
-      z: pos.z,
-      status: 'onMap',
-      isLocked: false,
-    });
+  // 第三步：中间填充层（z=6~34）用随机水果填充
+  // 这些是"障碍物"，玩家必须挖穿它们才能拿到底层
+  const FILLER_LAYER_START = 6;
+  const FILLER_LAYER_END = 34;
+  
+  // 生成填充水果（必须是3的倍数，每种3张）
+  const fillerCardPool: CardInfo[] = [];
+  const fillerTriplets = Math.floor(Math.random() * 20) + 30; // 30-50组填充
+  
+  for (let t = 0; t < fillerTriplets; t++) {
+    const fruitType = allFruits[t % allFruits.length];
+    for (let i = 0; i < 3; i++) {
+      fillerCardPool.push({ 
+        type: fruitType, 
+        layer: 'surface', // 不重要，只是填充
+        tripletGroup: globalTripletGroup + t + 1 
+      });
+    }
+  }
+  
+  const shuffledFiller = fillerCardPool.sort(() => Math.random() - 0.5);
+  const fillerPositions = generateLayerPositions(shuffledFiller.length, FILLER_LAYER_START, FILLER_LAYER_END);
+  
+  shuffledFiller.forEach((card, idx) => {
+    const pos = fillerPositions[idx];
+    if (pos) {
+      mainBlocks.push({
+        id: generateId(),
+        type: card.type,
+        x: pos.x,
+        y: pos.y,
+        z: pos.z,
+        status: 'onMap',
+        isLocked: false,
+      });
+    }
   });
+  
+  console.log(`[深井瓶颈] 填充层(z=6~34): ${shuffledFiller.length}张 (障碍物，必须挖穿)`);
   
   const totalCount = mainBlocks.length + leftStack.length + rightStack.length;
-  console.log(`[Level 2] Total cards: ${totalCount} (main: ${mainBlocks.length}, left: ${leftStack.length}, right: ${rightStack.length})`);
-  console.log(`[Level 2] Is multiple of 3: ${totalCount % 3 === 0}`);
-  console.log(`[Level 2] Grid alignment: Neat 1/4 and 1/2 offsets only`);
+  console.log(`[Level 2 - 深井瓶颈] 总计: ${totalCount}张 (main: ${mainBlocks.length}, left: ${leftStack.length}, right: ${rightStack.length})`);
+  console.log(`[Level 2 - 深井瓶颈] 是否3的倍数: ${totalCount % 3 === 0}`);
   
   return { 
     mainBlocks: mainBlocks.sort((a, b) => a.z - b.z), 
