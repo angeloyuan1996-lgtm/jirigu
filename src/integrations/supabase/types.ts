@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      country_leaderboard_cache: {
+        Row: {
+          country_code: string
+          last_updated: string
+          total_completions: number
+          user_count: number
+        }
+        Insert: {
+          country_code: string
+          last_updated?: string
+          total_completions?: number
+          user_count?: number
+        }
+        Update: {
+          country_code?: string
+          last_updated?: string
+          total_completions?: number
+          user_count?: number
+        }
+        Relationships: []
+      }
       friendships: {
         Row: {
           accepted_at: string | null
@@ -129,6 +150,7 @@ export type Database = {
           user_count: number
         }[]
       }
+      refresh_country_leaderboard_cache: { Args: never; Returns: undefined }
     }
     Enums: {
       friendship_status: "pending" | "accepted" | "rejected" | "blocked"
