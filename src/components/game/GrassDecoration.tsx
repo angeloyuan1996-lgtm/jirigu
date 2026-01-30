@@ -1,59 +1,68 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 
 interface GrassBlade {
   id: number;
-  x: string;
-  y: string;
+  x: number;
+  y: number;
   height: number;
   delay: number;
+  rotation: number;
 }
 
-const grassBlades: GrassBlade[] = [
-  // 左侧
-  { id: 1, x: '5%', y: '15%', height: 20, delay: 0 },
-  { id: 2, x: '8%', y: '35%', height: 16, delay: 0.3 },
-  { id: 3, x: '3%', y: '55%', height: 18, delay: 0.6 },
-  { id: 4, x: '10%', y: '75%', height: 14, delay: 0.2 },
-  // 右侧
-  { id: 5, x: '92%', y: '20%', height: 18, delay: 0.4 },
-  { id: 6, x: '95%', y: '40%', height: 22, delay: 0.1 },
-  { id: 7, x: '88%', y: '60%', height: 16, delay: 0.5 },
-  { id: 8, x: '93%', y: '80%', height: 20, delay: 0.7 },
-  // 底部角落
-  { id: 9, x: '15%', y: '88%', height: 14, delay: 0.25 },
-  { id: 10, x: '85%', y: '90%', height: 16, delay: 0.45 },
-];
+// 使用seeded random生成稳定的随机位置
+const seededRandom = (seed: number) => {
+  const x = Math.sin(seed * 9999) * 10000;
+  return x - Math.floor(x);
+};
+
+const generateGrassBlades = (): GrassBlade[] => {
+  const blades: GrassBlade[] = [];
+  const count = 15; // 小草数量
+  
+  for (let i = 0; i < count; i++) {
+    blades.push({
+      id: i,
+      x: seededRandom(i * 3 + 1) * 90 + 5, // 5% - 95%
+      y: seededRandom(i * 3 + 2) * 80 + 10, // 10% - 90%
+      height: 14 + seededRandom(i * 3 + 3) * 10, // 14-24px
+      delay: seededRandom(i * 3 + 4) * 2, // 0-2s delay
+      rotation: (seededRandom(i * 3 + 5) - 0.5) * 20, // -10 to 10 degrees
+    });
+  }
+  
+  return blades;
+};
 
 const GrassBladeSVG: React.FC<{ height: number }> = ({ height }) => (
   <svg 
-    width={height * 0.6} 
+    width={height * 0.5} 
     height={height} 
-    viewBox="0 0 12 24" 
+    viewBox="0 0 10 24" 
     fill="none"
     style={{ overflow: 'visible' }}
   >
     {/* 主草叶 */}
     <path
-      d="M6 24 Q4 16 6 8 Q7 4 6 0"
+      d="M5 24 Q3 16 5 8 Q6 4 5 0"
       stroke="#5a8a3a"
-      strokeWidth="2.5"
+      strokeWidth="2"
       strokeLinecap="round"
       fill="none"
     />
     {/* 左侧小叶 */}
     <path
-      d="M5 14 Q2 12 1 8"
+      d="M4 16 Q1 14 0 10"
       stroke="#6a9a4a"
-      strokeWidth="2"
+      strokeWidth="1.5"
       strokeLinecap="round"
       fill="none"
     />
     {/* 右侧小叶 */}
     <path
-      d="M7 10 Q10 8 11 4"
+      d="M6 12 Q9 10 10 6"
       stroke="#6a9a4a"
-      strokeWidth="2"
+      strokeWidth="1.5"
       strokeLinecap="round"
       fill="none"
     />
@@ -61,6 +70,8 @@ const GrassBladeSVG: React.FC<{ height: number }> = ({ height }) => (
 );
 
 export const GrassDecoration: React.FC = () => {
+  const grassBlades = useMemo(() => generateGrassBlades(), []);
+  
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
       {grassBlades.map((blade) => (
@@ -68,14 +79,15 @@ export const GrassDecoration: React.FC = () => {
           key={blade.id}
           className="absolute origin-bottom"
           style={{
-            left: blade.x,
-            top: blade.y,
+            left: `${blade.x}%`,
+            top: `${blade.y}%`,
+            transform: `rotate(${blade.rotation}deg)`,
           }}
           animate={{
-            rotateZ: [0, 8, -5, 6, -3, 0],
+            rotateZ: [blade.rotation, blade.rotation + 6, blade.rotation - 4, blade.rotation + 3, blade.rotation],
           }}
           transition={{
-            duration: 4,
+            duration: 3 + blade.delay,
             repeat: Infinity,
             ease: "easeInOut",
             delay: blade.delay,
