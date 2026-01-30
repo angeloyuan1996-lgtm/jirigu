@@ -69,7 +69,7 @@ export const FruitCard: React.FC<FruitCardProps> = ({
         />
       )}
       
-      {/* OpenMoji 水果图标 - 放大1.2倍 */}
+      {/* OpenMoji 水果图标 - 放大1.1倍 */}
       <img 
         src={iconUrl}
         alt={block.type}
@@ -81,7 +81,7 @@ export const FruitCard: React.FC<FruitCardProps> = ({
         style={{ 
           width: size,
           height: size,
-          transform: 'scale(1.2)',
+          transform: 'scale(1.1)',
         }}
       />
     </motion.div>
