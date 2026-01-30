@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Volume2, VolumeX, Home, Download, Mail, Users } from 'lucide-react';
+import { X, Volume2, VolumeX, Home, Download, Mail, UserPlus } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useGameStore } from '@/stores/gameStore';
 import { AuthModal } from './AuthModal';
 import { FriendSearch } from './FriendSearch';
+import { FriendRequestsList } from './FriendRequestsList';
+import { FriendsList } from './FriendsList';
 import { UsernameDisplay } from './UsernameDisplay';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -28,6 +30,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [isInstalled, setIsInstalled] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [friendsRefreshTrigger, setFriendsRefreshTrigger] = useState(0);
   
   useEffect(() => {
     // 检查是否已安装
@@ -97,6 +100,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       // Handle error
     }
   };
+
+  const handleFriendRequestHandled = () => {
+    setFriendsRefreshTrigger(prev => prev + 1);
+  };
   
   return (
     <>
@@ -106,7 +113,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[99999] flex items-center justify-center"
+            className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
             style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
             onClick={onClose}
           >
@@ -114,7 +121,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
-              className="relative w-[300px] p-6 rounded-3xl border-[4px] border-[#333]"
+              className="relative w-full max-w-[340px] max-h-[90vh] overflow-y-auto p-6 rounded-3xl border-[4px] border-[#333]"
               style={{ backgroundColor: '#FFFEF5' }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -159,11 +166,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     className="data-[state=checked]:bg-[#22C55E]"
                   />
                 </div>
+
+                {/* 好友请求通知 */}
+                <FriendRequestsList 
+                  currentUserId={user?.id || null} 
+                  onRequestHandled={handleFriendRequestHandled}
+                />
+
+                {/* 好友列表 */}
+                <FriendsList 
+                  currentUserId={user?.id || null}
+                  refreshTrigger={friendsRefreshTrigger}
+                />
                 
                 {/* 好友搜索区域 */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-[#333] font-bold">
-                    <Users className="w-5 h-5" strokeWidth={2.5} />
+                    <UserPlus className="w-5 h-5" strokeWidth={2.5} />
                     <span>添加好友</span>
                   </div>
                   <FriendSearch currentUserId={user?.id || null} />
