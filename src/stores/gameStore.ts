@@ -391,16 +391,16 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     return null;
   };
   
-  // ========== 深井瓶颈布局 ==========
+  // ========== 深井瓶颈布局（约30层） ==========
   // 关键策略：
-  // 1. 深埋层（deep_buried）放在 z=0~5 最底层，被大量卡片压着
-  // 2. 表面层（surface）放在 z=30~45 顶部，容易拿到
-  // 3. 中间用大量随机卡片填充，制造"挖穿"的难度
+  // 1. 底层（z=0~4）：5层 - 深埋每组三连的第3张"瓶颈"卡片
+  // 2. 中层（z=5~24）：20层 - 高密度干扰填充层(Filler)
+  // 3. 表层（z=25~29）：5层 - 表面可见的前2张卡片
   
   const DEEP_LAYER_START = 0;
-  const DEEP_LAYER_END = 5;      // 深埋层 z=0~5
-  const SURFACE_LAYER_START = 35;
-  const SURFACE_LAYER_END = 45;  // 表面层 z=35~45
+  const DEEP_LAYER_END = 4;      // 底层 z=0~4 (5层)
+  const SURFACE_LAYER_START = 25;
+  const SURFACE_LAYER_END = 29;  // 表层 z=25~29 (5层)
   
   // 生成指定层范围的散点位置
   const generateLayerPositions = (count: number, minZ: number, maxZ: number): { x: number, y: number, z: number }[] => {
@@ -445,7 +445,7 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     }
   });
   
-  console.log(`[深井瓶颈] 底层(z=0~5): ${mainBlocks.length}张 (每组第3张埋在这里)`);
+  console.log(`[深井瓶颈] 底层(z=0~4): ${mainBlocks.length}张 (每组第3张埋在这里)`);
   
   // 第二步：放置表面层卡片（z=35~45，最顶层）
   const surfacePositions = generateLayerPositions(shuffledSurface.length, SURFACE_LAYER_START, SURFACE_LAYER_END);
@@ -464,12 +464,12 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     }
   });
   
-  console.log(`[深井瓶颈] 表面层(z=35~45): ${shuffledSurface.length}张 (每组的2张在这里)`);
+  console.log(`[深井瓶颈] 表层(z=25~29): ${shuffledSurface.length}张 (每组的2张在这里)`);
   
-  // 第三步：中间填充层（z=6~34）用随机水果填充
+  // 第三步：中间填充层（z=5~24）用随机水果填充 - 共20层
   // 这些是"障碍物"，玩家必须挖穿它们才能拿到底层
-  const FILLER_LAYER_START = 6;
-  const FILLER_LAYER_END = 34;
+  const FILLER_LAYER_START = 5;
+  const FILLER_LAYER_END = 24;
   
   // 生成填充水果（必须是3的倍数，每种3张）
   const fillerCardPool: CardInfo[] = [];
