@@ -274,7 +274,14 @@ export const GameWonModal: React.FC = () => {
   const isLastLevel = currentLevel >= MAX_LEVEL;
   
   const handleNextLevel = () => {
-    initLevel(currentLevel + 1);
+    const nextLevel = currentLevel + 1;
+    if (nextLevel === 2) {
+      toast('⚡ Difficulty Increased!', {
+        description: 'Cards are buried deeper now. Good luck!',
+        duration: 3000,
+      });
+    }
+    initLevel(nextLevel);
   };
   
   const handlePlayAgain = () => {
