@@ -56,6 +56,35 @@ export type Database = {
           },
         ]
       }
+      level_completions: {
+        Row: {
+          completed_at: string
+          id: string
+          level_number: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          id?: string
+          level_number: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          id?: string
+          level_number?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "level_completions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -85,7 +114,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_completion_count: {
+        Args: { target_user_id: string }
+        Returns: number
+      }
     }
     Enums: {
       friendship_status: "pending" | "accepted" | "rejected" | "blocked"
