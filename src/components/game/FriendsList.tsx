@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Trophy, Star } from 'lucide-react';
+import { Users, Trophy, Star, Share2, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface Friend {
   id: string;
@@ -21,6 +22,20 @@ export const FriendsList: React.FC<FriendsListProps> = ({
   const [friends, setFriends] = useState<Friend[]>([]);
   const [myCompletionCount, setMyCompletionCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  const handleInvite = async () => {
+    const inviteText = "This game is so addictive—only 0.1% of players ever make it to the end! https://jirigu.com";
+    
+    try {
+      await navigator.clipboard.writeText(inviteText);
+      setCopied(true);
+      toast.success('邀请内容已复制！');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast.error('复制失败，请手动复制');
+    }
+  };
 
   const fetchFriends = useCallback(async () => {
     if (!currentUserId) {
@@ -119,12 +134,32 @@ export const FriendsList: React.FC<FriendsListProps> = ({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2 text-[#333] font-bold">
-        <Users className="w-5 h-5" strokeWidth={2.5} />
-        <span>好友列表</span>
-        <span className="ml-1 text-sm text-[#666] font-normal">
-          ({friends.length})
-        </span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-[#333] font-bold">
+          <Users className="w-5 h-5" strokeWidth={2.5} />
+          <span>好友列表</span>
+          <span className="ml-1 text-sm text-[#666] font-normal">
+            ({friends.length})
+          </span>
+        </div>
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={handleInvite}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-bold border-[2px] border-[#333]"
+          style={{ backgroundColor: '#E0F2FE', color: '#0284C7' }}
+        >
+          {copied ? (
+            <>
+              <Check className="w-4 h-4" />
+              已复制
+            </>
+          ) : (
+            <>
+              <Share2 className="w-4 h-4" />
+              邀请
+            </>
+          )}
+        </motion.button>
       </div>
 
       {/* 自己的通关信息 */}
