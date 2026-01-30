@@ -6,6 +6,7 @@ import { BoosterBar } from '@/components/game/BoosterBar';
 import { GameHeader } from '@/components/game/GameHeader';
 import { AudioProvider } from '@/components/game/AudioProvider';
 import { GameOverModal, GameWonModal } from '@/components/game/GameModals';
+import { GrassDecoration } from '@/components/game/GrassDecoration';
 
 const Index = () => {
   const { initLevel, currentLevel } = useGameStore();
@@ -17,11 +18,14 @@ const Index = () => {
   return (
     <AudioProvider>
       <div 
-        className="h-screen w-screen max-w-full flex flex-col overflow-hidden"
+        className="h-screen w-screen max-w-full flex flex-col overflow-hidden relative"
         style={{
           backgroundColor: '#A2E16F',
         }}
       >
+        {/* Grass decoration */}
+        <GrassDecoration />
+        
         {/* Header */}
         <GameHeader />
         
