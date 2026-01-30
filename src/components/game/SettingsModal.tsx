@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Volume2, VolumeX, Home, Download, Music, Music2 } from 'lucide-react';
+import { X, Volume2, VolumeX, Home, Download } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useGameStore } from '@/stores/gameStore';
 
@@ -18,8 +18,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const { 
     soundEnabled, 
     toggleSound, 
-    bgmEnabled,
-    toggleBgm,
     abandonGame,
   } = useGameStore();
   
@@ -101,7 +99,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </h2>
             
             {/* Settings options */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               {/* Sound effects toggle */}
               <div 
                 className="flex items-center justify-between p-3 rounded-xl border-[2px] border-[#333]"
@@ -119,26 +117,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   checked={soundEnabled} 
                   onCheckedChange={toggleSound}
                   className="data-[state=checked]:bg-[#22C55E]"
-                />
-              </div>
-              
-              {/* BGM toggle */}
-              <div 
-                className="flex items-center justify-between p-3 rounded-xl border-[2px] border-[#333]"
-                style={{ backgroundColor: '#FEF3C7' }}
-              >
-                <div className="flex items-center gap-3">
-                  {bgmEnabled ? (
-                    <Music className="w-5 h-5 text-[#F59E0B]" strokeWidth={2.5} />
-                  ) : (
-                    <Music2 className="w-5 h-5 text-[#999]" strokeWidth={2.5} />
-                  )}
-                  <span className="font-bold text-[#333]">背景音乐</span>
-                </div>
-                <Switch 
-                  checked={bgmEnabled} 
-                  onCheckedChange={toggleBgm}
-                  className="data-[state=checked]:bg-[#F59E0B]"
                 />
               </div>
             </div>
