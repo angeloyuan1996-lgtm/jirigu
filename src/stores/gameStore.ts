@@ -806,26 +806,67 @@ export const useGameStore = create<GameState>((set, get) => ({
     // 撤回槽位里最后一张卡片（最右边的）
     const lastSlotBlock = state.slots[state.slots.length - 1];
     
-    // 从 mapData 中找到原始方块（保留了原始 x, y, z 坐标）
+    // 检查是来自地图还是盲盒堆
     const originalBlock = state.mapData.find(b => b.id === lastSlotBlock.id);
-    if (!originalBlock) return;
+    const isFromBlindStack = lastSlotBlock.blindStackPosition !== undefined;
     
     // 从槽位移除最后一张
     const newSlots = state.slots.slice(0, -1);
     
-    // 将该卡片放回地图原位置（使用 mapData 中保存的原始坐标）
-    const updatedMapData = state.mapData.map(b => 
-      b.id === lastSlotBlock.id 
-        ? { ...b, status: 'onMap' as const }
-        : b
-    );
+    let updatedMapData = state.mapData;
+    let newBlindStackLeft = state.blindStackLeft;
+    let newBlindStackRight = state.blindStackRight;
+    
+    if (isFromBlindStack) {
+      // 卡片来自盲盒堆，放回盲盒堆顶部
+      const restoredBlock: FruitBlock = {
+        ...lastSlotBlock,
+        status: 'inBlindStack' as const,
+        isLocked: false,
+        blindStackIndex: 0,
+      };
+      
+      if (lastSlotBlock.blindStackPosition === 'left') {
+        // 将现有的盲盒堆卡片索引+1，isLocked状态更新
+        newBlindStackLeft = [
+          restoredBlock,
+          ...state.blindStackLeft.map((b, idx) => ({
+            ...b,
+            blindStackIndex: idx + 1,
+            isLocked: true, // 顶部以下都锁定
+          }))
+        ];
+      } else {
+        newBlindStackRight = [
+          restoredBlock,
+          ...state.blindStackRight.map((b, idx) => ({
+            ...b,
+            blindStackIndex: idx + 1,
+            isLocked: true,
+          }))
+        ];
+      }
+    } else if (originalBlock) {
+      // 卡片来自地图，放回原位置
+      updatedMapData = state.mapData.map(b => 
+        b.id === lastSlotBlock.id 
+          ? { ...b, status: 'onMap' as const }
+          : b
+      );
+    } else {
+      // 找不到原始方块，无法撤回
+      return;
+    }
     
     const blocksWithLock = calculateLockStatus(updatedMapData);
-    const remaining = blocksWithLock.filter(b => b.status === 'onMap').length;
+    const remaining = blocksWithLock.filter(b => b.status === 'onMap').length +
+      newBlindStackLeft.length + newBlindStackRight.length;
     
     set({
       mapData: blocksWithLock,
       slots: newSlots,
+      blindStackLeft: newBlindStackLeft,
+      blindStackRight: newBlindStackRight,
       boostersUsed: { ...state.boostersUsed, undo: true },
       isGameOver: false,
       remainingBlocks: remaining,
@@ -937,6 +978,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     // 获取顶部方块 (index 0)
     const topBlock = stack[0];
     
+    // 保存历史记录以支持撤回
+    const historyEntry: HistoryEntry = {
+      block: { ...topBlock },
+      previousSlots: [...state.slots],
+    };
+    
     // 从盲盒堆移除
     const newStack = stack.slice(1).map((b, idx) => ({
       ...b,
@@ -1020,6 +1067,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       slots: finalSlots,
       blindStackLeft: position === 'left' ? newStack : state.blindStackLeft,
       blindStackRight: position === 'right' ? newStack : state.blindStackRight,
+      historyStack: [...state.historyStack, historyEntry],
       isGameOver,
       isGameWon,
       remainingBlocks: remaining,
