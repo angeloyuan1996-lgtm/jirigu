@@ -38,7 +38,7 @@ const Index = () => {
               color: '#333',
             }}
           >
-            第 {currentLevel} 关
+            Level {currentLevel}
           </span>
         </div>
         
