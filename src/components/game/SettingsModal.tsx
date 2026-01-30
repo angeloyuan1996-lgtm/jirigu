@@ -1,8 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Volume2, VolumeX, Home } from 'lucide-react';
+import { X, Volume2, VolumeX, Home, Download } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useGameStore } from '@/stores/gameStore';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -15,6 +20,44 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     toggleSound, 
     abandonGame,
   } = useGameStore();
+  
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  
+  useEffect(() => {
+    // 检查是否已安装
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true);
+    }
+    
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+    
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+    };
+    
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+    
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+  
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      await deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    }
+  };
   
   const handleAbandon = () => {
     onClose();
@@ -92,6 +135,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               <Home className="w-5 h-5" strokeWidth={2.5} />
               放弃挑战
             </motion.button>
+            
+            {/* Install button - 只在可以安装时显示 */}
+            {!isInstalled && (
+              <motion.button
+                onClick={handleInstall}
+                whileTap={{ y: 2 }}
+                className="w-full h-12 mt-3 font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
+                style={{
+                  backgroundColor: deferredPrompt ? '#3B82F6' : '#9CA3AF',
+                  color: 'white',
+                  borderBottomWidth: '5px',
+                  borderBottomColor: deferredPrompt ? '#1D4ED8' : '#6B7280',
+                }}
+                disabled={!deferredPrompt}
+              >
+                <Download className="w-5 h-5" strokeWidth={2.5} />
+                {deferredPrompt ? '添加到屏幕' : '请用浏览器打开'}
+              </motion.button>
+            )}
+            
+            {isInstalled && (
+              <div className="w-full mt-3 text-center text-sm text-[#22C55E] font-medium">
+                ✓ 已安装到屏幕
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}
