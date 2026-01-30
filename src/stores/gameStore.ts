@@ -939,35 +939,20 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     if (state.hasRevived) return;
     
-    // Open WhatsApp share
-    const message = encodeURIComponent("Help! I'm stuck at Fruit Match! 🍎🍓 Help me beat Level " + state.currentLevel + "!");
-    window.open(`https://wa.me/?text=${message}`, '_blank');
-    
-    // Listen for visibility change to trigger move out
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-        
-        // Execute move out effect
-        const currentState = get();
-        if (currentState.slots.length >= 3 && currentState.tempCache.length === 0) {
-          const movedBlocks = currentState.slots.slice(0, 3);
-          const remainingSlots = currentState.slots.slice(3);
-          
-          set({
-            slots: remainingSlots,
-            tempCache: movedBlocks.map(b => ({ ...b, status: 'inTemp' })),
-            hasRevived: true,
-            isGameOver: false,
-          });
-        } else {
-          set({ hasRevived: true, isGameOver: false });
-        }
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    set({ hasRevived: true });
+    // 直接执行复活效果（移出3个方块到暂存区）
+    if (state.slots.length >= 3 && state.tempCache.length === 0) {
+      const movedBlocks = state.slots.slice(0, 3);
+      const remainingSlots = state.slots.slice(3);
+      
+      set({
+        slots: remainingSlots,
+        tempCache: movedBlocks.map(b => ({ ...b, status: 'inTemp' })),
+        hasRevived: true,
+        isGameOver: false,
+      });
+    } else {
+      set({ hasRevived: true, isGameOver: false });
+    }
   },
 
   restartGame: () => {
