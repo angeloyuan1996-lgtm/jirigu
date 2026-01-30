@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trophy, Users } from 'lucide-react';
+import { X, Trophy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 // Country code to flag emoji converter
@@ -149,9 +149,12 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onCl
               style={{ backgroundColor: '#FDE68A' }}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Trophy className="w-6 h-6 text-[#D97706]" strokeWidth={2.5} />
-                  <h2 className="text-xl font-bold text-[#333]">Country Leaderboard</h2>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-6 h-6 text-[#D97706]" strokeWidth={2.5} />
+                    <h2 className="text-xl font-bold text-[#333]">Country Leaderboard</h2>
+                  </div>
+                  <span className="text-xs text-[#999] ml-8">Updates every 24 hours</span>
                 </div>
                 <button
                   onClick={onClose}
@@ -214,28 +217,17 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onCl
                         </div>
                         
                         {/* Stats */}
-                        <div className="flex flex-col items-end flex-shrink-0">
-                          <div className="flex items-center gap-1">
-                            <Trophy className="w-4 h-4 text-[#D97706]" />
-                            <span className="font-bold text-[#333]">{item.total_completions}</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-xs text-[#666]">
-                            <Users className="w-3 h-3" />
-                            <span>{item.user_count} players</span>
-                          </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
-            
-            {/* Footer */}
-            <div className="text-center pt-3 mt-3 border-t border-[#E5E2D3]">
-              <span className="text-xs text-[#999]">Updates every 24 hours</span>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Trophy className="w-4 h-4 text-[#D97706]" />
+                          <span className="font-bold text-[#333]">{item.total_completions}</span>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
