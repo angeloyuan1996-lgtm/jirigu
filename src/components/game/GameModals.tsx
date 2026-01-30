@@ -262,6 +262,33 @@ export const GameOverModal: React.FC = () => {
   );
 };
 
+// 难度升级提示组件
+const DifficultyNotice: React.FC<{ isVisible: boolean }> = ({ isVisible }) => {
+  return (
+    <AnimatePresence>
+      {isVisible && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 flex items-center justify-center"
+          style={{ zIndex: 100000 }}
+        >
+          <motion.div
+            className="px-8 py-4 rounded-2xl"
+            style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}
+          >
+            <p className="text-white text-xl font-bold text-center">
+              ⚡ Difficulty Increased!
+            </p>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 export const GameWonModal: React.FC = () => {
   const { 
     isGameWon, 
@@ -271,17 +298,20 @@ export const GameWonModal: React.FC = () => {
   
   const [copied, setCopied] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showDifficultyNotice, setShowDifficultyNotice] = useState(false);
   const isLastLevel = currentLevel >= MAX_LEVEL;
   
   const handleNextLevel = () => {
     const nextLevel = currentLevel + 1;
     if (nextLevel === 2) {
-      toast('⚡ Difficulty Increased!', {
-        description: 'Cards are buried deeper now. Good luck!',
-        duration: 3000,
-      });
+      setShowDifficultyNotice(true);
+      setTimeout(() => {
+        setShowDifficultyNotice(false);
+        initLevel(nextLevel);
+      }, 1000);
+    } else {
+      initLevel(nextLevel);
     }
-    initLevel(nextLevel);
   };
   
   const handlePlayAgain = () => {
@@ -410,6 +440,9 @@ export const GameWonModal: React.FC = () => {
         isOpen={showLeaderboard} 
         onClose={() => setShowLeaderboard(false)} 
       />
+      
+      {/* Difficulty Notice */}
+      <DifficultyNotice isVisible={showDifficultyNotice} />
     </AnimatePresence>
   );
 };
