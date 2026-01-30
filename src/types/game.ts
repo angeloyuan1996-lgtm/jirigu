@@ -55,6 +55,7 @@ export interface GameState {
   
   // Settings
   soundEnabled: boolean;
+  bgmEnabled: boolean;
   
   // Actions
   initLevel: (level: number) => void;
@@ -69,6 +70,7 @@ export interface GameState {
   restartGame: () => void;
   updateLockStatus: () => void;
   toggleSound: () => void;
+  toggleBgm: () => void;
   abandonGame: () => void;
 }
 
