@@ -348,17 +348,35 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     globalPositionMap.set(key, true);
   };
   
-  // 强制偏移量列表 - 必须偏移0.5单位，产生"半边"或"角"遮挡
-  const OFFSET_OPTIONS = [
+  // 偏移量分类 - 70% 半边遮挡，30% 角遮挡
+  const HALF_OFFSETS = [
     { dx: 0.5, dy: 0 },      // 右半
     { dx: -0.5, dy: 0 },     // 左半
     { dx: 0, dy: 0.5 },      // 下半
     { dx: 0, dy: -0.5 },     // 上半
+  ];
+  
+  const CORNER_OFFSETS = [
     { dx: 0.5, dy: 0.5 },    // 右下角
     { dx: -0.5, dy: 0.5 },   // 左下角
     { dx: 0.5, dy: -0.5 },   // 右上角
     { dx: -0.5, dy: -0.5 },  // 左上角
   ];
+  
+  // 根据 30%角/70%半 的比例选择偏移类型
+  const getWeightedOffset = (seed: number): { dx: number, dy: number } => {
+    const rand = Math.abs(Math.sin(seed * 13)) % 1;
+    
+    if (rand < 0.3) {
+      // 30% 使用角遮挡
+      const idx = Math.floor(Math.abs(Math.sin(seed * 17)) * CORNER_OFFSETS.length) % CORNER_OFFSETS.length;
+      return CORNER_OFFSETS[idx];
+    } else {
+      // 70% 使用半边遮挡
+      const idx = Math.floor(Math.abs(Math.sin(seed * 19)) * HALF_OFFSETS.length) % HALF_OFFSETS.length;
+      return HALF_OFFSETS[idx];
+    }
+  };
   
   // 找到一个有效位置（如果原位置被占用，则强制偏移0.5）
   // 重要：找到后立即标记，防止同层重复！
@@ -373,21 +391,33 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
       return { x: snapX, y: snapY };
     }
     
-    // 原位置被占用，必须偏移！使用伪随机打乱偏移顺序
-    const shuffledOffsets = [...OFFSET_OPTIONS].sort((a, b) => {
+    // 原位置被占用，按 30%角/70%半 比例选择偏移
+    // 首先尝试加权偏移
+    const preferredOffset = getWeightedOffset(seed);
+    let newX = snapToGrid(baseX + preferredOffset.dx);
+    let newY = snapToGrid(baseY + preferredOffset.dy);
+    
+    if (newX >= 0 && newX <= GRID_COLS - 1 && newY >= 0 && newY <= GRID_ROWS - 1) {
+      if (isPositionAvailable(newX, newY)) {
+        markPositionUsed(newX, newY);
+        return { x: newX, y: newY };
+      }
+    }
+    
+    // 首选偏移不可用，尝试所有偏移（按加权顺序）
+    const allOffsets = [...HALF_OFFSETS, ...CORNER_OFFSETS];
+    const shuffledOffsets = [...allOffsets].sort((a, b) => {
       const valA = Math.sin(seed * 17 + a.dx * 31 + a.dy * 37);
       const valB = Math.sin(seed * 17 + b.dx * 31 + b.dy * 37);
       return valA - valB;
     });
     
     for (const offset of shuffledOffsets) {
-      const newX = snapToGrid(baseX + offset.dx);
-      const newY = snapToGrid(baseY + offset.dy);
+      newX = snapToGrid(baseX + offset.dx);
+      newY = snapToGrid(baseY + offset.dy);
       
-      // 确保在边界内
       if (newX >= 0 && newX <= GRID_COLS - 1 && newY >= 0 && newY <= GRID_ROWS - 1) {
         if (isPositionAvailable(newX, newY)) {
-          // 立即标记！
           markPositionUsed(newX, newY);
           return { x: newX, y: newY };
         }
