@@ -351,29 +351,30 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     return mask;
   };
   
-  // 追踪所有已使用的位置（跨层检查）
-  const allUsedPositions: { x: number, y: number, z: number }[] = [];
+  // ========== 跨层位置追踪系统 ==========
+  // 使用 coordKey 作为唯一键（只看x,y，忽略z），确保不同层的卡片不会完全重叠
+  const globalPositionMap = new Map<string, boolean>();
   
-  // 检查位置是否与其他层完全重叠（禁止同x,y不同z）
-  const isPositionValid = (x: number, y: number, z: number): boolean => {
-    const snapX = snapToGrid(x);
-    const snapY = snapToGrid(y);
-    
-    // 检查是否与任何已存在的位置完全重叠
-    for (const pos of allUsedPositions) {
-      const existSnapX = snapToGrid(pos.x);
-      const existSnapY = snapToGrid(pos.y);
-      
-      // 如果x,y完全相同（任意z层），则无效
-      if (snapX === existSnapX && snapY === existSnapY) {
-        return false;
-      }
-    }
-    return true;
+  // 生成只包含 x,y 的键（用于跨层检测）
+  const xyKey = (x: number, y: number): string => {
+    return `${snapToGrid(x).toFixed(2)},${snapToGrid(y).toFixed(2)}`;
   };
   
-  // 强制偏移量（必须是0.5的倍数，不能为0）
-  const FORCED_OFFSETS = [
+  // 检查位置是否有效（不与任何层的任何卡片完全重叠）
+  const isPositionAvailable = (x: number, y: number): boolean => {
+    const key = xyKey(x, y);
+    return !globalPositionMap.has(key);
+  };
+  
+  // 标记位置已使用
+  const markPositionUsed = (x: number, y: number): void => {
+    const key = xyKey(x, y);
+    globalPositionMap.set(key, true);
+    console.log(`[Position] Marked: (${snapToGrid(x).toFixed(2)}, ${snapToGrid(y).toFixed(2)})`);
+  };
+  
+  // 强制偏移量列表 - 必须偏移0.5单位，产生"半边"或"角"遮挡
+  const OFFSET_OPTIONS = [
     { dx: 0.5, dy: 0 },      // 右半
     { dx: -0.5, dy: 0 },     // 左半
     { dx: 0, dy: 0.5 },      // 下半
@@ -384,18 +385,24 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
     { dx: -0.5, dy: -0.5 },  // 左上角
   ];
   
-  // 找到一个有效位置（不与其他层完全重叠）
-  const findNonOverlappingPosition = (baseX: number, baseY: number, z: number, seed: number): { x: number, y: number } | null => {
-    // 首先尝试原位置
-    let x = snapToGrid(baseX);
-    let y = snapToGrid(baseY);
+  // 找到一个有效位置（如果原位置被占用，则强制偏移0.5）
+  const findValidPosition2 = (baseX: number, baseY: number, seed: number): { x: number, y: number } | null => {
+    const snapX = snapToGrid(baseX);
+    const snapY = snapToGrid(baseY);
     
-    if (isPositionValid(x, y, z)) {
-      return { x, y };
+    // 首先检查原位置是否可用
+    if (isPositionAvailable(snapX, snapY)) {
+      return { x: snapX, y: snapY };
     }
     
-    // 如果原位置被占用，尝试所有偏移
-    const shuffledOffsets = [...FORCED_OFFSETS].sort(() => Math.sin(seed) - 0.5);
+    console.log(`[Overlap] Position (${snapX.toFixed(2)}, ${snapY.toFixed(2)}) occupied, finding offset...`);
+    
+    // 原位置被占用，必须偏移！使用伪随机打乱偏移顺序
+    const shuffledOffsets = [...OFFSET_OPTIONS].sort((a, b) => {
+      const valA = Math.sin(seed * 17 + a.dx * 31 + a.dy * 37);
+      const valB = Math.sin(seed * 17 + b.dx * 31 + b.dy * 37);
+      return valA - valB;
+    });
     
     for (const offset of shuffledOffsets) {
       const newX = snapToGrid(baseX + offset.dx);
@@ -403,27 +410,31 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
       
       // 确保在边界内
       if (newX >= 0 && newX <= GRID_COLS - 1 && newY >= 0 && newY <= GRID_ROWS - 1) {
-        if (isPositionValid(newX, newY, z)) {
+        if (isPositionAvailable(newX, newY)) {
+          console.log(`[Overlap] Found valid offset: (${newX.toFixed(2)}, ${newY.toFixed(2)})`);
           return { x: newX, y: newY };
         }
       }
     }
     
-    // 如果还是找不到，尝试更大范围的偏移
-    for (let dx = -1; dx <= 1; dx += 0.5) {
-      for (let dy = -1; dy <= 1; dy += 0.5) {
+    // 如果0.5偏移都不行，尝试更大范围（0.25, 0.75, 1.0）
+    const extendedOffsets = [-1, -0.75, -0.25, 0.25, 0.75, 1];
+    for (const dx of extendedOffsets) {
+      for (const dy of extendedOffsets) {
         if (dx === 0 && dy === 0) continue;
         const newX = snapToGrid(baseX + dx);
         const newY = snapToGrid(baseY + dy);
         if (newX >= 0 && newX <= GRID_COLS - 1 && newY >= 0 && newY <= GRID_ROWS - 1) {
-          if (isPositionValid(newX, newY, z)) {
+          if (isPositionAvailable(newX, newY)) {
+            console.log(`[Overlap] Found extended offset: (${newX.toFixed(2)}, ${newY.toFixed(2)})`);
             return { x: newX, y: newY };
           }
         }
       }
     }
     
-    return null; // 实在找不到
+    console.warn(`[Overlap] No valid position found for (${baseX}, ${baseY})`);
+    return null;
   };
   
   // 生成"乱中有序"的网格位置 - 避免整齐并排，强制错位遮挡
@@ -477,7 +488,7 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
           
           // 找到一个不与其他层完全重叠的位置
           const seed = currentZ * 1000 + col * 100 + row;
-          const validPos = findNonOverlappingPosition(candidateX, candidateY, currentZ, seed);
+          const validPos = findValidPosition2(candidateX, candidateY, seed);
           
           if (validPos) {
             layerPositions.push(validPos);
@@ -488,11 +499,11 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
       // 随机打乱这层的位置顺序
       layerPositions.sort(() => Math.sin(currentZ * 31 + globalPosIndex * 7) - 0.5);
       
-      // 添加位置并记录到全局
+      // 添加位置并记录到全局位置追踪
       for (const pos of layerPositions) {
         if (positions.length >= count) break;
         positions.push({ x: pos.x, y: pos.y, z: currentZ });
-        allUsedPositions.push({ x: pos.x, y: pos.y, z: currentZ });
+        markPositionUsed(pos.x, pos.y); // 标记位置已使用
         globalPosIndex++;
       }
       
