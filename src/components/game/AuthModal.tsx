@@ -42,12 +42,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         
         if (error) {
           if (error.message.includes('already registered')) {
-            setError('该邮箱已注册，请直接登录');
+            setError('Email already registered. Please login.');
           } else {
             setError(error.message);
           }
         } else {
-          setSuccess('注册成功！请查收验证邮件');
+          setSuccess('Sign up successful! Please check your email.');
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -57,19 +57,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         
         if (error) {
           if (error.message.includes('Invalid login credentials')) {
-            setError('邮箱或密码错误');
+            setError('Invalid email or password');
           } else {
             setError(error.message);
           }
         } else {
-          setSuccess('登录成功！');
+          setSuccess('Login successful!');
           setTimeout(() => {
             onClose();
           }, 1000);
         }
       }
     } catch (err: any) {
-      setError('认证服务暂不可用，请稍后再试');
+      setError('Authentication service unavailable. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -86,10 +86,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       });
       
       if (result.error) {
-        setError('Google 登录失败，请稍后再试');
+        setError('Google login failed. Please try again.');
       }
     } catch (err) {
-      setError('认证服务暂不可用，请稍后再试');
+      setError('Authentication service unavailable. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -140,7 +140,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <div className="flex items-center justify-center gap-2 mb-6">
               <User className="w-6 h-6 text-[#333]" strokeWidth={2.5} />
               <h2 className="text-xl font-bold text-[#333]">
-                {mode === 'login' ? '登录' : '注册'}
+                {mode === 'login' ? 'Login' : 'Sign Up'}
               </h2>
             </div>
 
@@ -162,13 +162,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
-              <span className="text-[#333]">使用 Google 登录</span>
+              <span className="text-[#333]">Sign in with Google</span>
             </motion.button>
 
             {/* Divider */}
             <div className="flex items-center gap-3 my-4">
               <div className="flex-1 h-[2px] bg-[#E5E7EB]" />
-              <span className="text-sm text-[#9CA3AF] font-medium">或</span>
+              <span className="text-sm text-[#9CA3AF] font-medium">or</span>
               <div className="flex-1 h-[2px] bg-[#E5E7EB]" />
             </div>
 
@@ -178,7 +178,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9CA3AF]" />
                 <Input
                   type="email"
-                  placeholder="邮箱地址"
+                  placeholder="Email address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -190,7 +190,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9CA3AF]" />
                 <Input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="密码"
+                  placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -229,7 +229,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   borderBottomColor: '#16A34A',
                 }}
               >
-                {loading ? '处理中...' : (mode === 'login' ? '登录' : '注册')}
+                {loading ? 'Processing...' : (mode === 'login' ? 'Login' : 'Sign Up')}
               </motion.button>
             </form>
 
@@ -237,22 +237,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <p className="text-center text-sm text-[#6B7280] mt-4">
               {mode === 'login' ? (
                 <>
-                  还没有账号？{' '}
+                  Don't have an account?{' '}
                   <button
                     onClick={() => switchMode('signup')}
                     className="text-[#3B82F6] font-bold hover:underline"
                   >
-                    立即注册
+                    Sign Up
                   </button>
                 </>
               ) : (
                 <>
-                  已有账号？{' '}
+                  Already have an account?{' '}
                   <button
                     onClick={() => switchMode('login')}
                     className="text-[#3B82F6] font-bold hover:underline"
                   >
-                    立即登录
+                    Login
                   </button>
                 </>
               )}

@@ -77,10 +77,10 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
                   <Play className="w-10 h-10 text-[#333] ml-1" strokeWidth={2.5} />
                 </div>
                 <h3 className="text-xl font-bold text-[#333] mb-2">
-                  观看广告
+                  Watch Ad
                 </h3>
                 <p className="text-gray-600 mb-6">
-                  观看一段短视频即可获得「{boosterName}」道具
+                  Watch a short video to get the "{boosterName}" booster
                 </p>
                 <button
                   onClick={handleStartWatching}
@@ -91,13 +91,13 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
                     borderBottomColor: 'hsl(142 76% 32%)',
                   }}
                 >
-                  开始观看
+                  Start Watching
                 </button>
                 <button
                   onClick={onClose}
                   className="mt-3 text-gray-500 text-sm hover:text-gray-700"
                 >
-                  稍后再说
+                  Maybe Later
                 </button>
               </div>
             )}
@@ -118,10 +118,10 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
                   </div>
                 </div>
                 <h3 className="text-xl font-bold text-[#333] mb-2">
-                  广告播放中...
+                  Ad Playing...
                 </h3>
                 <p className="text-gray-500">
-                  请稍候 {countdown} 秒
+                  Please wait {countdown} seconds
                 </p>
               </div>
             )}
@@ -138,10 +138,10 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
                   <CheckCircle className="w-12 h-12 text-white" strokeWidth={2.5} />
                 </motion.div>
                 <h3 className="text-xl font-bold text-[#333] mb-2">
-                  获得成功！
+                  Success!
                 </h3>
                 <p className="text-gray-600">
-                  「{boosterName}」已激活，点击即可使用
+                  "{boosterName}" is now active. Tap to use it!
                 </p>
               </div>
             )}

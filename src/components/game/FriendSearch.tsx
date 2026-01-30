@@ -38,8 +38,8 @@ export const FriendSearch: React.FC<FriendSearchProps> = ({ currentUserId }) => 
       if (error) {
         console.error('Search error:', error);
         toast({
-          title: '搜索失败',
-          description: '请稍后再试',
+          title: 'Search failed',
+          description: 'Please try again',
           variant: 'destructive',
         });
         return;
@@ -95,8 +95,8 @@ export const FriendSearch: React.FC<FriendSearchProps> = ({ currentUserId }) => 
       if (error) {
         console.error('Friend request error:', error);
         toast({
-          title: '发送失败',
-          description: error.message.includes('duplicate') ? '已经发送过请求了' : '请稍后再试',
+          title: 'Failed to send',
+          description: error.message.includes('duplicate') ? 'Request already sent' : 'Please try again',
           variant: 'destructive',
         });
         return;
@@ -104,8 +104,8 @@ export const FriendSearch: React.FC<FriendSearchProps> = ({ currentUserId }) => 
 
       setPendingRequests(prev => new Set([...prev, friendId]));
       toast({
-        title: '已发送好友请求',
-        description: '等待对方同意',
+        title: 'Friend request sent',
+        description: 'Waiting for approval',
       });
     } catch (err) {
       console.error('Friend request error:', err);
@@ -130,7 +130,7 @@ export const FriendSearch: React.FC<FriendSearchProps> = ({ currentUserId }) => 
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="搜索玩家名称..."
+          placeholder="Search players..."
           className="flex-1 h-10 text-sm font-medium border-[2px] border-[#333] rounded-xl px-3"
           style={{ backgroundColor: '#FFFEF5', color: '#333' }}
         />
@@ -146,7 +146,7 @@ export const FriendSearch: React.FC<FriendSearchProps> = ({ currentUserId }) => 
           }}
         >
           <Search className="w-4 h-4" />
-          搜索
+          Search
         </motion.button>
       </div>
 
@@ -176,12 +176,12 @@ export const FriendSearch: React.FC<FriendSearchProps> = ({ currentUserId }) => 
                   {isFriend ? (
                     <span className="flex items-center gap-1 text-sm text-[#22C55E] font-medium">
                       <Check className="w-4 h-4" />
-                      已是好友
+                      Friends
                     </span>
                   ) : isPending ? (
                     <span className="flex items-center gap-1 text-sm text-[#F59E0B] font-medium">
                       <Clock className="w-4 h-4" />
-                      待确认
+                      Pending
                     </span>
                   ) : (
                     <motion.button
@@ -195,7 +195,7 @@ export const FriendSearch: React.FC<FriendSearchProps> = ({ currentUserId }) => 
                       }}
                     >
                       <UserPlus className="w-4 h-4" />
-                      添加
+                      Add
                     </motion.button>
                   )}
                 </div>
@@ -208,7 +208,7 @@ export const FriendSearch: React.FC<FriendSearchProps> = ({ currentUserId }) => 
       {/* 空结果提示 */}
       {!searching && searchResults.length === 0 && searchQuery && (
         <div className="text-center py-4 text-sm text-[#666]">
-          没有找到匹配的玩家
+          No players found
         </div>
       )}
     </div>

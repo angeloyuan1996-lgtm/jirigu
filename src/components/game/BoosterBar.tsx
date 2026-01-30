@@ -69,9 +69,9 @@ const BoosterButton: React.FC<BoosterButtonProps> = ({
 type BoosterType = 'moveOut' | 'undo' | 'shuffle';
 
 const BOOSTER_LABELS: Record<BoosterType, string> = {
-  moveOut: '移出',
-  undo: '撤回',
-  shuffle: '洗牌',
+  moveOut: 'Move Out',
+  undo: 'Undo',
+  shuffle: 'Shuffle',
 };
 
 export const BoosterBar: React.FC = () => {
@@ -135,7 +135,7 @@ export const BoosterBar: React.FC = () => {
       <div className="flex items-center justify-center gap-4 px-2">
         <BoosterButton
           icon={<ArrowLeftRight className="w-7 h-7" strokeWidth={2.5} />}
-          label="移出"
+          label="Move Out"
           onClick={() => handleBoosterClick('moveOut')}
           disabled={slots.length < 3 || tempCache.length > 0}
           used={boostersUsed.moveOut}
@@ -144,7 +144,7 @@ export const BoosterBar: React.FC = () => {
         
         <BoosterButton
           icon={<Undo2 className="w-7 h-7" strokeWidth={2.5} />}
-          label="撤回"
+          label="Undo"
           onClick={() => handleBoosterClick('undo')}
           disabled={historyStack.length === 0}
           used={boostersUsed.undo}
@@ -153,7 +153,7 @@ export const BoosterBar: React.FC = () => {
         
         <BoosterButton
           icon={<Shuffle className="w-7 h-7" strokeWidth={2.5} />}
-          label="洗牌"
+          label="Shuffle"
           onClick={() => handleBoosterClick('shuffle')}
           disabled={false}
           used={boostersUsed.shuffle}
