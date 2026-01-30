@@ -80,15 +80,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     setLoading(true);
     
     try {
-      const { supabase } = await import('@/integrations/supabase/client');
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/`
-        }
+      const { lovable } = await import('@/integrations/lovable');
+      const result = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: `${window.location.origin}/`
       });
       
-      if (error) {
+      if (result.error) {
         setError('Google 登录失败，请稍后再试');
       }
     } catch (err) {
