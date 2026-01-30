@@ -14,7 +14,6 @@ const ShareWaitingOverlay: React.FC<{
   onRevive: () => void;
 }> = ({ isVisible, countdown, onRevive }) => {
   const isReady = countdown <= 0;
-  const progress = ((SHARE_COUNTDOWN_SECONDS - countdown) / SHARE_COUNTDOWN_SECONDS) * 100;
 
   return (
     <AnimatePresence>
@@ -27,40 +26,33 @@ const ShareWaitingOverlay: React.FC<{
           style={{ backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 100000 }}
         >
           {!isReady ? (
-            // 加载中状态
+            // 加载中状态 - 持续旋转的圈圈
             <>
-              {/* 圆形进度环 */}
+              {/* 旋转的圆环 */}
               <div className="relative w-24 h-24 mb-6">
-                <svg className="w-full h-full transform -rotate-90">
-                  {/* 背景圆环 */}
-                  <circle
-                    cx="48"
-                    cy="48"
-                    r="42"
-                    stroke="rgba(255,255,255,0.2)"
-                    strokeWidth="6"
-                    fill="none"
-                  />
-                  {/* 进度圆环 */}
-                  <motion.circle
-                    cx="48"
-                    cy="48"
-                    r="42"
-                    stroke="white"
-                    strokeWidth="6"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 42}
-                    strokeDashoffset={2 * Math.PI * 42 * (1 - progress / 100)}
-                    initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
-                    animate={{ strokeDashoffset: 2 * Math.PI * 42 * (1 - progress / 100) }}
-                    transition={{ duration: 0.5, ease: "linear" }}
-                  />
-                </svg>
-                {/* 中间倒计时数字 */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-3xl font-bold text-white">{countdown}</span>
-                </div>
+                <motion.div
+                  className="w-full h-full"
+                  animate={{ rotate: 360 }}
+                  transition={{
+                    duration: 1.2,
+                    repeat: Infinity,
+                    ease: "linear"
+                  }}
+                >
+                  <svg className="w-full h-full" viewBox="0 0 96 96">
+                    {/* 圆环 - 只有部分弧度，形成旋转效果 */}
+                    <circle
+                      cx="48"
+                      cy="48"
+                      r="42"
+                      stroke="white"
+                      strokeWidth="4"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeDasharray="200 64"
+                    />
+                  </svg>
+                </motion.div>
               </div>
               
               {/* 提示文字 */}
