@@ -106,15 +106,7 @@ export const FriendsList: React.FC<FriendsListProps> = ({
   }, [fetchFriends, refreshTrigger]);
 
   if (!currentUserId) {
-    return (
-      <div 
-        className="p-4 rounded-xl border-[2px] border-[#333] text-center"
-        style={{ backgroundColor: '#F3F4F6' }}
-      >
-        <Users className="w-8 h-8 mx-auto mb-2 text-[#9CA3AF]" />
-        <p className="text-sm font-bold text-[#666]">登录后查看好友列表</p>
-      </div>
-    );
+    return null; // 未登录时不显示，由父组件统一处理
   }
 
   if (loading) {
