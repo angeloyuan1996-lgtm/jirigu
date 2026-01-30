@@ -203,13 +203,10 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onCl
                           {style.medal || `#${rank}`}
                         </div>
                         
-                        {/* Flag & Country */}
-                        <div className="flex-1 flex items-center gap-2 min-w-0">
-                          <span className="text-2xl flex-shrink-0">
-                            {getCountryFlag(item.country_code)}
-                          </span>
+                        {/* Country Name */}
+                        <div className="flex-1 min-w-0">
                           <span 
-                            className="font-bold truncate"
+                            className="font-bold truncate block"
                             style={{ color: style.text }}
                           >
                             {getCountryName(item.country_code)}
