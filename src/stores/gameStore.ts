@@ -583,6 +583,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   totalBlocks: 0,
   remainingBlocks: 0,
   soundEnabled: true,
+  bgmEnabled: true,
   
 
   initLevel: (level: number) => {
@@ -994,6 +995,10 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   toggleSound: () => {
     set((state) => ({ soundEnabled: !state.soundEnabled }));
+  },
+
+  toggleBgm: () => {
+    set((state) => ({ bgmEnabled: !state.bgmEnabled }));
   },
 
   // 点击盲盒堆顶部方块

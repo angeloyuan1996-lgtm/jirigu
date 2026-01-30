@@ -1,9 +1,52 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { useGameStore } from '@/stores/gameStore';
+
+// 欢快儿童旋律的音符序列 (C大调)
+const MELODY_NOTES = [
+  // 第一乐句 - 欢快上行
+  { freq: 523.25, duration: 0.25 }, // C5
+  { freq: 587.33, duration: 0.25 }, // D5
+  { freq: 659.25, duration: 0.25 }, // E5
+  { freq: 698.46, duration: 0.25 }, // F5
+  { freq: 783.99, duration: 0.5 },  // G5
+  { freq: 659.25, duration: 0.25 }, // E5
+  { freq: 783.99, duration: 0.5 },  // G5
+  { freq: 0, duration: 0.25 },       // 休止
+  
+  // 第二乐句 - 跳跃感
+  { freq: 880.00, duration: 0.25 }, // A5
+  { freq: 783.99, duration: 0.25 }, // G5
+  { freq: 659.25, duration: 0.25 }, // E5
+  { freq: 523.25, duration: 0.25 }, // C5
+  { freq: 587.33, duration: 0.5 },  // D5
+  { freq: 523.25, duration: 0.5 },  // C5
+  { freq: 0, duration: 0.25 },       // 休止
+  
+  // 第三乐句 - 活泼重复
+  { freq: 659.25, duration: 0.25 }, // E5
+  { freq: 659.25, duration: 0.25 }, // E5
+  { freq: 698.46, duration: 0.25 }, // F5
+  { freq: 783.99, duration: 0.25 }, // G5
+  { freq: 783.99, duration: 0.25 }, // G5
+  { freq: 698.46, duration: 0.25 }, // F5
+  { freq: 659.25, duration: 0.25 }, // E5
+  { freq: 587.33, duration: 0.5 },  // D5
+  
+  // 第四乐句 - 回归主音
+  { freq: 523.25, duration: 0.25 }, // C5
+  { freq: 587.33, duration: 0.25 }, // D5
+  { freq: 659.25, duration: 0.25 }, // E5
+  { freq: 587.33, duration: 0.25 }, // D5
+  { freq: 523.25, duration: 0.75 }, // C5
+  { freq: 0, duration: 0.5 },        // 休止
+];
 
 // Web Audio API for generating game sounds
 export const useAudio = () => {
   const audioContextRef = useRef<AudioContext | null>(null);
+  const bgmIntervalRef = useRef<number | null>(null);
+  const bgmGainRef = useRef<GainNode | null>(null);
+  const isPlayingBgmRef = useRef(false);
   
   const getAudioContext = useCallback(() => {
     if (!audioContextRef.current) {
@@ -13,6 +56,101 @@ export const useAudio = () => {
   }, []);
   
   const isSoundEnabled = () => useGameStore.getState().soundEnabled;
+  const isBgmEnabled = () => useGameStore.getState().bgmEnabled;
+  
+  // 播放单个音符
+  const playNote = useCallback((ctx: AudioContext, freq: number, startTime: number, duration: number, gainNode: GainNode) => {
+    if (freq === 0) return; // 休止符
+    
+    const osc = ctx.createOscillator();
+    const noteGain = ctx.createGain();
+    
+    // 使用正弦波 + 三角波混合，更柔和的儿童音乐感
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, startTime);
+    
+    // 音符包络
+    noteGain.gain.setValueAtTime(0, startTime);
+    noteGain.gain.linearRampToValueAtTime(0.15, startTime + 0.02);
+    noteGain.gain.setValueAtTime(0.12, startTime + duration * 0.7);
+    noteGain.gain.linearRampToValueAtTime(0, startTime + duration);
+    
+    osc.connect(noteGain);
+    noteGain.connect(gainNode);
+    
+    osc.start(startTime);
+    osc.stop(startTime + duration);
+  }, []);
+  
+  // 播放一轮完整旋律
+  const playMelodyLoop = useCallback(() => {
+    if (!isBgmEnabled() || isPlayingBgmRef.current) return;
+    
+    try {
+      const ctx = getAudioContext();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      
+      // 创建主增益节点
+      if (!bgmGainRef.current) {
+        bgmGainRef.current = ctx.createGain();
+        bgmGainRef.current.gain.setValueAtTime(0.3, ctx.currentTime);
+        bgmGainRef.current.connect(ctx.destination);
+      }
+      
+      let currentTime = ctx.currentTime + 0.1;
+      const tempo = 0.4; // 每拍时长（秒）
+      
+      MELODY_NOTES.forEach((note) => {
+        const noteDuration = note.duration * tempo;
+        playNote(ctx, note.freq, currentTime, noteDuration, bgmGainRef.current!);
+        currentTime += noteDuration;
+      });
+      
+      // 计算旋律总时长
+      const totalDuration = MELODY_NOTES.reduce((sum, note) => sum + note.duration * tempo, 0);
+      
+      // 设置下一轮播放
+      bgmIntervalRef.current = window.setTimeout(() => {
+        if (isBgmEnabled()) {
+          isPlayingBgmRef.current = false;
+          playMelodyLoop();
+        }
+      }, totalDuration * 1000 + 200); // 加小间隔
+      
+      isPlayingBgmRef.current = true;
+    } catch (e) {
+      console.log('BGM not available');
+    }
+  }, [getAudioContext, playNote]);
+  
+  // 开始背景音乐
+  const startBgm = useCallback(() => {
+    if (!isBgmEnabled()) return;
+    isPlayingBgmRef.current = false;
+    playMelodyLoop();
+  }, [playMelodyLoop]);
+  
+  // 停止背景音乐
+  const stopBgm = useCallback(() => {
+    if (bgmIntervalRef.current) {
+      clearTimeout(bgmIntervalRef.current);
+      bgmIntervalRef.current = null;
+    }
+    isPlayingBgmRef.current = false;
+    
+    // 渐出
+    if (bgmGainRef.current && audioContextRef.current) {
+      const ctx = audioContextRef.current;
+      bgmGainRef.current.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
+      setTimeout(() => {
+        if (bgmGainRef.current) {
+          bgmGainRef.current.gain.setValueAtTime(0.3, audioContextRef.current?.currentTime || 0);
+        }
+      }, 400);
+    }
+  }, []);
   
   // Match-3 success sound - triumphant ascending tone
   const playMatchSound = useCallback(() => {
@@ -149,6 +287,8 @@ export const useAudio = () => {
     playClickSound,
     playGameOverSound,
     playVictorySound,
+    startBgm,
+    stopBgm,
   };
 };
 
