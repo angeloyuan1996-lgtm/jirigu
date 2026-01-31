@@ -128,16 +128,12 @@ export const useGameDistributionAd = (): UseGameDistributionAdReturn => {
         // 按需加载 SDK
         await loadSDK();
         
-        // 如果 SDK 加载失败或不可用，使用模拟模式
+        // 如果 SDK 加载失败或不可用，直接失败（不给奖励）
         if (!window.gdsdk) {
-          console.warn('[GameDistribution] SDK not available, using simulation mode');
-          
-          // 模拟 3 秒广告
-          setTimeout(() => {
-            setAdState('completed');
-            console.log('[GameDistribution] Simulated ad completed');
-            resolve(true);
-          }, 3000);
+          console.warn('[GameDistribution] SDK not available - no reward');
+          setError('Ad service unavailable. Please check your connection.');
+          setAdState('failed');
+          resolve(false);
           return;
         }
 
@@ -148,20 +144,11 @@ export const useGameDistributionAd = (): UseGameDistributionAdReturn => {
         console.log('[GameDistribution] Rewarded ad completed');
         resolve(true);
       } catch (err: any) {
-        // 广告失败（用户跳过、加载失败等）
+        // 广告失败（用户跳过、加载失败等）- 一律不给奖励
         const errorMsg = err?.message || 'Ad failed or was skipped';
         console.warn('[GameDistribution] Ad error:', errorMsg);
         
-        // 如果是域名验证问题，使用模拟模式作为降级
-        if (errorMsg.includes('domain') || errorMsg.includes('not available')) {
-          console.log('[GameDistribution] Domain issue detected, using simulation mode');
-          setTimeout(() => {
-            setAdState('completed');
-            resolve(true);
-          }, 3000);
-          return;
-        }
-        
+        // 所有错误情况都不给奖励
         setError(errorMsg);
         setAdState('failed');
         resolve(false);
