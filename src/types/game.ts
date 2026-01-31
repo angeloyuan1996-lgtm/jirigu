@@ -1,7 +1,7 @@
 export type FruitType = 
   | 'apple' | 'banana' | 'cherry' | 'grape' | 'lemon'
   | 'orange' | 'peach' | 'pear' | 'coconut' | 'strawberry'
-  | 'watermelon' | 'tomato' | 'kiwi' | 'blueberry';
+  | 'watermelon' | 'tomato' | 'kiwi' | 'blueberry' | 'green_apple';
 
 export interface FruitBlock {
   id: string;
@@ -87,6 +87,7 @@ export const FRUIT_EMOJIS: Record<FruitType, string> = {
   tomato: '🍅',
   kiwi: '🥝',
   blueberry: '🫐',
+  green_apple: '🍏',
 };
 
 // OpenMoji CDN URLs (color SVG)
@@ -106,6 +107,7 @@ export const FRUIT_ICONS: Record<FruitType, string> = {
   tomato: 'https://openmoji.org/data/color/svg/1F345.svg',
   kiwi: 'https://openmoji.org/data/color/svg/1F95D.svg',
   blueberry: 'https://openmoji.org/data/color/svg/1FAD0.svg',
+  green_apple: 'https://openmoji.org/data/color/svg/1F34F.svg',
 };
 
 export const FRUIT_COLORS: Record<FruitType, string> = {
@@ -123,10 +125,11 @@ export const FRUIT_COLORS: Record<FruitType, string> = {
   tomato: '#FF6347',
   kiwi: '#65A30D',
   blueberry: '#6366F1',
+  green_apple: '#8DB600',
 };
 
 export const ALL_FRUITS: FruitType[] = [
   'apple', 'banana', 'cherry', 'grape', 'lemon',
   'orange', 'peach', 'pear', 'coconut', 'strawberry',
-  'watermelon', 'tomato', 'kiwi', 'blueberry'
+  'watermelon', 'tomato', 'kiwi', 'blueberry', 'green_apple'
 ];
