@@ -703,8 +703,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     // Recalculate lock status
     const blocksWithLock = calculateLockStatus(finalMapData);
     
-    // Calculate remaining
-    const remaining = blocksWithLock.filter(b => b.status === 'onMap').length;
+    // Calculate remaining (including blind stacks)
+    const mapRemaining = blocksWithLock.filter(b => b.status === 'onMap').length;
+    const blindStackRemaining = state.blindStackLeft.length + state.blindStackRight.length;
+    const remaining = mapRemaining + blindStackRemaining;
     
     // No automatic return of tempCache blocks - player must click them manually
     
