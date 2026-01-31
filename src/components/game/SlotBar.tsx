@@ -122,7 +122,7 @@ export const SlotBar: React.FC = () => {
   return (
     <div className="flex flex-col items-center">
       {/* 上方区域：左盲盒堆 + 缓冲区 + 右盲盒堆 水平排列 */}
-      <div className="flex items-end justify-center gap-2 mb-1">
+      <div className="flex items-end justify-center gap-2 mb-2">
         {/* 左侧盲盒堆 */}
         {showBlindStacks && <BlindStack position="left" />}
         
