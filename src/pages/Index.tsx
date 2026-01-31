@@ -7,13 +7,17 @@ import { GameHeader } from '@/components/game/GameHeader';
 import { AudioProvider } from '@/components/game/AudioProvider';
 import { GameOverModal, GameWonModal } from '@/components/game/GameModals';
 import { GrassDecoration } from '@/components/game/GrassDecoration';
+import { useGameDistributionAd } from '@/hooks/useGameDistributionAd';
 
 const Index = () => {
   const { initLevel, currentLevel } = useGameStore();
+  const { preloadAd } = useGameDistributionAd();
   
   useEffect(() => {
     initLevel(1);
-  }, [initLevel]);
+    // 预加载广告 SDK，减少用户点击时的等待时间
+    preloadAd();
+  }, [initLevel, preloadAd]);
   
   return (
     <AudioProvider>
