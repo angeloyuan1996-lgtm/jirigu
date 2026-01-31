@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 // GameDistribution SDK 类型定义
 declare global {
@@ -39,7 +39,7 @@ let sdkLoaded = false;
 let sdkLoading = false;
 const sdkLoadCallbacks: (() => void)[] = [];
 
-// 加载 GameDistribution SDK
+// 加载 GameDistribution SDK（延迟加载，只在需要时调用）
 const loadSDK = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     if (sdkLoaded && window.gdsdk) {
@@ -53,6 +53,7 @@ const loadSDK = (): Promise<void> => {
     }
 
     sdkLoading = true;
+    console.log('[GameDistribution] Loading SDK on-demand...');
 
     // 设置 GD_OPTIONS（SDK 初始化配置）
     window.GD_OPTIONS = {
@@ -91,22 +92,21 @@ export const useGameDistributionAd = (): UseGameDistributionAdReturn => {
   const [error, setError] = useState<string | null>(null);
   const resolveRef = useRef<((success: boolean) => void) | null>(null);
 
-  // 初始化 SDK
-  useEffect(() => {
-    loadSDK().catch((err) => {
-      setError(err.message);
-      setAdState('failed');
-    });
-  }, []);
+  // 注意：不再在 useEffect 中自动加载 SDK
+  // SDK 只在 showRewardedAd 被调用时才加载
+  // 这样可以避免 GameDistribution 的域名验证阻止整个游戏
 
-  // 预加载广告
+  // 预加载广告（按需加载 SDK）
   const preloadAd = useCallback(async () => {
-    if (!window.gdsdk) {
-      console.warn('[GameDistribution] SDK not loaded yet');
-      return;
-    }
-
     try {
+      // 先加载 SDK
+      await loadSDK();
+      
+      if (!window.gdsdk) {
+        console.warn('[GameDistribution] SDK not available');
+        return;
+      }
+
       setAdState('loading');
       await window.gdsdk.preloadAd('rewarded');
       setAdState('ready');
@@ -121,23 +121,26 @@ export const useGameDistributionAd = (): UseGameDistributionAdReturn => {
   // 显示激励广告
   const showRewardedAd = useCallback(async (): Promise<boolean> => {
     return new Promise(async (resolve) => {
-      // 如果 SDK 未加载，使用模拟模式
-      if (!window.gdsdk) {
-        console.warn('[GameDistribution] SDK not available, using simulation mode');
-        setAdState('showing');
-        
-        // 模拟 3 秒广告
-        setTimeout(() => {
-          setAdState('completed');
-          resolve(true);
-        }, 3000);
-        return;
-      }
+      setAdState('showing');
+      setError(null);
 
       try {
-        setAdState('showing');
-        setError(null);
+        // 按需加载 SDK
+        await loadSDK();
         
+        // 如果 SDK 加载失败或不可用，使用模拟模式
+        if (!window.gdsdk) {
+          console.warn('[GameDistribution] SDK not available, using simulation mode');
+          
+          // 模拟 3 秒广告
+          setTimeout(() => {
+            setAdState('completed');
+            console.log('[GameDistribution] Simulated ad completed');
+            resolve(true);
+          }, 3000);
+          return;
+        }
+
         await window.gdsdk.showAd('rewarded');
         
         // 广告成功完成
@@ -148,6 +151,17 @@ export const useGameDistributionAd = (): UseGameDistributionAdReturn => {
         // 广告失败（用户跳过、加载失败等）
         const errorMsg = err?.message || 'Ad failed or was skipped';
         console.warn('[GameDistribution] Ad error:', errorMsg);
+        
+        // 如果是域名验证问题，使用模拟模式作为降级
+        if (errorMsg.includes('domain') || errorMsg.includes('not available')) {
+          console.log('[GameDistribution] Domain issue detected, using simulation mode');
+          setTimeout(() => {
+            setAdState('completed');
+            resolve(true);
+          }, 3000);
+          return;
+        }
+        
         setError(errorMsg);
         setAdState('failed');
         resolve(false);
