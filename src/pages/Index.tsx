@@ -35,24 +35,25 @@ const Index = () => {
           <div className="relative">
             <GameBoard />
           </div>
+          
+          {/* Bottom section - 紧接游戏区下方 */}
+          <div className="mt-1">
+            {/* Slot bar with blind stacks */}
+            <div className="mb-1">
+              <SlotBar />
+            </div>
+            
+            {/* Booster bar */}
+            <BoosterBar />
+          </div>
         </div>
         
-        {/* Bottom section - 减少间距 */}
+        {/* Bottom safe area padding */}
         <div 
-          className="relative z-20 px-2"
           style={{
-            backgroundColor: '#A2E16F',
-            paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
+            paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
           }}
-        >
-          {/* Slot bar with blind stacks */}
-          <div className="mb-2">
-            <SlotBar />
-          </div>
-          
-          {/* Booster bar */}
-          <BoosterBar />
-        </div>
+        />
         
         {/* Modals */}
         <GameOverModal />
