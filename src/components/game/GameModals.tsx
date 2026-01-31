@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RotateCcw, Share2, Trophy } from 'lucide-react';
 import { useGameStore } from '@/stores/gameStore';
 import { toast } from 'sonner';
 import { LeaderboardModal } from './LeaderboardModal';
+import { supabase } from '@/integrations/supabase/client';
 
 const MAX_LEVEL = 2; // 游戏只有2关
 const SHARE_COUNTDOWN_SECONDS = 12;
@@ -300,6 +301,47 @@ export const GameWonModal: React.FC = () => {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showDifficultyNotice, setShowDifficultyNotice] = useState(false);
   const isLastLevel = currentLevel >= MAX_LEVEL;
+  
+  // Track if completion has been recorded for this game win
+  const hasRecordedCompletion = useRef(false);
+  
+  // Record level completion to database when game is won
+  useEffect(() => {
+    if (!isGameWon || hasRecordedCompletion.current) return;
+    
+    const recordCompletion = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          console.log('[GameWonModal] No authenticated user, skipping completion record');
+          return;
+        }
+        
+        const { error } = await supabase.from('level_completions').insert({
+          user_id: user.id,
+          level_number: currentLevel
+        });
+        
+        if (error) {
+          console.error('[GameWonModal] Failed to record completion:', error);
+        } else {
+          console.log('[GameWonModal] Level completion recorded:', currentLevel);
+          hasRecordedCompletion.current = true;
+        }
+      } catch (error) {
+        console.error('[GameWonModal] Error recording completion:', error);
+      }
+    };
+    
+    recordCompletion();
+  }, [isGameWon, currentLevel]);
+  
+  // Reset the recorded flag when game win state changes (new game)
+  useEffect(() => {
+    if (!isGameWon) {
+      hasRecordedCompletion.current = false;
+    }
+  }, [isGameWon]);
   
   const handleNextLevel = () => {
     const nextLevel = currentLevel + 1;
