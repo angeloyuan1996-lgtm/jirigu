@@ -29,24 +29,24 @@ const Index = () => {
         {/* Header with Level indicator */}
         <GameHeader />
         
-        {/* Main game area - 紧凑布局 */}
-        <div className="flex-1 relative flex flex-col items-center justify-start overflow-hidden px-2">
+        {/* Main game area - 紧凑布局，减少与底部间距 */}
+        <div className="relative flex flex-col items-center overflow-hidden px-2">
           {/* Game board */}
           <div className="relative">
             <GameBoard />
           </div>
         </div>
         
-        {/* Bottom section - 减少间距 */}
+        {/* Bottom section - 紧凑间距 */}
         <div 
-          className="relative z-20 px-2"
+          className="relative z-20 px-2 mt-1"
           style={{
             backgroundColor: '#A2E16F',
-            paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
+            paddingBottom: 'max(32px, env(safe-area-inset-bottom))',
           }}
         >
           {/* Slot bar with blind stacks */}
-          <div className="mb-2">
+          <div className="mb-1">
             <SlotBar />
           </div>
           
