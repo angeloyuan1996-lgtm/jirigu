@@ -31,8 +31,8 @@ interface UseGameDistributionAdReturn {
   preloadAd: () => void;
 }
 
-// GameDistribution Game ID - 需要替换为你的真实 Game ID
-const GAME_ID = 'YOUR_GAME_ID_HERE';
+// GameDistribution Game ID
+const GAME_ID = '8619a854c679413d84547ed1716d1df2';
 
 // SDK 加载状态
 let sdkLoaded = false;
