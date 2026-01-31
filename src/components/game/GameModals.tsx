@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RotateCcw, Share2, Trophy } from 'lucide-react';
+import { RotateCcw, Share2, Trophy, Download } from 'lucide-react';
 import { useGameStore } from '@/stores/gameStore';
 import { toast } from 'sonner';
 import { LeaderboardModal } from './LeaderboardModal';
 import { supabase } from '@/integrations/supabase/client';
-
+import { usePwaInstall } from '@/hooks/usePwaInstall';
 const MAX_LEVEL = 2; // 游戏只有2关
 const SHARE_COUNTDOWN_SECONDS = 12;
 
@@ -113,6 +113,7 @@ export const GameOverModal: React.FC = () => {
     currentLevel,
   } = useGameStore();
   
+  const { isInstallable, isInstalled, isIOS, promptInstall } = usePwaInstall();
   const [isWaitingForShare, setIsWaitingForShare] = useState(false);
   const [countdown, setCountdown] = useState(SHARE_COUNTDOWN_SECONDS);
   
@@ -232,6 +233,49 @@ export const GameOverModal: React.FC = () => {
                   >
                     <Share2 className="w-5 h-5" strokeWidth={2.5} />
                     Share to Revive
+                  </motion.button>
+                )}
+                
+                {/* PWA 安装按钮 - 只在可安装时显示 */}
+                {isInstallable && !isInstalled && (
+                  <motion.button
+                    onClick={async () => {
+                      const success = await promptInstall();
+                      if (success) {
+                        toast.success('Game added to home screen!');
+                      }
+                    }}
+                    whileTap={{ y: 2 }}
+                    className="w-full h-12 text-[#333] font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
+                    style={{
+                      backgroundColor: '#FDE68A',
+                      borderBottomWidth: '5px',
+                      borderBottomColor: '#D97706',
+                    }}
+                  >
+                    <Download className="w-5 h-5" strokeWidth={2.5} />
+                    Add to Home Screen
+                  </motion.button>
+                )}
+
+                {/* iOS 提示 - 显示手动添加说明 */}
+                {isIOS && !isInstalled && (
+                  <motion.button
+                    onClick={() => {
+                      toast.info('Tap the Share button (box with arrow) → Add to Home Screen', {
+                        duration: 5000,
+                      });
+                    }}
+                    whileTap={{ y: 2 }}
+                    className="w-full h-12 text-[#333] font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
+                    style={{
+                      backgroundColor: '#FDE68A',
+                      borderBottomWidth: '5px',
+                      borderBottomColor: '#D97706',
+                    }}
+                  >
+                    <Download className="w-5 h-5" strokeWidth={2.5} />
+                    Add to Home Screen
                   </motion.button>
                 )}
                 
