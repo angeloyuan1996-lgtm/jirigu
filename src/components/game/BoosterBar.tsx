@@ -28,7 +28,7 @@ const BoosterButton: React.FC<BoosterButtonProps> = ({
       disabled={used}
       className={cn(
         // 羊了个羊风格：大矩形蓝色按钮，粗边框
-        "relative flex flex-col items-center gap-0.5 px-4 py-2",
+        "relative flex flex-col items-center gap-1 px-5 py-3",
         "rounded-xl",
         "border-[3px] border-[#333]", // 粗黑色描边
         "transition-all duration-150",
@@ -132,9 +132,9 @@ export const BoosterBar: React.FC = () => {
   
   return (
     <>
-      <div className="flex items-center justify-center gap-3 px-2">
+      <div className="flex items-center justify-center gap-4 px-2">
         <BoosterButton
-          icon={<ArrowLeftRight className="w-6 h-6" strokeWidth={2.5} />}
+          icon={<ArrowLeftRight className="w-7 h-7" strokeWidth={2.5} />}
           label="Move Out"
           onClick={() => handleBoosterClick('moveOut')}
           disabled={slots.length < 3 || tempCache.length > 0}
@@ -143,7 +143,7 @@ export const BoosterBar: React.FC = () => {
         />
         
         <BoosterButton
-          icon={<Undo2 className="w-6 h-6" strokeWidth={2.5} />}
+          icon={<Undo2 className="w-7 h-7" strokeWidth={2.5} />}
           label="Undo"
           onClick={() => handleBoosterClick('undo')}
           disabled={historyStack.length === 0}
@@ -152,7 +152,7 @@ export const BoosterBar: React.FC = () => {
         />
         
         <BoosterButton
-          icon={<Shuffle className="w-6 h-6" strokeWidth={2.5} />}
+          icon={<Shuffle className="w-7 h-7" strokeWidth={2.5} />}
           label="Shuffle"
           onClick={() => handleBoosterClick('shuffle')}
           disabled={false}
