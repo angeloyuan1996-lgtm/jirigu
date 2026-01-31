@@ -1,7 +1,7 @@
 {
-  "name": "Fruit Match",
-  "short_name": "FruitMatch",
-  "description": "A fun fruit matching puzzle game",
+  "name": "Jirigu",
+  "short_name": "Jirigu",
+  "description": "Jirigu - An extreme puzzle game. Can you survive hell mode?",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#90EE90",
