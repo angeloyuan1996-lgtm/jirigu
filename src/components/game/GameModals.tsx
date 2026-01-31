@@ -268,6 +268,29 @@ export const GameOverModal: React.FC = () => {
                     Add to Home Screen
                   </motion.button>
                 )}
+
+                {/* 邀请好友按钮 */}
+                <motion.button
+                  onClick={async () => {
+                    const inviteText = "This game is so addictive—only 0.1% of players ever make it to the end! https://jirigu.com";
+                    try {
+                      await navigator.clipboard.writeText(inviteText);
+                      toast.success('Invite copied!');
+                    } catch (err) {
+                      toast.error('Copy failed, please try again');
+                    }
+                  }}
+                  whileTap={{ y: 2 }}
+                  className="w-full h-12 text-[#333] font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
+                  style={{
+                    backgroundColor: '#E9D5FF',
+                    borderBottomWidth: '5px',
+                    borderBottomColor: '#9333EA',
+                  }}
+                >
+                  <Share2 className="w-5 h-5" strokeWidth={2.5} />
+                  Invite Your Friend
+                </motion.button>
                 
                 <motion.button
                   onClick={restartGame}
