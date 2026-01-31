@@ -818,14 +818,26 @@ export const useGameStore = create<GameState>((set, get) => ({
       audio?.playClickSound();
     }
     
+    // Calculate remaining (including blind stacks)
+    const mapRemaining = state.mapData.filter(b => b.status === 'onMap').length;
+    const blindStackRemaining = state.blindStackLeft.length + state.blindStackRight.length;
+    const remaining = mapRemaining + blindStackRemaining;
+    
     // Check game over - slots full with no match = game over
     const isGameOver = finalSlots.length >= MAX_SLOTS && !matchedType;
+    const isGameWon = remaining === 0 && finalSlots.length === 0 && newTempCache.length === 0;
     
-    // Play game over sound
+    // Play sounds for game end states
     if (isGameOver) {
       setTimeout(() => {
         const audio = getAudioController();
         audio?.playGameOverSound();
+      }, 200);
+    }
+    if (isGameWon) {
+      setTimeout(() => {
+        const audio = getAudioController();
+        audio?.playVictorySound();
       }, 200);
     }
     
@@ -833,6 +845,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       slots: finalSlots,
       tempCache: newTempCache,
       isGameOver,
+      isGameWon,
+      remainingBlocks: remaining,
     });
   },
 
