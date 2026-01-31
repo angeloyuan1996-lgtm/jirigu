@@ -18,13 +18,13 @@ export const GameBoard: React.FC = () => {
   
   return (
     <div className="relative flex items-center justify-center overflow-hidden">
-      {/* Game area container with padding */}
+      {/* Game area container - 减少 padding */}
       <div 
         className="relative rounded-2xl"
         style={{ 
-          width: boardWidth + 16, 
-          height: boardHeight + 16,
-          padding: 8,
+          width: boardWidth + 8, 
+          height: boardHeight + 8,
+          padding: 4,
         }}
       >
         {/* Block container - clips overflow */}
