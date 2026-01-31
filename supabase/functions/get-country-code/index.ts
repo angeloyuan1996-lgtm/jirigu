@@ -1,8 +1,27 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+// Allowed origins for CORS - restrict to known domains
+const ALLOWED_ORIGINS = [
+  'https://jirigu.com',
+  'https://www.jirigu.com',
+  'http://localhost:5173',
+  'http://localhost:8080',
+  'http://localhost:3000',
+];
+
+// Also allow Lovable preview domains
+const isLovablePreview = (origin: string) => 
+  origin.includes('.lovable.app') || origin.includes('.lovableproject.com');
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigin = origin && (ALLOWED_ORIGINS.includes(origin) || isLovablePreview(origin))
+    ? origin
+    : '';
+  
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  };
 }
 
 // In-memory rate limiting store (resets when function cold starts)
@@ -55,6 +74,10 @@ function setCachedCountry(ip: string, country: string | null): void {
 }
 
 Deno.serve(async (req) => {
+  // Get origin for CORS headers
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
