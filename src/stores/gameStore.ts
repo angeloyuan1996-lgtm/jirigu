@@ -212,7 +212,7 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
   // 制造极其紧张的资源博弈：玩家必须"挖"到底层才能凑齐
   
   const BLIND_STACK_SIZE = 10;
-  const NUM_FRUIT_TYPES = 14;
+  const NUM_FRUIT_TYPES = 15; // 使用全部15种水果增加难度
   
   // ===== 深井瓶颈水果池生成 =====
   const shuffledFruits = [...ALL_FRUITS].sort(() => Math.random() - 0.5);
