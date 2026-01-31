@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import { useRewardedAd } from '@/hooks/useRewardedAd';
+import { Play, Loader2, CheckCircle } from 'lucide-react';
 
 interface RewardedAdModalProps {
   isOpen: boolean;
@@ -17,59 +16,37 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
   onComplete,
   boosterName,
 }) => {
-  const [phase, setPhase] = useState<'ready' | 'watching' | 'complete' | 'error'>('ready');
-  
-  const { 
-    countdown, 
-    isLoading, 
-    showAd, 
-    reset,
-    error 
-  } = useRewardedAd({
-    useMockAd: true, // 当前使用模拟广告
-    mockAdDuration: 3, // 3秒
-    // 将来替换为真实广告配置:
-    // useMockAd: false,
-    // googleAdUnitId: 'your-ad-unit-id',
-  });
+  const [phase, setPhase] = useState<'ready' | 'watching' | 'complete'>('ready');
+  const [countdown, setCountdown] = useState(3);
 
-  // 重置状态
   useEffect(() => {
     if (!isOpen) {
+      // Reset state when modal closes
       setPhase('ready');
-      reset();
+      setCountdown(3);
     }
-  }, [isOpen, reset]);
+  }, [isOpen]);
 
-  // 开始观看广告
-  const handleStartWatching = useCallback(async () => {
+  useEffect(() => {
+    if (phase === 'watching' && countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (phase === 'watching' && countdown === 0) {
+      setPhase('complete');
+      // Auto complete after showing success
+      setTimeout(() => {
+        onComplete();
+      }, 800);
+    }
+  }, [phase, countdown, onComplete]);
+
+  const handleStartWatching = () => {
     setPhase('watching');
-    
-    const success = await showAd({
-      onAdCompleted: () => {
-        setPhase('complete');
-        // 延迟调用完成回调，让用户看到成功动画
-        setTimeout(() => {
-          onComplete();
-        }, 800);
-      },
-      onAdFailed: (err) => {
-        console.error('[RewardedAd] Failed:', err);
-        setPhase('error');
-      },
-    });
+  };
 
-    if (!success) {
-      setPhase('error');
-    }
-  }, [showAd, onComplete]);
-
-  // 重试
-  const handleRetry = useCallback(() => {
-    setPhase('ready');
-    reset();
-  }, [reset]);
-
+  // 使用 Portal 将弹窗渲染到 body，避免被其他元素覆盖
   return createPortal(
     <AnimatePresence>
       {isOpen && (
@@ -79,7 +56,7 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
           exit={{ opacity: 0 }}
           className="fixed inset-0 flex items-center justify-center bg-black/60"
           style={{ zIndex: 99999 }}
-          onClick={phase === 'ready' || phase === 'error' ? onClose : undefined}
+          onClick={phase === 'ready' ? onClose : undefined}
         >
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
@@ -91,7 +68,6 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
               boxShadow: '0 8px 0 0 #333',
             }}
           >
-            {/* Ready Phase */}
             {phase === 'ready' && (
               <div className="text-center">
                 <div 
@@ -108,15 +84,14 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
                 </p>
                 <button
                   onClick={handleStartWatching}
-                  disabled={isLoading}
-                  className="w-full py-3 px-6 rounded-xl text-white font-bold text-lg border-[3px] border-[#333] transition-all active:translate-y-[2px] disabled:opacity-50"
+                  className="w-full py-3 px-6 rounded-xl text-white font-bold text-lg border-[3px] border-[#333] transition-all active:translate-y-[2px]"
                   style={{
                     backgroundColor: 'hsl(142 76% 45%)',
                     borderBottomWidth: '6px',
                     borderBottomColor: 'hsl(142 76% 32%)',
                   }}
                 >
-                  {isLoading ? 'Loading...' : 'Start Watching'}
+                  Start Watching
                 </button>
                 <button
                   onClick={onClose}
@@ -127,14 +102,15 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
               </div>
             )}
 
-            {/* Watching Phase */}
             {phase === 'watching' && (
               <div className="text-center py-4">
                 <div className="relative w-24 h-24 mx-auto mb-4">
+                  {/* Spinning loader */}
                   <Loader2 
                     className="w-24 h-24 text-blue-500 animate-spin" 
                     strokeWidth={2}
                   />
+                  {/* Countdown number */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-3xl font-bold text-[#333]">
                       {countdown}
@@ -147,14 +123,9 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
                 <p className="text-gray-500">
                   Please wait {countdown} seconds
                 </p>
-                {/* 模拟广告提示 */}
-                <p className="text-xs text-gray-400 mt-4">
-                  🎮 Demo Mode - Real ads coming soon!
-                </p>
               </div>
             )}
 
-            {/* Complete Phase */}
             {phase === 'complete' && (
               <div className="text-center py-4">
                 <motion.div
@@ -172,48 +143,6 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
                 <p className="text-gray-600">
                   "{boosterName}" is now active. Tap to use it!
                 </p>
-              </div>
-            )}
-
-            {/* Error Phase */}
-            {phase === 'error' && (
-              <div className="text-center py-4">
-                <div 
-                  className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: 'hsl(0 84% 60%)' }}
-                >
-                  <AlertCircle className="w-12 h-12 text-white" strokeWidth={2.5} />
-                </div>
-                <h3 className="text-xl font-bold text-[#333] mb-2">
-                  Ad Failed
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  {error || 'Unable to load ad. Please try again.'}
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleRetry}
-                    className="flex-1 py-3 px-4 rounded-xl text-white font-bold border-[3px] border-[#333]"
-                    style={{
-                      backgroundColor: 'hsl(217 85% 55%)',
-                      borderBottomWidth: '5px',
-                      borderBottomColor: 'hsl(217 85% 38%)',
-                    }}
-                  >
-                    Retry
-                  </button>
-                  <button
-                    onClick={onClose}
-                    className="flex-1 py-3 px-4 rounded-xl text-[#333] font-bold border-[3px] border-[#333]"
-                    style={{
-                      backgroundColor: '#e5e7eb',
-                      borderBottomWidth: '5px',
-                      borderBottomColor: '#9ca3af',
-                    }}
-                  >
-                    Close
-                  </button>
-                </div>
               </div>
             )}
           </motion.div>
