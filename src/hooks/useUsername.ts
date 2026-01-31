@@ -51,15 +51,49 @@ export const useUsername = () => {
     }
   }, []);
 
-  // 更新用户名
-  const updateUsername = useCallback(async (newName: string): Promise<boolean> => {
-    if (!newName.trim()) return false;
+  // 检查用户名是否已被占用
+  const checkUsernameAvailable = useCallback(async (name: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', name)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error checking username:', error);
+        return false;
+      }
+      
+      // 如果没有找到，或者找到的是当前用户自己，则可用
+      return !data || data.id === userId;
+    } catch (err) {
+      console.error('Error in checkUsernameAvailable:', err);
+      return false;
+    }
+  }, [userId]);
+
+  // 更新用户名 - 返回 { success: boolean, error?: string }
+  const updateUsername = useCallback(async (newName: string): Promise<{ success: boolean; error?: string }> => {
+    if (!newName.trim()) {
+      return { success: false, error: 'Username cannot be empty' };
+    }
     
     const trimmedName = newName.trim();
     
+    // 检查长度限制
+    if (trimmedName.length > 20) {
+      return { success: false, error: 'Username must be 20 characters or less' };
+    }
+    
     if (isLoggedIn && userId) {
-      // 登录用户：更新数据库
+      // 登录用户：先检查唯一性，再更新数据库
       try {
+        const isAvailable = await checkUsernameAvailable(trimmedName);
+        if (!isAvailable) {
+          return { success: false, error: 'This username is already taken' };
+        }
+        
         const { error } = await supabase
           .from('profiles')
           .update({ username: trimmedName })
@@ -67,22 +101,25 @@ export const useUsername = () => {
         
         if (error) {
           console.error('Error updating username:', error);
-          return false;
+          if (error.code === '23505') { // 唯一约束冲突
+            return { success: false, error: 'This username is already taken' };
+          }
+          return { success: false, error: 'Failed to update username' };
         }
         
         setUsername(trimmedName);
-        return true;
+        return { success: true };
       } catch (err) {
         console.error('Error in updateUsername:', err);
-        return false;
+        return { success: false, error: 'Failed to update username' };
       }
     } else {
-      // 游客：更新本地存储
+      // 游客：更新本地存储（游客名称不检查唯一性）
       localStorage.setItem(LOCAL_STORAGE_KEY, trimmedName);
       setUsername(trimmedName);
-      return true;
+      return { success: true };
     }
-  }, [isLoggedIn, userId]);
+  }, [isLoggedIn, userId, checkUsernameAvailable]);
 
   // 初始化和监听认证状态
   useEffect(() => {

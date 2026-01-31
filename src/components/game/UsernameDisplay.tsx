@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, Check, X, Edit2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useUsername } from '@/hooks/useUsername';
+import { toast } from 'sonner';
 
 export const UsernameDisplay: React.FC = () => {
   const { username, loading, updateUsername } = useUsername();
@@ -27,12 +28,15 @@ export const UsernameDisplay: React.FC = () => {
     }
 
     setSaving(true);
-    const success = await updateUsername(editValue);
+    const result = await updateUsername(editValue);
     setSaving(false);
 
-    if (success) {
+    if (result.success) {
       setIsEditing(false);
       setEditValue('');
+      toast.success('Username updated!');
+    } else {
+      toast.error(result.error || 'Failed to update username');
     }
   };
 
