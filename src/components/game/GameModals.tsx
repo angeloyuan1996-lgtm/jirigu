@@ -341,6 +341,7 @@ export const GameWonModal: React.FC = () => {
     initLevel,
   } = useGameStore();
   
+  const { isInstallable, isInstalled, isIOS, promptInstall } = usePwaInstall();
   const [copied, setCopied] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showDifficultyNotice, setShowDifficultyNotice] = useState(false);
@@ -458,7 +459,7 @@ export const GameWonModal: React.FC = () => {
             </p>
             
             {isLastLevel ? (
-              // Last level: show share, play again, leaderboard
+              // Last level: show share, install, play again, leaderboard
               <div className="flex flex-col gap-3">
                 <motion.button
                   onClick={handleShare}
@@ -473,6 +474,49 @@ export const GameWonModal: React.FC = () => {
                   <Share2 className="w-5 h-5" strokeWidth={2.5} />
                   {copied ? 'Copied!' : 'Share with Friends'}
                 </motion.button>
+                
+                {/* PWA 安装按钮 - 只在可安装时显示 */}
+                {isInstallable && !isInstalled && (
+                  <motion.button
+                    onClick={async () => {
+                      const success = await promptInstall();
+                      if (success) {
+                        toast.success('Game added to home screen!');
+                      }
+                    }}
+                    whileTap={{ y: 2 }}
+                    className="w-full h-12 text-[#333] font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
+                    style={{
+                      backgroundColor: '#FDE68A',
+                      borderBottomWidth: '5px',
+                      borderBottomColor: '#D97706',
+                    }}
+                  >
+                    <Download className="w-5 h-5" strokeWidth={2.5} />
+                    Add to Home Screen
+                  </motion.button>
+                )}
+
+                {/* iOS 提示 */}
+                {isIOS && !isInstalled && (
+                  <motion.button
+                    onClick={() => {
+                      toast.info('Tap the Share button (box with arrow) → Add to Home Screen', {
+                        duration: 5000,
+                      });
+                    }}
+                    whileTap={{ y: 2 }}
+                    className="w-full h-12 text-[#333] font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
+                    style={{
+                      backgroundColor: '#FDE68A',
+                      borderBottomWidth: '5px',
+                      borderBottomColor: '#D97706',
+                    }}
+                  >
+                    <Download className="w-5 h-5" strokeWidth={2.5} />
+                    Add to Home Screen
+                  </motion.button>
+                )}
                 
                 <motion.button
                   onClick={handlePlayAgain}

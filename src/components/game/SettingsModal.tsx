@@ -233,27 +233,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 Quit Game
               </motion.button>
               
-              {/* Install button - 只在可以安装时显示 */}
-              {!isInstalled && (
-                <motion.button
-                  onClick={handleInstall}
-                  whileTap={{ y: 2 }}
-                  className="w-full h-12 mt-3 font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
-                  style={{
-                    backgroundColor: deferredPrompt ? '#3B82F6' : '#9CA3AF',
-                    color: 'white',
-                    borderBottomWidth: '5px',
-                    borderBottomColor: deferredPrompt ? '#1D4ED8' : '#6B7280',
-                  }}
-                  disabled={!deferredPrompt}
-                >
-                  <Download className="w-5 h-5" strokeWidth={2.5} />
-                  {deferredPrompt ? 'Add to Home Screen' : 'Open in Browser'}
-                </motion.button>
-              )}
-              
+              {/* Installed indicator */}
               {isInstalled && (
-                <div className="w-full mt-3 text-center text-sm text-[#22C55E] font-medium">
+                <div className="w-full mt-6 text-center text-sm text-[#22C55E] font-medium">
                   ✓ Installed
                 </div>
               )}
