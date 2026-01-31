@@ -39,7 +39,7 @@ const Index = () => {
           {/* Bottom section - 适当间距 */}
           <div className="mt-6">
             {/* Slot bar with blind stacks */}
-            <div className="mb-1">
+            <div className="mb-3">
               <SlotBar />
             </div>
             
