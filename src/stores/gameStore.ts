@@ -251,11 +251,11 @@ const generateLevel = (level: number): { mainBlocks: FruitBlock[], leftStack: Fr
         layer: 'surface', 
         tripletGroup: globalTripletGroup 
       });
-      // 70%概率深埋底层，30%概率放中层
-      const isDeepBuried = Math.random() < 0.70;
+      // 90%概率深埋底层，10%概率放中层（极难！）
+      const isDeepBuried = Math.random() < 0.90;
       totalCardPool.push({ 
         type: fruitType, 
-        layer: isDeepBuried ? 'deep_buried' : 'surface', // 70%深埋，30%表层
+        layer: isDeepBuried ? 'deep_buried' : 'surface', // 90%深埋，10%表层
         tripletGroup: globalTripletGroup 
       });
     }
