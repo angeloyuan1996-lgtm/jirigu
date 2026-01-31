@@ -26,21 +26,8 @@ const Index = () => {
         {/* Grass decoration */}
         <GrassDecoration />
         
-        {/* Header */}
+        {/* Header with Level indicator */}
         <GameHeader />
-        
-        {/* Level indicator */}
-        <div className="text-center py-1">
-          <span 
-            className="text-sm font-bold px-4 py-1 rounded-full border-[2px] border-[#333] inline-block"
-            style={{
-              backgroundColor: '#FFFEF5',
-              color: '#333',
-            }}
-          >
-            Level {currentLevel}
-          </span>
-        </div>
         
         {/* Main game area */}
         <div className="flex-1 relative flex flex-col items-center justify-start overflow-hidden px-2 pt-2">
