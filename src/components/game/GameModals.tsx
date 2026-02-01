@@ -1,69 +1,76 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RotateCcw, Share2, Trophy, Download } from 'lucide-react';
+import { RotateCcw, Share2, Trophy, Download, Play } from 'lucide-react';
 import { useGameStore } from '@/stores/gameStore';
 import { toast } from 'sonner';
 import { LeaderboardModal } from './LeaderboardModal';
 import { supabase } from '@/integrations/supabase/client';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
+import { ReviveAdModal } from './ReviveAdModal';
+
 const MAX_LEVEL = 2; // 游戏只有2关
-const SHARE_COUNTDOWN_SECONDS = 15;
 
-// 分享等待覆盖层组件
-const ShareWaitingOverlay: React.FC<{
-  isVisible: boolean;
-  countdown: number;
-  onRevive: () => void;
-}> = ({ isVisible, countdown, onRevive }) => {
-  const isReady = countdown <= 0;
-
+export const GameOverModal: React.FC = () => {
+  const { 
+    isGameOver, 
+    hasRevived, 
+    reviveWithWhatsApp, 
+    restartGame,
+    totalBlocks,
+    remainingBlocks,
+    currentLevel,
+  } = useGameStore();
+  
+  const { isInstallable, isInstalled, isIOS, promptInstall } = usePwaInstall();
+  const [showAdModal, setShowAdModal] = useState(false);
+  const [showReviveButton, setShowReviveButton] = useState(false);
+  
+  const progress = Math.round(((totalBlocks - remainingBlocks) / totalBlocks) * 100);
+  
+  // 处理观看广告按钮点击
+  const handleWatchAdsClick = useCallback(() => {
+    setShowAdModal(true);
+  }, []);
+  
+  // 广告完成后显示复活按钮
+  const handleAdComplete = useCallback(() => {
+    setShowAdModal(false);
+    setShowReviveButton(true);
+  }, []);
+  
+  // 处理复活
+  const handleRevive = useCallback(() => {
+    setShowReviveButton(false);
+    reviveWithWhatsApp();
+  }, [reviveWithWhatsApp]);
+  
+  // 重置状态当游戏结束状态改变时
+  useEffect(() => {
+    if (!isGameOver) {
+      setShowAdModal(false);
+      setShowReviveButton(false);
+    }
+  }, [isGameOver]);
+  
   return (
-    <AnimatePresence>
-      {isVisible && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 flex flex-col items-center justify-center"
-          style={{ backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 100000 }}
-        >
-          {!isReady ? (
-            // 加载中状态 - 持续旋转的圈圈
-            <>
-              {/* 旋转的圆环 */}
-              <div className="relative w-24 h-24 mb-6">
-                <motion.div
-                  className="w-full h-full"
-                  animate={{ rotate: 360 }}
-                  transition={{
-                    duration: 1.2,
-                    repeat: Infinity,
-                    ease: "linear"
-                  }}
-                >
-                  <svg className="w-full h-full" viewBox="0 0 96 96">
-                    {/* 圆环 - 只有部分弧度，形成旋转效果 */}
-                    <circle
-                      cx="48"
-                      cy="48"
-                      r="42"
-                      stroke="white"
-                      strokeWidth="4"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeDasharray="200 64"
-                    />
-                  </svg>
-                </motion.div>
-              </div>
-              
-              {/* 提示文字 */}
-              <p className="text-white text-center text-lg font-medium px-8">
-                Share with a friend and revive right away!
-              </p>
-            </>
-          ) : (
-            // 可复活状态
+    <>
+      {/* 广告观看弹窗 */}
+      <ReviveAdModal
+        isOpen={showAdModal}
+        onClose={() => setShowAdModal(false)}
+        onComplete={handleAdComplete}
+      />
+      
+      {/* 复活按钮覆盖层 */}
+      <AnimatePresence>
+        {showReviveButton && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 flex flex-col items-center justify-center"
+            style={{ backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 100000 }}
+          >
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -83,7 +90,7 @@ const ShareWaitingOverlay: React.FC<{
               
               {/* 复活按钮 */}
               <motion.button
-                onClick={onRevive}
+                onClick={handleRevive}
                 whileTap={{ scale: 0.95 }}
                 className="px-8 py-4 text-white font-bold text-xl rounded-2xl border-[3px] border-[#333]"
                 style={{
@@ -95,81 +102,12 @@ const ShareWaitingOverlay: React.FC<{
                 Revive now 🎉
               </motion.button>
             </motion.div>
-          )}
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
-
-export const GameOverModal: React.FC = () => {
-  const { 
-    isGameOver, 
-    hasRevived, 
-    reviveWithWhatsApp, 
-    restartGame,
-    totalBlocks,
-    remainingBlocks,
-    currentLevel,
-  } = useGameStore();
-  
-  const { isInstallable, isInstalled, isIOS, promptInstall } = usePwaInstall();
-  const [isWaitingForShare, setIsWaitingForShare] = useState(false);
-  const [countdown, setCountdown] = useState(SHARE_COUNTDOWN_SECONDS);
-  
-  const progress = Math.round(((totalBlocks - remainingBlocks) / totalBlocks) * 100);
-  
-  // 处理分享按钮点击
-  const handleShareClick = useCallback(async () => {
-    const inviteText = "This game is so addictive—only 0.1% of players ever make it to the end! https://jirigu.com";
-    
-    try {
-      await navigator.clipboard.writeText(inviteText);
-      toast.success('Invite copied!');
-      setIsWaitingForShare(true);
-      setCountdown(SHARE_COUNTDOWN_SECONDS);
-    } catch (err) {
-      toast.error('Copy failed, please try again');
-    }
-  }, []);
-  
-  // 倒计时逻辑
-  useEffect(() => {
-    if (!isWaitingForShare || countdown <= 0) return;
-    
-    const timer = setInterval(() => {
-      setCountdown(prev => prev - 1);
-    }, 1000);
-    
-    return () => clearInterval(timer);
-  }, [isWaitingForShare, countdown]);
-  
-  // 处理复活
-  const handleRevive = useCallback(() => {
-    setIsWaitingForShare(false);
-    setCountdown(SHARE_COUNTDOWN_SECONDS);
-    reviveWithWhatsApp();
-  }, [reviveWithWhatsApp]);
-  
-  // 重置状态当游戏结束状态改变时
-  useEffect(() => {
-    if (!isGameOver) {
-      setIsWaitingForShare(false);
-      setCountdown(SHARE_COUNTDOWN_SECONDS);
-    }
-  }, [isGameOver]);
-  
-  return (
-    <>
-      {/* 分享等待覆盖层 */}
-      <ShareWaitingOverlay
-        isVisible={isWaitingForShare}
-        countdown={countdown}
-        onRevive={handleRevive}
-      />
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       <AnimatePresence>
-        {isGameOver && !isWaitingForShare && (
+        {isGameOver && !showAdModal && !showReviveButton && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -222,7 +160,7 @@ export const GameOverModal: React.FC = () => {
               <div className="flex flex-col gap-3">
                 {!hasRevived && (
                   <motion.button
-                    onClick={handleShareClick}
+                    onClick={handleWatchAdsClick}
                     whileTap={{ y: 2 }}
                     className="w-full h-12 text-white font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
                     style={{
@@ -231,8 +169,8 @@ export const GameOverModal: React.FC = () => {
                       borderBottomColor: '#166534',
                     }}
                   >
-                    <Share2 className="w-5 h-5" strokeWidth={2.5} />
-                    Share to Revive
+                    <Play className="w-5 h-5" strokeWidth={2.5} />
+                    Watch Ads to Revive
                   </motion.button>
                 )}
                 
