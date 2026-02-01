@@ -61,11 +61,16 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
           onComplete();
         }, 800);
       } else {
-        setPhase('failed');
+        // SDK failed - use 3 second simulation fallback
+        console.log('[RewardedAdModal] SDK failed, using 3s simulation fallback');
+        setCountdown(3);
+        setPhase('watching');
       }
     } catch (err) {
       console.error('[RewardedAdModal] Error:', err);
-      setPhase('failed');
+      // Error - use 3 second simulation fallback
+      setCountdown(3);
+      setPhase('watching');
     }
   }, [showRewardedAd, onComplete]);
 
