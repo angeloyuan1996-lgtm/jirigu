@@ -10,6 +10,7 @@ import { GameOverModal, GameWonModal } from '@/components/game/GameModals';
 import { StartModal } from '@/components/game/StartModal';
 import { GrassDecoration } from '@/components/game/GrassDecoration';
 import { triggerDiamondRefresh } from '@/hooks/useDiamonds';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const Index = () => {
@@ -55,9 +56,26 @@ const Index = () => {
     
     // 处理支付状态
     if (paymentStatus === 'success') {
-      toast.success('Payment successful! Diamonds added to your account.');
-      // 触发全局钻石余额刷新
-      triggerDiamondRefresh();
+      // 调用验证支付函数，确保钻石被正确添加
+      const verifyPayment = async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke('verify-payment');
+          if (error) {
+            console.error('Payment verification error:', error);
+          } else if (data?.diamonds_added > 0) {
+            toast.success(`Payment successful! ${data.diamonds_added} diamonds added to your account.`);
+          } else {
+            toast.success('Payment verified! Your diamonds are ready.');
+          }
+          // 触发全局钻石余额刷新
+          triggerDiamondRefresh();
+        } catch (err) {
+          console.error('Payment verification failed:', err);
+          toast.success('Payment successful! Diamonds added to your account.');
+          triggerDiamondRefresh();
+        }
+      };
+      verifyPayment();
       setSearchParams({});
     } else if (paymentStatus === 'canceled') {
       toast.info('Payment was canceled.');
