@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gem, X, Loader2, CreditCard } from 'lucide-react';
+import { Gem, X, Loader2, CreditCard, LogIn } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -9,16 +9,39 @@ interface DiamondPurchaseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onPurchaseComplete?: () => void;
+  onNeedLogin?: () => void;
 }
 
 export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
   isOpen,
   onClose,
   onPurchaseComplete,
+  onNeedLogin,
 }) => {
   const [loading, setLoading] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+
+  // Check login status when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setIsLoggedIn(!!session?.user);
+      });
+    }
+  }, [isOpen]);
 
   const handlePurchase = async () => {
+    // Check login status first
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      toast.error('Please login first to purchase diamonds');
+      if (onNeedLogin) {
+        onClose();
+        onNeedLogin();
+      }
+      return;
+    }
+
     setLoading(true);
     
     try {
@@ -44,6 +67,13 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
       console.error('Purchase error:', err);
       toast.error('An error occurred. Please try again.');
       setLoading(false);
+    }
+  };
+
+  const handleLoginClick = () => {
+    onClose();
+    if (onNeedLogin) {
+      onNeedLogin();
     }
   };
 
@@ -120,29 +150,49 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
               <p>• Skip ads instantly</p>
             </div>
 
-            {/* Purchase button */}
-            <button
-              onClick={handlePurchase}
-              disabled={loading}
-              className="w-full py-3 px-6 rounded-xl text-white font-bold text-lg border-[3px] border-[#333] transition-all active:translate-y-[2px] flex items-center justify-center gap-2"
-              style={{
-                backgroundColor: loading ? '#9CA3AF' : '#22C55E',
-                borderBottomWidth: loading ? '3px' : '6px',
-                borderBottomColor: loading ? '#6B7280' : '#16A34A',
-              }}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <CreditCard className="w-5 h-5" />
-                  Purchase Now
-                </>
-              )}
-            </button>
+            {/* Login prompt or Purchase button */}
+            {isLoggedIn === false ? (
+              <>
+                <div className="text-center text-amber-600 text-sm mb-3">
+                  ⚠️ Please login to purchase diamonds
+                </div>
+                <button
+                  onClick={handleLoginClick}
+                  className="w-full py-3 px-6 rounded-xl text-white font-bold text-lg border-[3px] border-[#333] transition-all active:translate-y-[2px] flex items-center justify-center gap-2"
+                  style={{
+                    backgroundColor: '#3B82F6',
+                    borderBottomWidth: '6px',
+                    borderBottomColor: '#1D4ED8',
+                  }}
+                >
+                  <LogIn className="w-5 h-5" />
+                  Login to Continue
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={handlePurchase}
+                disabled={loading || isLoggedIn === null}
+                className="w-full py-3 px-6 rounded-xl text-white font-bold text-lg border-[3px] border-[#333] transition-all active:translate-y-[2px] flex items-center justify-center gap-2"
+                style={{
+                  backgroundColor: loading ? '#9CA3AF' : '#22C55E',
+                  borderBottomWidth: loading ? '3px' : '6px',
+                  borderBottomColor: loading ? '#6B7280' : '#16A34A',
+                }}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="w-5 h-5" />
+                    Purchase Now
+                  </>
+                )}
+              </button>
+            )}
 
             <p className="text-center text-xs text-gray-400 mt-3">
               Secure payment via Stripe
