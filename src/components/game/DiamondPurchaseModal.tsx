@@ -26,11 +26,29 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setCheckingAuth(true);
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        console.log('[DiamondPurchaseModal] Session check:', !!session?.user);
-        setIsLoggedIn(!!session?.user);
+      
+      // Add timeout to prevent hanging
+      const timeoutId = setTimeout(() => {
+        console.log('[DiamondPurchaseModal] Session check timeout - assuming not logged in');
+        setIsLoggedIn(false);
         setCheckingAuth(false);
-      });
+      }, 2000);
+      
+      supabase.auth.getSession()
+        .then(({ data: { session } }) => {
+          clearTimeout(timeoutId);
+          console.log('[DiamondPurchaseModal] Session check:', !!session?.user);
+          setIsLoggedIn(!!session?.user);
+          setCheckingAuth(false);
+        })
+        .catch((err) => {
+          clearTimeout(timeoutId);
+          console.error('[DiamondPurchaseModal] Session check error:', err);
+          setIsLoggedIn(false);
+          setCheckingAuth(false);
+        });
+      
+      return () => clearTimeout(timeoutId);
     } else {
       // Reset state when modal closes
       setCheckingAuth(true);
