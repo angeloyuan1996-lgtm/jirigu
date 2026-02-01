@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Gem, X, Loader2, CreditCard, LogIn } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useUsername } from '@/hooks/useUsername';
 
 interface DiamondPurchaseModalProps {
   isOpen: boolean;
@@ -19,41 +20,7 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
   onNeedLogin,
 }) => {
   const [loading, setLoading] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
-
-  // Check login status when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setCheckingAuth(true);
-      
-      // Add timeout to prevent hanging
-      const timeoutId = setTimeout(() => {
-        console.log('[DiamondPurchaseModal] Session check timeout - assuming not logged in');
-        setIsLoggedIn(false);
-        setCheckingAuth(false);
-      }, 2000);
-      
-      supabase.auth.getSession()
-        .then(({ data: { session } }) => {
-          clearTimeout(timeoutId);
-          console.log('[DiamondPurchaseModal] Session check:', !!session?.user);
-          setIsLoggedIn(!!session?.user);
-          setCheckingAuth(false);
-        })
-        .catch((err) => {
-          clearTimeout(timeoutId);
-          console.error('[DiamondPurchaseModal] Session check error:', err);
-          setIsLoggedIn(false);
-          setCheckingAuth(false);
-        });
-      
-      return () => clearTimeout(timeoutId);
-    } else {
-      // Reset state when modal closes
-      setCheckingAuth(true);
-    }
-  }, [isOpen]);
+  const { isLoggedIn } = useUsername(); // 直接使用全局认证状态，无需检查
 
   const handlePurchase = async () => {
     // Check login status first
@@ -173,20 +140,7 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
             </div>
 
             {/* Login prompt or Purchase button */}
-            {checkingAuth ? (
-              <button
-                disabled
-                className="w-full py-3 px-6 rounded-xl text-white font-bold text-lg border-[3px] border-[#333] flex items-center justify-center gap-2"
-                style={{
-                  backgroundColor: '#9CA3AF',
-                  borderBottomWidth: '3px',
-                  borderBottomColor: '#6B7280',
-                }}
-              >
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Checking...
-              </button>
-            ) : !isLoggedIn ? (
+            {!isLoggedIn ? (
               <>
                 <div className="text-center text-amber-600 text-sm mb-3">
                   ⚠️ Please login to purchase diamonds
