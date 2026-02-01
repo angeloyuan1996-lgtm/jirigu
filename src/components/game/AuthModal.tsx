@@ -3,6 +3,31 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, User, Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useGameStore } from '@/stores/gameStore';
+
+// 保存游戏状态到 localStorage（OAuth 登录会导致页面重定向）
+const saveGameState = () => {
+  const state = useGameStore.getState();
+  // 只有游戏已开始时才保存
+  if (!state.gameStarted) return;
+  
+  const gameState = {
+    mapData: state.mapData,
+    slots: state.slots,
+    tempCache: state.tempCache,
+    historyStack: state.historyStack,
+    blindStackLeft: state.blindStackLeft,
+    blindStackRight: state.blindStackRight,
+    currentLevel: state.currentLevel,
+    hasRevived: state.hasRevived,
+    boostersUsed: state.boostersUsed,
+    boostersActivated: state.boostersActivated,
+    totalBlocks: state.totalBlocks,
+    remainingBlocks: state.remainingBlocks,
+    gameStarted: state.gameStarted,
+  };
+  localStorage.setItem('jirigu_saved_game', JSON.stringify(gameState));
+};
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -105,6 +130,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     setLoading(true);
     
     try {
+      // 保存游戏状态，OAuth 登录会导致页面重定向
+      saveGameState();
+      
       const { lovable } = await import('@/integrations/lovable');
       const result = await lovable.auth.signInWithOAuth('google', {
         redirect_uri: `${window.location.origin}/`
