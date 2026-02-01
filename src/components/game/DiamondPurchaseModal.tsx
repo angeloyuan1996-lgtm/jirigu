@@ -114,12 +114,9 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
               >
                 <Gem className="w-10 h-10 text-white" strokeWidth={2} />
               </div>
-              <h3 className="text-xl font-bold text-[#333] mb-1">
+              <h3 className="text-xl font-bold text-[#333]">
                 Get Diamonds
               </h3>
-              <p className="text-gray-500 text-sm">
-                Use diamonds to skip ads
-              </p>
             </div>
 
             {/* Package */}
@@ -147,7 +144,7 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
             {/* Info */}
             <div className="text-center text-sm text-gray-500 mb-4">
               <p>• 2💎 per booster use</p>
-              <p>• Skip ads instantly</p>
+              <p>• No ads</p>
             </div>
 
             {/* Login prompt or Purchase button */}
