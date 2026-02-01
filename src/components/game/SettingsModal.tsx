@@ -9,6 +9,7 @@ import { FriendRequestsList } from './FriendRequestsList';
 import { FriendsList } from './FriendsList';
 import { UsernameDisplay } from './UsernameDisplay';
 import { LeaderboardModal } from './LeaderboardModal';
+import { supabase } from '@/integrations/supabase/client';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -33,6 +34,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [friendsRefreshTrigger, setFriendsRefreshTrigger] = useState(0);
+  const [authLoading, setAuthLoading] = useState(true);
   
   useEffect(() => {
     // 检查是否已安装
@@ -56,25 +58,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     // 检查登录状态
     const checkAuth = async () => {
       try {
-        const { supabase } = await import('@/integrations/supabase/client');
         const { data: { session } } = await supabase.auth.getSession();
         setUser(session?.user ?? null);
-        
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          setUser(session?.user ?? null);
-        });
-        
-        return () => subscription.unsubscribe();
+        setAuthLoading(false);
       } catch (err) {
-        // Supabase not yet available
+        console.error('Error checking auth:', err);
+        setAuthLoading(false);
       }
     };
     
     checkAuth();
     
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+    
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
+      subscription.unsubscribe();
     };
   }, []);
   
@@ -95,11 +98,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
   const handleLogout = async () => {
     try {
-      const { supabase } = await import('@/integrations/supabase/client');
       await supabase.auth.signOut();
       setUser(null);
     } catch (err) {
-      // Handle error
+      console.error('Logout error:', err);
     }
   };
 
