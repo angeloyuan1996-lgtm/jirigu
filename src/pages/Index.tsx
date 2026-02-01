@@ -18,52 +18,50 @@ const Index = () => {
   
   useEffect(() => {
     const paymentStatus = searchParams.get('payment');
+    const savedGame = localStorage.getItem('jirigu_saved_game');
     
-    // 如果是支付返回，尝试恢复游戏状态
-    if (paymentStatus === 'success' || paymentStatus === 'canceled') {
-      const savedGame = localStorage.getItem('jirigu_saved_game');
-      if (savedGame) {
-        try {
-          const state = JSON.parse(savedGame);
-          // 恢复游戏状态
-          useGameStore.setState({
-            mapData: state.mapData,
-            slots: state.slots,
-            tempCache: state.tempCache,
-            historyStack: state.historyStack,
-            blindStackLeft: state.blindStackLeft,
-            blindStackRight: state.blindStackRight,
-            currentLevel: state.currentLevel,
-            hasRevived: state.hasRevived,
-            boostersUsed: state.boostersUsed,
-            boostersActivated: state.boostersActivated,
-            totalBlocks: state.totalBlocks,
-            remainingBlocks: state.remainingBlocks,
-            gameStarted: state.gameStarted,
-            isGameOver: false,
-            isGameWon: false,
-          });
-          // 清除保存的状态
-          localStorage.removeItem('jirigu_saved_game');
-        } catch (e) {
-          console.error('Failed to restore game state:', e);
-          gameStore.initLevel(1);
-        }
-      } else {
+    // 尝试恢复保存的游戏状态（支付返回或 OAuth 登录返回）
+    if (savedGame) {
+      try {
+        const state = JSON.parse(savedGame);
+        // 恢复游戏状态
+        useGameStore.setState({
+          mapData: state.mapData,
+          slots: state.slots,
+          tempCache: state.tempCache,
+          historyStack: state.historyStack,
+          blindStackLeft: state.blindStackLeft,
+          blindStackRight: state.blindStackRight,
+          currentLevel: state.currentLevel,
+          hasRevived: state.hasRevived,
+          boostersUsed: state.boostersUsed,
+          boostersActivated: state.boostersActivated,
+          totalBlocks: state.totalBlocks,
+          remainingBlocks: state.remainingBlocks,
+          gameStarted: state.gameStarted,
+          isGameOver: false,
+          isGameWon: false,
+        });
+        // 清除保存的状态
+        localStorage.removeItem('jirigu_saved_game');
+      } catch (e) {
+        console.error('Failed to restore game state:', e);
         gameStore.initLevel(1);
       }
-      
-      if (paymentStatus === 'success') {
-        toast.success('Payment successful! Diamonds added to your account.');
-        // 触发全局钻石余额刷新
-        triggerDiamondRefresh();
-      } else {
-        toast.info('Payment was canceled.');
-      }
-      setSearchParams({});
     } else {
-      // 正常启动，初始化第一关
+      // 没有保存的游戏状态，初始化第一关
       gameStore.initLevel(1);
+    }
+    
+    // 处理支付状态
+    if (paymentStatus === 'success') {
+      toast.success('Payment successful! Diamonds added to your account.');
+      // 触发全局钻石余额刷新
+      triggerDiamondRefresh();
+      setSearchParams({});
+    } else if (paymentStatus === 'canceled') {
+      toast.info('Payment was canceled.');
+      setSearchParams({});
     }
   }, []);
   
