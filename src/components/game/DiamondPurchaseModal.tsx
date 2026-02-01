@@ -93,7 +93,7 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-2xl border-[3px] border-[#333] shadow-2xl p-6 mx-4 max-w-sm w-full"
+            className="relative bg-white rounded-2xl border-[3px] border-[#333] shadow-2xl p-6 mx-4 max-w-sm w-full"
             style={{ boxShadow: '0 8px 0 0 #333' }}
           >
             {/* Close button */}
