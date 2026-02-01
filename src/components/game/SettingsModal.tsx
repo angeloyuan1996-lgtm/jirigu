@@ -97,11 +97,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   };
 
   const handleLogout = async () => {
+    console.log('Logout button clicked');
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Logout error from Supabase:', error);
+        return;
+      }
+      console.log('Logout successful');
       setUser(null);
+      onClose(); // Close the modal after logout
     } catch (err) {
-      console.error('Logout error:', err);
+      console.error('Logout exception:', err);
     }
   };
 
