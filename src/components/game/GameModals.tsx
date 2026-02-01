@@ -7,7 +7,7 @@ import { LeaderboardModal } from './LeaderboardModal';
 import { supabase } from '@/integrations/supabase/client';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
 const MAX_LEVEL = 2; // 游戏只有2关
-const SHARE_COUNTDOWN_SECONDS = 12;
+const SHARE_COUNTDOWN_SECONDS = 15;
 
 // 分享等待覆盖层组件
 const ShareWaitingOverlay: React.FC<{
