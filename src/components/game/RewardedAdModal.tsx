@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Loader2, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { Play, Loader2, CheckCircle, XCircle, Gem } from 'lucide-react';
 import { useGameDistributionAd } from '@/hooks/useGameDistributionAd';
 
 interface RewardedAdModalProps {
   isOpen: boolean;
   onClose: () => void;
   onComplete: () => void;
+  onGetDiamonds?: () => void;
   boosterName: string;
 }
 
@@ -17,13 +18,14 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
   isOpen,
   onClose,
   onComplete,
+  onGetDiamonds,
   boosterName,
 }) => {
   const [phase, setPhase] = useState<Phase>('ready');
   const [countdown, setCountdown] = useState(3);
-  const { showRewardedAd, adState, error } = useGameDistributionAd();
+  const { showRewardedAd, error } = useGameDistributionAd();
 
-  // 重置状态
+  // Reset state
   useEffect(() => {
     if (!isOpen) {
       setPhase('ready');
@@ -31,7 +33,7 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
     }
   }, [isOpen]);
 
-  // 模拟倒计时（当 SDK 未加载时的 fallback）
+  // Countdown fallback
   useEffect(() => {
     if (phase === 'watching' && countdown > 0) {
       const timer = setTimeout(() => {
@@ -46,7 +48,7 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
     }
   }, [phase, countdown, onComplete]);
 
-  // 开始观看广告
+  // Start watching ad
   const handleStartWatching = useCallback(async () => {
     setPhase('loading');
 
@@ -55,7 +57,6 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
 
       if (success) {
         setPhase('complete');
-        // 延迟调用完成回调，让用户看到成功动画
         setTimeout(() => {
           onComplete();
         }, 800);
@@ -68,12 +69,11 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
     }
   }, [showRewardedAd, onComplete]);
 
-  // 重试
+  // Retry
   const handleRetry = useCallback(() => {
     setPhase('ready');
   }, []);
 
-  // 使用 Portal 将弹窗渲染到 body，避免被其他元素覆盖
   return createPortal(
     <AnimatePresence>
       {isOpen && (
@@ -95,7 +95,7 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
               boxShadow: '0 8px 0 0 #333',
             }}
           >
-            {/* 准备阶段 */}
+            {/* Ready phase */}
             {phase === 'ready' && (
               <div className="text-center">
                 <div 
@@ -121,6 +121,23 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
                 >
                   Start Watching
                 </button>
+                
+                {/* Get Diamonds button */}
+                {onGetDiamonds && (
+                  <button
+                    onClick={onGetDiamonds}
+                    className="w-full mt-3 py-3 px-6 rounded-xl text-white font-bold text-lg border-[3px] border-[#333] transition-all active:translate-y-[2px] flex items-center justify-center gap-2"
+                    style={{
+                      backgroundColor: 'hsl(217 85% 55%)',
+                      borderBottomWidth: '6px',
+                      borderBottomColor: 'hsl(217 85% 38%)',
+                    }}
+                  >
+                    <Gem className="w-5 h-5" />
+                    Get Diamonds
+                  </button>
+                )}
+                
                 <button
                   onClick={onClose}
                   className="mt-3 text-gray-500 text-sm hover:text-gray-700"
@@ -130,7 +147,7 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
               </div>
             )}
 
-            {/* 加载中 */}
+            {/* Loading phase */}
             {phase === 'loading' && (
               <div className="text-center py-4">
                 <div className="w-24 h-24 mx-auto mb-4 flex items-center justify-center">
@@ -148,7 +165,7 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
               </div>
             )}
 
-            {/* 观看中（fallback 模式的倒计时） */}
+            {/* Watching phase (fallback countdown) */}
             {phase === 'watching' && (
               <div className="text-center py-4">
                 <div className="relative w-24 h-24 mx-auto mb-4">
@@ -171,7 +188,7 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
               </div>
             )}
 
-            {/* 完成 */}
+            {/* Complete phase */}
             {phase === 'complete' && (
               <div className="text-center py-4">
                 <motion.div
@@ -192,7 +209,7 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
               </div>
             )}
 
-            {/* 失败 */}
+            {/* Failed phase */}
             {phase === 'failed' && (
               <div className="text-center py-4">
                 <motion.div

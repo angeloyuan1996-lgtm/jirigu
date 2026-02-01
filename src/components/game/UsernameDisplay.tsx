@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Check, X, Edit2 } from 'lucide-react';
+import { User, Check, X, Edit2, Gem } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useUsername } from '@/hooks/useUsername';
+import { useDiamonds } from '@/hooks/useDiamonds';
 import { toast } from 'sonner';
 
 export const UsernameDisplay: React.FC = () => {
-  const { username, loading, updateUsername } = useUsername();
+  const { username, loading } = useUsername();
+  const { diamonds, loading: diamondsLoading, isLoggedIn } = useDiamonds();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
+  const { updateUsername } = useUsername();
 
   const handleStartEdit = () => {
     setEditValue(username);
@@ -61,61 +64,79 @@ export const UsernameDisplay: React.FC = () => {
   }
 
   return (
-    <AnimatePresence mode="wait">
-      {isEditing ? (
-        <motion.div
-          key="editing"
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-          className="flex items-center gap-1"
-        >
-          <Input
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            autoFocus
-            disabled={saving}
-            className="h-8 w-28 text-sm font-bold border-[2px] border-[#333] rounded-lg px-2"
+    <div className="flex flex-col items-end gap-1">
+      <AnimatePresence mode="wait">
+        {isEditing ? (
+          <motion.div
+            key="editing"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="flex items-center gap-1"
+          >
+            <Input
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              autoFocus
+              disabled={saving}
+              className="h-8 w-28 text-sm font-bold border-[2px] border-[#333] rounded-lg px-2"
+              style={{ backgroundColor: '#FFFEF5', color: '#333' }}
+              maxLength={20}
+            />
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={handleSave}
+              disabled={saving}
+              className="w-7 h-7 flex items-center justify-center rounded-full border-[2px] border-[#333]"
+              style={{ backgroundColor: '#22C55E' }}
+            >
+              <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={handleCancel}
+              disabled={saving}
+              className="w-7 h-7 flex items-center justify-center rounded-full border-[2px] border-[#333]"
+              style={{ backgroundColor: '#EF4444' }}
+            >
+              <X className="w-4 h-4 text-white" strokeWidth={2.5} />
+            </motion.button>
+          </motion.div>
+        ) : (
+          <motion.button
+            key="display"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleStartEdit}
+            className="px-3 py-1.5 rounded-full text-sm font-bold border-[2px] border-[#333] flex items-center gap-2 cursor-pointer group"
             style={{ backgroundColor: '#FFFEF5', color: '#333' }}
-            maxLength={20}
-          />
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={handleSave}
-            disabled={saving}
-            className="w-7 h-7 flex items-center justify-center rounded-full border-[2px] border-[#333]"
-            style={{ backgroundColor: '#22C55E' }}
           >
-            <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
+            <User className="w-4 h-4" />
+            <span className="max-w-[100px] truncate">{username}</span>
+            <Edit2 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
           </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={handleCancel}
-            disabled={saving}
-            className="w-7 h-7 flex items-center justify-center rounded-full border-[2px] border-[#333]"
-            style={{ backgroundColor: '#EF4444' }}
-          >
-            <X className="w-4 h-4 text-white" strokeWidth={2.5} />
-          </motion.button>
-        </motion.div>
-      ) : (
-        <motion.button
-          key="display"
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={handleStartEdit}
-          className="px-3 py-1.5 rounded-full text-sm font-bold border-[2px] border-[#333] flex items-center gap-2 cursor-pointer group"
-          style={{ backgroundColor: '#FFFEF5', color: '#333' }}
+        )}
+      </AnimatePresence>
+
+      {/* Diamond balance display */}
+      {isLoggedIn && (
+        <motion.div
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border-[2px] border-[#333]"
+          style={{ 
+            background: 'linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%)',
+            color: 'white',
+          }}
         >
-          <User className="w-4 h-4" />
-          <span className="max-w-[100px] truncate">{username}</span>
-          <Edit2 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-        </motion.button>
+          <Gem className="w-3 h-3" />
+          <span>{diamondsLoading ? '...' : diamonds}</span>
+        </motion.div>
       )}
-    </AnimatePresence>
+    </div>
   );
 };

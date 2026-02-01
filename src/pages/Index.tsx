@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { GameBoard } from '@/components/game/GameBoard';
 import { SlotBar } from '@/components/game/SlotBar';
@@ -8,16 +9,36 @@ import { AudioProvider } from '@/components/game/AudioProvider';
 import { GameOverModal, GameWonModal } from '@/components/game/GameModals';
 import { GrassDecoration } from '@/components/game/GrassDecoration';
 import { useGameDistributionAd } from '@/hooks/useGameDistributionAd';
+import { useDiamonds } from '@/hooks/useDiamonds';
+import { toast } from 'sonner';
 
 const Index = () => {
-  const { initLevel, currentLevel } = useGameStore();
+  const { initLevel } = useGameStore();
   const { preloadAd } = useGameDistributionAd();
+  const { refreshBalance } = useDiamonds();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   useEffect(() => {
     initLevel(1);
     // 预加载广告 SDK，减少用户点击时的等待时间
     preloadAd();
   }, [initLevel, preloadAd]);
+
+  // Handle payment success/cancel from URL params
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment');
+    
+    if (paymentStatus === 'success') {
+      // Refresh diamond balance after successful payment
+      toast.success('Payment successful! Diamonds added to your account.');
+      refreshBalance();
+      // Clean up URL
+      setSearchParams({});
+    } else if (paymentStatus === 'canceled') {
+      toast.info('Payment was canceled.');
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams, refreshBalance]);
   
   return (
     <AudioProvider>

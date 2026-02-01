@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeftRight, Undo2, Shuffle } from 'lucide-react';
+import { ArrowLeftRight, Undo2, Shuffle, Gem } from 'lucide-react';
 import { useGameStore } from '@/stores/gameStore';
+import { useDiamonds } from '@/hooks/useDiamonds';
 import { cn } from '@/lib/utils';
 import { RewardedAdModal } from './RewardedAdModal';
+import { DiamondPurchaseModal } from './DiamondPurchaseModal';
+import { BoosterChoiceModal } from './BoosterChoiceModal';
+
+const DIAMOND_COST = 2;
 
 interface BoosterButtonProps {
   icon: React.ReactNode;
@@ -27,33 +32,42 @@ const BoosterButton: React.FC<BoosterButtonProps> = ({
       onClick={onClick}
       disabled={used}
       className={cn(
-        // 羊了个羊风格：大矩形蓝色按钮，粗边框
         "relative flex flex-col items-center gap-1 px-5 py-3",
         "rounded-xl",
-        "border-[3px] border-[#333]", // 粗黑色描边
+        "border-[3px] border-[#333]",
         "transition-all duration-150",
         used 
           ? "opacity-50 cursor-not-allowed" 
           : "cursor-pointer active:translate-y-[2px]",
       )}
       style={{
-        // 纯色背景，无渐变
         backgroundColor: used ? '#6b7280' : 'hsl(217 85% 55%)',
-        // 3D点击效果 - 底部深色边框
         borderBottomWidth: used ? '3px' : '6px',
         borderBottomColor: used ? '#4b5563' : 'hsl(217 85% 38%)',
       }}
       whileTap={!used ? { y: 2 } : undefined}
     >
-      {/* 激活状态徽章 - 显示 "0" 或 "1" */}
+      {/* Diamond cost indicator - top left */}
       <div 
-        className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center border-[2px] border-[#333] text-xs font-bold"
+        className="absolute -top-2 -left-2 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 border-[2px] border-[#333] text-xs font-bold"
         style={{
-          backgroundColor: activated ? 'hsl(45 100% 50%)' : 'hsl(0 0% 85%)', // 黄色=激活, 灰色=未激活
+          backgroundColor: 'hsl(45 100% 50%)',
           color: '#333',
         }}
       >
-        {activated ? '1' : '0'}
+        <span>{DIAMOND_COST}</span>
+        <Gem className="w-3 h-3" />
+      </div>
+      
+      {/* Activation status badge - top right */}
+      <div 
+        className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center border-[2px] border-[#333] text-xs font-bold"
+        style={{
+          backgroundColor: activated ? 'hsl(142 76% 45%)' : 'hsl(0 0% 85%)',
+          color: '#333',
+        }}
+      >
+        {activated ? '✓' : '0'}
       </div>
       
       <div className="text-white">
@@ -87,19 +101,44 @@ export const BoosterBar: React.FC = () => {
     historyStack,
   } = useGameStore();
   
+  const { diamonds, canAfford, spendDiamonds, isLoggedIn } = useDiamonds();
+  
   const [adModalOpen, setAdModalOpen] = useState(false);
+  const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
+  const [choiceModalOpen, setChoiceModalOpen] = useState(false);
   const [pendingBooster, setPendingBooster] = useState<BoosterType | null>(null);
 
-  const handleBoosterClick = (booster: BoosterType) => {
+  const handleBoosterClick = async (booster: BoosterType) => {
     if (boostersUsed[booster]) return;
     
-    if (!boostersActivated[booster]) {
-      // Not activated - show ad modal
-      setPendingBooster(booster);
-      setAdModalOpen(true);
-    } else {
-      // Already activated - use it
+    if (boostersActivated[booster]) {
+      // Already activated - use it directly
       executeBooster(booster);
+      return;
+    }
+    
+    // Not activated - check if user can pay with diamonds
+    if (canAfford(DIAMOND_COST)) {
+      // User has enough diamonds - spend and activate
+      const success = await spendDiamonds(DIAMOND_COST, `Used ${BOOSTER_LABELS[booster]} booster`);
+      if (success) {
+        activateBooster(booster);
+        executeBooster(booster);
+      }
+    } else if (isLoggedIn && diamonds > 0) {
+      // Has some diamonds but not enough - show choice modal
+      setPendingBooster(booster);
+      setChoiceModalOpen(true);
+    } else {
+      // No diamonds or not logged in - show ad modal or choice
+      setPendingBooster(booster);
+      if (!isLoggedIn) {
+        // Not logged in - just show ad
+        setAdModalOpen(true);
+      } else {
+        // Logged in but 0 diamonds - show choice
+        setChoiceModalOpen(true);
+      }
     }
   };
 
@@ -120,13 +159,30 @@ export const BoosterBar: React.FC = () => {
   const handleAdComplete = () => {
     if (pendingBooster) {
       activateBooster(pendingBooster);
+      executeBooster(pendingBooster);
     }
     setAdModalOpen(false);
+    setChoiceModalOpen(false);
     setPendingBooster(null);
   };
 
   const handleAdClose = () => {
     setAdModalOpen(false);
+    setPendingBooster(null);
+  };
+
+  const handleWatchAd = () => {
+    setChoiceModalOpen(false);
+    setAdModalOpen(true);
+  };
+
+  const handleGetDiamonds = () => {
+    setChoiceModalOpen(false);
+    setPurchaseModalOpen(true);
+  };
+
+  const handleChoiceClose = () => {
+    setChoiceModalOpen(false);
     setPendingBooster(null);
   };
   
@@ -165,7 +221,22 @@ export const BoosterBar: React.FC = () => {
         isOpen={adModalOpen}
         onClose={handleAdClose}
         onComplete={handleAdComplete}
+        onGetDiamonds={handleGetDiamonds}
         boosterName={pendingBooster ? BOOSTER_LABELS[pendingBooster] : ''}
+      />
+
+      <DiamondPurchaseModal
+        isOpen={purchaseModalOpen}
+        onClose={() => setPurchaseModalOpen(false)}
+      />
+
+      <BoosterChoiceModal
+        isOpen={choiceModalOpen}
+        onClose={handleChoiceClose}
+        onWatchAd={handleWatchAd}
+        onGetDiamonds={handleGetDiamonds}
+        boosterName={pendingBooster ? BOOSTER_LABELS[pendingBooster] : ''}
+        diamondBalance={diamonds}
       />
     </>
   );
