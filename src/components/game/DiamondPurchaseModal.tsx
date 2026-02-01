@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gem, X, Loader2, CreditCard, LogIn } from 'lucide-react';
+import { Gem, X, Loader2, CreditCard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useUsername } from '@/hooks/useUsername';
 
 interface DiamondPurchaseModalProps {
   isOpen: boolean;
@@ -20,17 +19,21 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
   onNeedLogin,
 }) => {
   const [loading, setLoading] = useState(false);
-  const { isLoggedIn, loading: authLoading } = useUsername(); // 直接使用全局认证状态
+  const [showLoginNotice, setShowLoginNotice] = useState(false);
 
   const handlePurchase = async () => {
-    // Check login status first
+    // 检查登录状态
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
-      toast.error('Please login first to purchase diamonds');
-      if (onNeedLogin) {
+      // 显示黑色提示框，1秒后自动关闭
+      setShowLoginNotice(true);
+      setTimeout(() => {
+        setShowLoginNotice(false);
         onClose();
-        onNeedLogin();
-      }
+        if (onNeedLogin) {
+          onNeedLogin();
+        }
+      }, 1000);
       return;
     }
 
@@ -47,7 +50,6 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
       }
 
       if (data?.url) {
-        // Open Stripe Checkout in new tab
         window.open(data.url, '_blank');
         onClose();
         onPurchaseComplete?.();
@@ -62,13 +64,6 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
     }
   };
 
-  const handleLoginClick = () => {
-    onClose();
-    if (onNeedLogin) {
-      onNeedLogin();
-    }
-  };
-
   return createPortal(
     <AnimatePresence>
       {isOpen && (
@@ -80,6 +75,26 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
           style={{ zIndex: 99999 }}
           onClick={onClose}
         >
+          {/* 黑色提示框 - 请先登录 */}
+          <AnimatePresence>
+            {showLoginNotice && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="fixed inset-0 flex items-center justify-center"
+                style={{ zIndex: 100000 }}
+              >
+                <div 
+                  className="px-8 py-4 rounded-xl text-white text-lg font-bold"
+                  style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)' }}
+                >
+                  请先登录
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -139,61 +154,29 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
               <p>• No ads</p>
             </div>
 
-            {/* Purchase button - show loading only when auth is still loading */}
-            {authLoading ? (
-              <button
-                disabled
-                className="w-full py-3 px-6 rounded-xl text-white font-bold text-lg border-[3px] border-[#333] flex items-center justify-center gap-2"
-                style={{
-                  backgroundColor: '#9CA3AF',
-                  borderBottomWidth: '3px',
-                  borderBottomColor: '#6B7280',
-                }}
-              >
-                <Loader2 className="w-5 h-5 animate-spin" />
-              </button>
-            ) : !isLoggedIn ? (
-              <>
-                <div className="text-center text-amber-600 text-sm mb-3">
-                  ⚠️ Please login to purchase diamonds
-                </div>
-                <button
-                  onClick={handleLoginClick}
-                  className="w-full py-3 px-6 rounded-xl text-white font-bold text-lg border-[3px] border-[#333] transition-all active:translate-y-[2px] flex items-center justify-center gap-2"
-                  style={{
-                    backgroundColor: '#3B82F6',
-                    borderBottomWidth: '6px',
-                    borderBottomColor: '#1D4ED8',
-                  }}
-                >
-                  <LogIn className="w-5 h-5" />
-                  Login to Continue
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={handlePurchase}
-                disabled={loading}
-                className="w-full py-3 px-6 rounded-xl text-white font-bold text-lg border-[3px] border-[#333] transition-all active:translate-y-[2px] flex items-center justify-center gap-2"
-                style={{
-                  backgroundColor: loading ? '#9CA3AF' : '#22C55E',
-                  borderBottomWidth: loading ? '3px' : '6px',
-                  borderBottomColor: loading ? '#6B7280' : '#16A34A',
-                }}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="w-5 h-5" />
-                    Purchase Now
-                  </>
-                )}
-              </button>
-            )}
+            {/* Purchase button - 只保留 Purchase Now */}
+            <button
+              onClick={handlePurchase}
+              disabled={loading}
+              className="w-full py-3 px-6 rounded-xl text-white font-bold text-lg border-[3px] border-[#333] transition-all active:translate-y-[2px] flex items-center justify-center gap-2"
+              style={{
+                backgroundColor: loading ? '#9CA3AF' : '#22C55E',
+                borderBottomWidth: loading ? '3px' : '6px',
+                borderBottomColor: loading ? '#6B7280' : '#16A34A',
+              }}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="w-5 h-5" />
+                  Purchase Now
+                </>
+              )}
+            </button>
 
             <p className="text-center text-xs text-gray-400 mt-3">
               Secure payment via Stripe
