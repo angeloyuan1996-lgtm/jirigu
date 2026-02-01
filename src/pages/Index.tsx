@@ -13,29 +13,59 @@ import { useDiamonds } from '@/hooks/useDiamonds';
 import { toast } from 'sonner';
 
 const Index = () => {
-  const { initLevel } = useGameStore();
+  const gameStore = useGameStore();
   const { refreshBalance } = useDiamonds();
   const [searchParams, setSearchParams] = useSearchParams();
   
   useEffect(() => {
-    initLevel(1);
-  }, [initLevel]);
-
-  // Handle payment success/cancel from URL params
-  useEffect(() => {
     const paymentStatus = searchParams.get('payment');
     
-    if (paymentStatus === 'success') {
-      // Refresh diamond balance after successful payment
-      toast.success('Payment successful! Diamonds added to your account.');
-      refreshBalance();
-      // Clean up URL
+    // 如果是支付返回，尝试恢复游戏状态
+    if (paymentStatus === 'success' || paymentStatus === 'canceled') {
+      const savedGame = localStorage.getItem('jirigu_saved_game');
+      if (savedGame) {
+        try {
+          const state = JSON.parse(savedGame);
+          // 恢复游戏状态
+          useGameStore.setState({
+            mapData: state.mapData,
+            slots: state.slots,
+            tempCache: state.tempCache,
+            historyStack: state.historyStack,
+            blindStackLeft: state.blindStackLeft,
+            blindStackRight: state.blindStackRight,
+            currentLevel: state.currentLevel,
+            hasRevived: state.hasRevived,
+            boostersUsed: state.boostersUsed,
+            boostersActivated: state.boostersActivated,
+            totalBlocks: state.totalBlocks,
+            remainingBlocks: state.remainingBlocks,
+            gameStarted: state.gameStarted,
+            isGameOver: false,
+            isGameWon: false,
+          });
+          // 清除保存的状态
+          localStorage.removeItem('jirigu_saved_game');
+        } catch (e) {
+          console.error('Failed to restore game state:', e);
+          gameStore.initLevel(1);
+        }
+      } else {
+        gameStore.initLevel(1);
+      }
+      
+      if (paymentStatus === 'success') {
+        toast.success('Payment successful! Diamonds added to your account.');
+        refreshBalance();
+      } else {
+        toast.info('Payment was canceled.');
+      }
       setSearchParams({});
-    } else if (paymentStatus === 'canceled') {
-      toast.info('Payment was canceled.');
-      setSearchParams({});
+    } else {
+      // 正常启动，初始化第一关
+      gameStore.initLevel(1);
     }
-  }, [searchParams, setSearchParams, refreshBalance]);
+  }, []);
   
   return (
     <AudioProvider>

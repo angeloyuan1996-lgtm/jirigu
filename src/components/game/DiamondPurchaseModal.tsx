@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Gem, X, Loader2, CreditCard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useGameStore } from '@/stores/gameStore';
 
 interface DiamondPurchaseModalProps {
   isOpen: boolean;
@@ -11,6 +12,27 @@ interface DiamondPurchaseModalProps {
   onPurchaseComplete?: () => void;
   onNeedLogin?: () => void;
 }
+
+// 保存游戏状态到 localStorage
+const saveGameState = () => {
+  const state = useGameStore.getState();
+  const gameState = {
+    mapData: state.mapData,
+    slots: state.slots,
+    tempCache: state.tempCache,
+    historyStack: state.historyStack,
+    blindStackLeft: state.blindStackLeft,
+    blindStackRight: state.blindStackRight,
+    currentLevel: state.currentLevel,
+    hasRevived: state.hasRevived,
+    boostersUsed: state.boostersUsed,
+    boostersActivated: state.boostersActivated,
+    totalBlocks: state.totalBlocks,
+    remainingBlocks: state.remainingBlocks,
+    gameStarted: state.gameStarted,
+  };
+  localStorage.setItem('jirigu_saved_game', JSON.stringify(gameState));
+};
 
 export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
   isOpen,
@@ -50,6 +72,8 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
       }
 
       if (data?.url) {
+        // 保存游戏状态，支付成功后恢复
+        saveGameState();
         // 在当前窗口打开，支付成功后会重定向回来
         window.location.href = data.url;
       } else {
