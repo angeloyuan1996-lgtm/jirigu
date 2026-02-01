@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RotateCcw, Share2, Trophy, Download, Play } from 'lucide-react';
+import { RotateCcw, Share2, Trophy, Download, Play, Gem } from 'lucide-react';
 import { useGameStore } from '@/stores/gameStore';
 import { toast } from 'sonner';
 import { LeaderboardModal } from './LeaderboardModal';
 import { supabase } from '@/integrations/supabase/client';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { ReviveAdModal } from './ReviveAdModal';
+import { useDiamonds } from '@/hooks/useDiamonds';
 
 const MAX_LEVEL = 2; // 游戏只有2关
 
@@ -22,8 +23,10 @@ export const GameOverModal: React.FC = () => {
   } = useGameStore();
   
   const { isInstallable, isInstalled, isIOS, promptInstall } = usePwaInstall();
+  const { diamonds, spendDiamonds, isLoggedIn } = useDiamonds();
   const [showAdModal, setShowAdModal] = useState(false);
   const [showReviveButton, setShowReviveButton] = useState(false);
+  const [isDiamondReviving, setIsDiamondReviving] = useState(false);
   
   const progress = Math.round(((totalBlocks - remainingBlocks) / totalBlocks) * 100);
   
@@ -44,11 +47,30 @@ export const GameOverModal: React.FC = () => {
     reviveWithWhatsApp();
   }, [reviveWithWhatsApp]);
   
+  // 处理钻石复活
+  const handleDiamondRevive = useCallback(async () => {
+    if (isDiamondReviving) return;
+    
+    setIsDiamondReviving(true);
+    
+    const success = await spendDiamonds(2, 'Revive with diamonds');
+    
+    if (success) {
+      toast.success('Revived with 2 💎!');
+      reviveWithWhatsApp();
+    } else {
+      toast.error('Not enough diamonds!');
+    }
+    
+    setIsDiamondReviving(false);
+  }, [spendDiamonds, reviveWithWhatsApp, isDiamondReviving]);
+  
   // 重置状态当游戏结束状态改变时
   useEffect(() => {
     if (!isGameOver) {
       setShowAdModal(false);
       setShowReviveButton(false);
+      setIsDiamondReviving(false);
     }
   }, [isGameOver]);
   
@@ -175,19 +197,37 @@ export const GameOverModal: React.FC = () => {
               {/* Buttons */}
               <div className="flex flex-col gap-3">
                 {!hasRevived && (
-                  <motion.button
-                    onClick={handleWatchAdsClick}
-                    whileTap={{ y: 2 }}
-                    className="w-full h-12 text-white font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
-                    style={{
-                      backgroundColor: '#22C55E',
-                      borderBottomWidth: '5px',
-                      borderBottomColor: '#166534',
-                    }}
-                  >
-                    <Play className="w-5 h-5" strokeWidth={2.5} />
-                    Watch Ads to Revive
-                  </motion.button>
+                  <>
+                    <motion.button
+                      onClick={handleWatchAdsClick}
+                      whileTap={{ y: 2 }}
+                      className="w-full h-12 text-white font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
+                      style={{
+                        backgroundColor: '#22C55E',
+                        borderBottomWidth: '5px',
+                        borderBottomColor: '#166534',
+                      }}
+                    >
+                      <Play className="w-5 h-5" strokeWidth={2.5} />
+                      Watch Ads to Revive
+                    </motion.button>
+                    
+                    {/* 钻石复活按钮 */}
+                    <motion.button
+                      onClick={handleDiamondRevive}
+                      disabled={isDiamondReviving || !isLoggedIn || diamonds < 2}
+                      whileTap={{ y: 2 }}
+                      className="w-full h-12 text-white font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333] disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{
+                        backgroundColor: 'hsl(280 80% 55%)',
+                        borderBottomWidth: '5px',
+                        borderBottomColor: 'hsl(280 80% 38%)',
+                      }}
+                    >
+                      <Gem className="w-5 h-5" strokeWidth={2.5} />
+                      {isDiamondReviving ? 'Reviving...' : `2 💎 to Revive`}
+                    </motion.button>
+                  </>
                 )}
                 
                 {/* PWA 安装按钮 - 未安装时始终显示 */}
