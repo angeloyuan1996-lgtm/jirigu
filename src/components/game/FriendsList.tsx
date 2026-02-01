@@ -211,7 +211,7 @@ export const FriendsList: React.FC<FriendsListProps> = ({
         </div>
         <div className="flex items-center gap-1 text-sm font-bold text-[#3B82F6]">
           <Trophy className="w-4 h-4" />
-          <span>{myCompletionCount} Levels</span>
+          <span>{myCompletionCount} Victory</span>
         </div>
       </div>
 
@@ -242,7 +242,7 @@ export const FriendsList: React.FC<FriendsListProps> = ({
               </div>
               <div className="flex items-center gap-1 text-sm font-bold text-[#22C55E]">
                 <Trophy className="w-4 h-4" />
-                <span>{friend.completionCount} Levels</span>
+                <span>{friend.completionCount} Victory</span>
               </div>
             </motion.div>
           ))}
