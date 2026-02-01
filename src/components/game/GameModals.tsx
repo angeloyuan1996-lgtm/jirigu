@@ -124,7 +124,7 @@ export const GameOverModal: React.FC = () => {
                 backgroundColor: '#FEF3C7',
               }}
             >
-              {/* Header */}
+            {/* Header */}
               <div className="text-center mb-4">
                 <h2 className="text-2xl font-bold text-[#333]">
                   Game Over! 😢
@@ -132,6 +132,22 @@ export const GameOverModal: React.FC = () => {
                 <p className="text-[#666] mt-1 font-medium">
                   Level {currentLevel}
                 </p>
+                {/* Progress-based feedback for Level 2 */}
+                {currentLevel === 2 && (
+                  <p className="text-[#333] mt-2 text-sm font-medium italic">
+                    {progress >= 90 
+                      ? "Oh no! You were so close!" 
+                      : progress >= 80 
+                        ? "Wow, that's an impressive score!" 
+                        : progress >= 70 
+                          ? "Not bad, I believe in you!" 
+                          : progress >= 60 
+                            ? "Pretty good, your friends will have a hard time beating you" 
+                            : progress >= 20 
+                              ? "So-so, get your friends to come challenge me" 
+                              : "Are you going to keep trying or call someone to help?"}
+                  </p>
+                )}
               </div>
               
               {/* Progress */}
