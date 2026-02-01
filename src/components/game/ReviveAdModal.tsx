@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { useGameDistributionAd } from '@/hooks/useGameDistributionAd';
 
 interface ReviveAdModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export const ReviveAdModal: React.FC<ReviveAdModalProps> = ({
 }) => {
   const [phase, setPhase] = useState<Phase>('ready');
   const [countdown, setCountdown] = useState(3);
+  const { showRewardedAd, error } = useGameDistributionAd();
 
   // Reset state
   useEffect(() => {
@@ -42,16 +44,30 @@ export const ReviveAdModal: React.FC<ReviveAdModalProps> = ({
     }
   }, [phase, countdown, onComplete]);
 
-  // Start watching ad - using 3s simulation
-  const handleStartWatching = useCallback(() => {
+  // Start watching ad - PRODUCTION MODE with real SDK
+  const handleStartWatching = useCallback(async () => {
     setPhase('loading');
     
-    console.log('[ReviveAdModal] Using 3s simulation');
-    setTimeout(() => {
-      setCountdown(3);
-      setPhase('watching');
-    }, 300);
-  }, []);
+    console.log('[ReviveAdModal] Loading real ad from GameDistribution SDK...');
+    
+    try {
+      const success = await showRewardedAd();
+      
+      if (success) {
+        // Ad completed successfully
+        setPhase('complete');
+        setTimeout(() => {
+          onComplete();
+        }, 800);
+      } else {
+        // Ad failed or was skipped
+        setPhase('failed');
+      }
+    } catch (err) {
+      console.error('[ReviveAdModal] Ad error:', err);
+      setPhase('failed');
+    }
+  }, [showRewardedAd, onComplete]);
 
   // Retry
   const handleRetry = useCallback(() => {
