@@ -89,7 +89,7 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
                   className="px-8 py-4 rounded-xl text-white text-lg font-bold"
                   style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)' }}
                 >
-                  请先登录
+                  Please login first
                 </div>
               </motion.div>
             )}
