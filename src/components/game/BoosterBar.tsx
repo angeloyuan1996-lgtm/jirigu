@@ -27,46 +27,51 @@ const BoosterButton: React.FC<BoosterButtonProps> = ({
   used,
   activated,
 }) => {
+  // Button is non-interactive if used OR disabled (conditions not met)
+  const isDisabled = used || disabled;
+  
   return (
     <motion.button
-      onClick={onClick}
-      disabled={used}
+      onClick={isDisabled ? undefined : onClick}
+      disabled={isDisabled}
       className={cn(
         "relative flex flex-col items-center gap-1 px-5 py-3",
         "rounded-xl",
         "border-[3px] border-[#333]",
         "transition-all duration-150",
-        used 
+        isDisabled 
           ? "opacity-50 cursor-not-allowed" 
           : "cursor-pointer active:translate-y-[2px]",
       )}
       style={{
-        backgroundColor: used ? '#6b7280' : 'hsl(217 85% 55%)',
-        borderBottomWidth: used ? '3px' : '6px',
-        borderBottomColor: used ? '#4b5563' : 'hsl(217 85% 38%)',
+        backgroundColor: isDisabled ? '#6b7280' : 'hsl(217 85% 55%)',
+        borderBottomWidth: isDisabled ? '3px' : '6px',
+        borderBottomColor: isDisabled ? '#4b5563' : 'hsl(217 85% 38%)',
       }}
-      whileTap={!used ? { y: 2 } : undefined}
+      whileTap={!isDisabled ? { y: 2 } : undefined}
     >
-      {/* Diamond cost indicator - top left */}
-      <div 
-        className="absolute -top-2 -left-2 px-1.5 py-0.5 rounded-full flex items-center justify-center border-[2px] border-[#333]"
-        style={{
-          backgroundColor: 'hsl(45 100% 50%)',
-          color: '#333',
-        }}
-      >
-        <Gem className="w-3.5 h-3.5" />
-      </div>
+      {/* Diamond cost indicator - top left (hide if already activated) */}
+      {!activated && (
+        <div 
+          className="absolute -top-2 -left-2 px-1.5 py-0.5 rounded-full flex items-center justify-center border-[2px] border-[#333]"
+          style={{
+            backgroundColor: 'hsl(45 100% 50%)',
+            color: '#333',
+          }}
+        >
+          <Gem className="w-3.5 h-3.5" />
+        </div>
+      )}
       
       {/* Activation status badge - top right */}
       <div 
         className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center border-[2px] border-[#333] text-xs font-bold"
         style={{
-          backgroundColor: activated ? 'hsl(142 76% 45%)' : 'hsl(0 0% 85%)',
-          color: '#333',
+          backgroundColor: used ? 'hsl(0 0% 50%)' : activated ? 'hsl(142 76% 45%)' : 'hsl(0 0% 85%)',
+          color: used ? '#fff' : '#333',
         }}
       >
-        {activated ? '✓' : '0'}
+        {used ? '✗' : activated ? '✓' : '0'}
       </div>
       
       <div className="text-white">
@@ -118,11 +123,12 @@ export const BoosterBar: React.FC = () => {
     
     // Not activated - check if user can pay with diamonds
     if (canAfford(DIAMOND_COST)) {
-      // User has enough diamonds - spend and activate
-      const success = await spendDiamonds(DIAMOND_COST, `Used ${BOOSTER_LABELS[booster]} booster`);
+      // User has enough diamonds - spend and activate only (don't execute immediately)
+      // This is consistent with the ad flow - player decides when to use
+      const success = await spendDiamonds(DIAMOND_COST, `Activated ${BOOSTER_LABELS[booster]} booster`);
       if (success) {
         activateBooster(booster);
-        executeBooster(booster);
+        // Don't execute immediately - let player click again when ready
       }
     } else {
       // Not enough diamonds - show ad modal
