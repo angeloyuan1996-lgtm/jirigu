@@ -147,8 +147,9 @@ export const BoosterBar: React.FC = () => {
 
   const handleAdComplete = () => {
     if (pendingBooster) {
+      // Only activate the booster, don't use it immediately
+      // Player can decide when to use it
       activateBooster(pendingBooster);
-      executeBooster(pendingBooster);
     }
     setAdModalOpen(false);
     setPendingBooster(null);
