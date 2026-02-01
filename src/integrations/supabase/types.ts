@@ -32,6 +32,41 @@ export type Database = {
         }
         Relationships: []
       }
+      diamond_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diamond_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       friendships: {
         Row: {
           accepted_at: string | null
@@ -108,6 +143,7 @@ export type Database = {
           avatar_url: string | null
           country_code: string | null
           created_at: string
+          diamonds: number
           id: string
           updated_at: string
           username: string
@@ -116,6 +152,7 @@ export type Database = {
           avatar_url?: string | null
           country_code?: string | null
           created_at?: string
+          diamonds?: number
           id: string
           updated_at?: string
           username: string
@@ -124,6 +161,7 @@ export type Database = {
           avatar_url?: string | null
           country_code?: string | null
           created_at?: string
+          diamonds?: number
           id?: string
           updated_at?: string
           username?: string
