@@ -43,6 +43,7 @@ export const FriendsList: React.FC<FriendsListProps> = ({
       return;
     }
 
+    setLoading(true);
     try {
       // 获取自己的通关次数
       const { data: myCompletions } = await supabase
@@ -67,6 +68,8 @@ export const FriendsList: React.FC<FriendsListProps> = ({
 
       if (error) {
         console.error('Error fetching friends:', error);
+        setFriends([]);
+        setLoading(false);
         return;
       }
 
@@ -109,9 +112,10 @@ export const FriendsList: React.FC<FriendsListProps> = ({
       friendsWithCounts.sort((a, b) => b.completionCount - a.completionCount);
 
       setFriends(friendsWithCounts);
+      setLoading(false);
     } catch (err) {
       console.error('Error in fetchFriends:', err);
-    } finally {
+      setFriends([]);
       setLoading(false);
     }
   }, [currentUserId]);
