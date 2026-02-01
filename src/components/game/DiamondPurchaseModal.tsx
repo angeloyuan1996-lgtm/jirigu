@@ -20,7 +20,7 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
   onNeedLogin,
 }) => {
   const [loading, setLoading] = useState(false);
-  const { isLoggedIn } = useUsername(); // 直接使用全局认证状态，无需检查
+  const { isLoggedIn, loading: authLoading } = useUsername(); // 直接使用全局认证状态
 
   const handlePurchase = async () => {
     // Check login status first
@@ -139,8 +139,20 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
               <p>• No ads</p>
             </div>
 
-            {/* Login prompt or Purchase button */}
-            {!isLoggedIn ? (
+            {/* Purchase button - show loading only when auth is still loading */}
+            {authLoading ? (
+              <button
+                disabled
+                className="w-full py-3 px-6 rounded-xl text-white font-bold text-lg border-[3px] border-[#333] flex items-center justify-center gap-2"
+                style={{
+                  backgroundColor: '#9CA3AF',
+                  borderBottomWidth: '3px',
+                  borderBottomColor: '#6B7280',
+                }}
+              >
+                <Loader2 className="w-5 h-5 animate-spin" />
+              </button>
+            ) : !isLoggedIn ? (
               <>
                 <div className="text-center text-amber-600 text-sm mb-3">
                   ⚠️ Please login to purchase diamonds
