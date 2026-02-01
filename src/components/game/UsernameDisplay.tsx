@@ -7,12 +7,11 @@ import { useDiamonds } from '@/hooks/useDiamonds';
 import { toast } from 'sonner';
 
 export const UsernameDisplay: React.FC = () => {
-  const { username, loading } = useUsername();
+  const { username, loading, updateUsername } = useUsername();
   const { diamonds, loading: diamondsLoading, isLoggedIn } = useDiamonds();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
-  const { updateUsername } = useUsername();
 
   const handleStartEdit = () => {
     setEditValue(username);
