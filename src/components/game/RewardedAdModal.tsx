@@ -48,31 +48,17 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
     }
   }, [phase, countdown, onComplete]);
 
-  // Start watching ad
-  const handleStartWatching = useCallback(async () => {
+  // Start watching ad - using 3s simulation (SDK disabled)
+  const handleStartWatching = useCallback(() => {
     setPhase('loading');
-
-    try {
-      const success = await showRewardedAd();
-
-      if (success) {
-        setPhase('complete');
-        setTimeout(() => {
-          onComplete();
-        }, 800);
-      } else {
-        // SDK failed - use 3 second simulation fallback
-        console.log('[RewardedAdModal] SDK failed, using 3s simulation fallback');
-        setCountdown(3);
-        setPhase('watching');
-      }
-    } catch (err) {
-      console.error('[RewardedAdModal] Error:', err);
-      // Error - use 3 second simulation fallback
+    
+    // Directly use 3-second simulation instead of SDK
+    console.log('[RewardedAdModal] Using 3s simulation (SDK disabled)');
+    setTimeout(() => {
       setCountdown(3);
       setPhase('watching');
-    }
-  }, [showRewardedAd, onComplete]);
+    }, 300); // Brief loading delay for UX
+  }, []);
 
   // Retry
   const handleRetry = useCallback(() => {
