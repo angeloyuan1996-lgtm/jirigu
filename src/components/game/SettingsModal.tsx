@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Volume2, VolumeX, Home, Download, Mail, UserPlus, Trophy } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -10,6 +10,7 @@ import { FriendsList } from './FriendsList';
 import { UsernameDisplay } from './UsernameDisplay';
 import { LeaderboardModal } from './LeaderboardModal';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -35,6 +36,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [user, setUser] = useState<any>(null);
   const [friendsRefreshTrigger, setFriendsRefreshTrigger] = useState(0);
   const [authLoading, setAuthLoading] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
   
   useEffect(() => {
     // 检查是否已安装
@@ -57,19 +59,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     
     // 检查登录状态
     const checkAuth = async () => {
+      console.log('[SettingsModal] Checking auth...');
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('[SettingsModal] Auth check error:', error);
+        }
+        
+        console.log('[SettingsModal] Session:', session?.user?.email || 'none');
         setUser(session?.user ?? null);
-        setAuthLoading(false);
       } catch (err) {
-        console.error('Error checking auth:', err);
+        console.error('[SettingsModal] Error checking auth:', err);
+        setUser(null);
+      } finally {
+        console.log('[SettingsModal] Auth check complete, setting authLoading=false');
         setAuthLoading(false);
       }
     };
     
     checkAuth();
     
+    // 超时保护
+    const timeout = setTimeout(() => {
+      if (authLoading) {
+        console.warn('[SettingsModal] Auth loading timeout, forcing complete');
+        setAuthLoading(false);
+      }
+    }, 5000);
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[SettingsModal] Auth state changed:', event, session?.user?.email);
       setUser(session?.user ?? null);
       setAuthLoading(false);
     });
@@ -77,6 +97,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
+      clearTimeout(timeout);
       subscription.unsubscribe();
     };
   }, []);
@@ -96,21 +117,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     abandonGame();
   };
 
-  const handleLogout = async () => {
-    console.log('Logout button clicked');
+  const handleLogout = useCallback(async () => {
+    if (loggingOut) return; // 防止重复点击
+    
+    console.log('[SettingsModal] Logout button clicked');
+    setLoggingOut(true);
+    
     try {
       const { error } = await supabase.auth.signOut();
+      
       if (error) {
-        console.error('Logout error from Supabase:', error);
+        console.error('[SettingsModal] Logout error:', error);
+        toast.error('Logout failed: ' + error.message);
+        setLoggingOut(false);
         return;
       }
-      console.log('Logout successful');
+      
+      console.log('[SettingsModal] Logout successful');
       setUser(null);
-      onClose(); // Close the modal after logout
+      toast.success('Logged out successfully');
+      onClose(); // 关闭弹窗
     } catch (err) {
-      console.error('Logout exception:', err);
+      console.error('[SettingsModal] Logout exception:', err);
+      toast.error('Logout failed');
+      setLoggingOut(false);
     }
-  };
+  }, [loggingOut, onClose]);
 
   const handleFriendRequestHandled = () => {
     setFriendsRefreshTrigger(prev => prev + 1);
@@ -261,8 +293,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   </div>
                   <motion.button
                     onClick={handleLogout}
+                    disabled={loggingOut}
                     whileTap={{ y: 2 }}
-                    className="w-full h-12 font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333]"
+                    className="w-full h-12 font-bold rounded-xl flex items-center justify-center gap-2 border-[3px] border-[#333] disabled:opacity-50"
                     style={{
                       backgroundColor: '#F3F4F6',
                       color: '#333',
@@ -271,7 +304,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     }}
                   >
                     <Mail className="w-5 h-5" strokeWidth={2.5} />
-                    Log Out
+                    {loggingOut ? 'Logging out...' : 'Log Out'}
                   </motion.button>
                 </div>
               ) : (

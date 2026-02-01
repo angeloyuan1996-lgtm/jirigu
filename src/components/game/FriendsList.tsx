@@ -22,6 +22,7 @@ export const FriendsList: React.FC<FriendsListProps> = ({
   const [friends, setFriends] = useState<Friend[]>([]);
   const [myCompletionCount, setMyCompletionCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const handleInvite = async () => {
@@ -39,22 +40,30 @@ export const FriendsList: React.FC<FriendsListProps> = ({
 
   const fetchFriends = useCallback(async () => {
     if (!currentUserId) {
+      console.log('[FriendsList] No currentUserId, skipping fetch');
       setLoading(false);
       return;
     }
 
+    console.log('[FriendsList] Fetching friends for:', currentUserId);
     setLoading(true);
+    setError(null);
+    
     try {
       // 获取自己的通关次数
-      const { data: myCompletions } = await supabase
+      const { data: myCompletions, error: completionsError } = await supabase
         .from('level_completions')
         .select('id')
         .eq('user_id', currentUserId);
       
+      if (completionsError) {
+        console.error('[FriendsList] Error fetching my completions:', completionsError);
+      }
+      
       setMyCompletionCount(myCompletions?.length || 0);
 
       // 获取已接受的好友关系
-      const { data: friendships, error } = await supabase
+      const { data: friendships, error: friendshipsError } = await supabase
         .from('friendships')
         .select(`
           id,
@@ -66,14 +75,18 @@ export const FriendsList: React.FC<FriendsListProps> = ({
         .eq('status', 'accepted')
         .or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`);
 
-      if (error) {
-        console.error('Error fetching friends:', error);
+      if (friendshipsError) {
+        console.error('[FriendsList] Error fetching friends:', friendshipsError);
+        setError(friendshipsError.message);
         setFriends([]);
         setLoading(false);
         return;
       }
 
+      console.log('[FriendsList] Friendships data:', friendships);
+
       if (!friendships || friendships.length === 0) {
+        console.log('[FriendsList] No friends found');
         setFriends([]);
         setLoading(false);
         return;
@@ -85,7 +98,7 @@ export const FriendsList: React.FC<FriendsListProps> = ({
         const friendProfile = isSender ? f.friend_profile : f.user_profile;
         return {
           id: (friendProfile as any)?.id,
-          username: (friendProfile as any)?.username || '未知用户',
+          username: (friendProfile as any)?.username || 'Unknown',
         };
       }).filter(f => f.id);
 
@@ -111,17 +124,30 @@ export const FriendsList: React.FC<FriendsListProps> = ({
       // 按通关次数降序排序
       friendsWithCounts.sort((a, b) => b.completionCount - a.completionCount);
 
+      console.log('[FriendsList] Final friends list:', friendsWithCounts);
       setFriends(friendsWithCounts);
-      setLoading(false);
     } catch (err) {
-      console.error('Error in fetchFriends:', err);
+      console.error('[FriendsList] Exception:', err);
+      setError('Failed to load friends');
       setFriends([]);
+    } finally {
+      console.log('[FriendsList] Fetch complete, setting loading=false');
       setLoading(false);
     }
   }, [currentUserId]);
 
   useEffect(() => {
     fetchFriends();
+    
+    // 超时保护
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn('[FriendsList] Loading timeout, forcing complete');
+        setLoading(false);
+      }
+    }, 5000);
+    
+    return () => clearTimeout(timeout);
   }, [fetchFriends, refreshTrigger]);
 
   if (!currentUserId) {
@@ -131,7 +157,15 @@ export const FriendsList: React.FC<FriendsListProps> = ({
   if (loading) {
     return (
       <div className="text-center py-4 text-sm text-[#666]">
-        Loading...
+        Loading friends...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-4 text-sm text-[#EF4444]">
+        {error}
       </div>
     );
   }

@@ -146,6 +146,7 @@ interface LeaderboardModalProps {
 export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onClose }) => {
   const [rankings, setRankings] = useState<CountryRanking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -154,22 +155,47 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onCl
   }, [isOpen]);
 
   const fetchLeaderboard = async () => {
+    console.log('[LeaderboardModal] Fetching leaderboard...');
     setLoading(true);
+    setError(null);
+    
     try {
-      const { data, error } = await supabase.rpc('get_country_leaderboard');
+      const { data, error: fetchError } = await supabase.rpc('get_country_leaderboard');
       
-      if (error) {
-        console.error('Error fetching leaderboard:', error);
+      if (fetchError) {
+        console.error('[LeaderboardModal] Error fetching leaderboard:', fetchError);
+        setError(fetchError.message);
+        setRankings([]);
+        setLoading(false);
         return;
       }
       
+      console.log('[LeaderboardModal] Got rankings:', data);
       setRankings(data || []);
     } catch (err) {
-      console.error('Error in fetchLeaderboard:', err);
+      console.error('[LeaderboardModal] Exception:', err);
+      setError('Failed to load leaderboard');
+      setRankings([]);
     } finally {
+      console.log('[LeaderboardModal] Fetch complete, setting loading=false');
       setLoading(false);
     }
   };
+
+  // 超时保护
+  useEffect(() => {
+    if (!isOpen || !loading) return;
+    
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn('[LeaderboardModal] Loading timeout, forcing complete');
+        setLoading(false);
+        setError('Loading timed out. Please try again.');
+      }
+    }, 10000);
+    
+    return () => clearTimeout(timeout);
+  }, [isOpen, loading]);
 
   const getRankStyle = (rank: number) => {
     switch (rank) {
@@ -235,6 +261,18 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onCl
                     className="w-10 h-10 border-4 border-[#D97706] border-t-transparent rounded-full"
                   />
                   <p className="mt-4 text-[#666] font-medium">Loading...</p>
+                </div>
+              ) : error ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <span className="text-4xl mb-4">⚠️</span>
+                  <p className="text-[#EF4444] font-medium text-center">{error}</p>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={fetchLeaderboard}
+                    className="mt-4 px-4 py-2 bg-[#D97706] text-white rounded-lg font-bold"
+                  >
+                    Retry
+                  </motion.button>
                 </div>
               ) : rankings.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12">
