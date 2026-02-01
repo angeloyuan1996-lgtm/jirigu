@@ -745,16 +745,23 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   useMoveOut: () => {
     const state = get();
-    if (state.boostersUsed.moveOut || state.tempCache.length > 0) return;
-    if (state.slots.length < 3) return;
+    if (state.boostersUsed.moveOut) return;
     
-    // Take the first 3 blocks from slots and move to tempCache
-    const movedBlocks = state.slots.slice(0, 3);
-    const remainingSlots = state.slots.slice(3);
+    // 计算缓冲区空位数量 (最多3个位置)
+    const BUFFER_SLOTS = 3;
+    const availableBufferSlots = BUFFER_SLOTS - state.tempCache.length;
+    
+    // 缓冲区已满或槽位没有卡片，无法移出
+    if (availableBufferSlots <= 0 || state.slots.length === 0) return;
+    
+    // 根据空位数量移出对应数量的卡片
+    const moveCount = Math.min(availableBufferSlots, state.slots.length);
+    const movedBlocks = state.slots.slice(0, moveCount);
+    const remainingSlots = state.slots.slice(moveCount);
     
     set({
       slots: remainingSlots,
-      tempCache: movedBlocks.map(b => ({ ...b, status: 'inTemp' as const })),
+      tempCache: [...state.tempCache, ...movedBlocks.map(b => ({ ...b, status: 'inTemp' as const }))],
       boostersUsed: { ...state.boostersUsed, moveOut: true },
       isGameOver: false,
     });
@@ -966,18 +973,24 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     if (state.hasRevived) return;
     
-    // 直接执行复活效果（移出3个方块到暂存区）
-    if (state.slots.length >= 3 && state.tempCache.length === 0) {
-      const movedBlocks = state.slots.slice(0, 3);
-      const remainingSlots = state.slots.slice(3);
+    // 计算缓冲区空位数量
+    const BUFFER_SLOTS = 3;
+    const availableBufferSlots = BUFFER_SLOTS - state.tempCache.length;
+    
+    // 根据空位数量移出对应数量的卡片（如果有空位且槽位有卡片）
+    if (availableBufferSlots > 0 && state.slots.length > 0) {
+      const moveCount = Math.min(availableBufferSlots, state.slots.length);
+      const movedBlocks = state.slots.slice(0, moveCount);
+      const remainingSlots = state.slots.slice(moveCount);
       
       set({
         slots: remainingSlots,
-        tempCache: movedBlocks.map(b => ({ ...b, status: 'inTemp' })),
+        tempCache: [...state.tempCache, ...movedBlocks.map(b => ({ ...b, status: 'inTemp' as const }))],
         hasRevived: true,
         isGameOver: false,
       });
     } else {
+      // 即使无法移动也标记已复活
       set({ hasRevived: true, isGameOver: false });
     }
   },

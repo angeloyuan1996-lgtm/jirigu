@@ -178,7 +178,7 @@ export const BoosterBar: React.FC = () => {
           icon={<ArrowLeftRight className="w-7 h-7" strokeWidth={2.5} />}
           label="Move Out"
           onClick={() => handleBoosterClick('moveOut')}
-          disabled={slots.length < 3 || tempCache.length > 0}
+          disabled={slots.length === 0 || tempCache.length >= 3}
           used={boostersUsed.moveOut}
           activated={boostersActivated.moveOut}
         />
