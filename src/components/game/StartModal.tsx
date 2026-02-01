@@ -28,7 +28,7 @@ export const StartModal: React.FC = () => {
           >
             {/* Message */}
             <p className="text-white text-lg font-bold mb-6 leading-relaxed">
-              游戏规则很简单，都不用我教吧
+              The rules are simple, you'll figure it out!
             </p>
             
             {/* Start Button */}
