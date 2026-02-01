@@ -6,7 +6,6 @@ import { useDiamonds } from '@/hooks/useDiamonds';
 import { cn } from '@/lib/utils';
 import { RewardedAdModal } from './RewardedAdModal';
 import { DiamondPurchaseModal } from './DiamondPurchaseModal';
-import { BoosterChoiceModal } from './BoosterChoiceModal';
 
 const DIAMOND_COST = 2;
 
@@ -104,7 +103,6 @@ export const BoosterBar: React.FC = () => {
   
   const [adModalOpen, setAdModalOpen] = useState(false);
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
-  const [choiceModalOpen, setChoiceModalOpen] = useState(false);
   const [pendingBooster, setPendingBooster] = useState<BoosterType | null>(null);
 
   const handleBoosterClick = async (booster: BoosterType) => {
@@ -124,20 +122,10 @@ export const BoosterBar: React.FC = () => {
         activateBooster(booster);
         executeBooster(booster);
       }
-    } else if (isLoggedIn && diamonds > 0) {
-      // Has some diamonds but not enough - show choice modal
-      setPendingBooster(booster);
-      setChoiceModalOpen(true);
     } else {
-      // No diamonds or not logged in - show ad modal or choice
+      // Not enough diamonds - show ad modal
       setPendingBooster(booster);
-      if (!isLoggedIn) {
-        // Not logged in - just show ad
-        setAdModalOpen(true);
-      } else {
-        // Logged in but 0 diamonds - show choice
-        setChoiceModalOpen(true);
-      }
+      setAdModalOpen(true);
     }
   };
 
@@ -161,7 +149,6 @@ export const BoosterBar: React.FC = () => {
       executeBooster(pendingBooster);
     }
     setAdModalOpen(false);
-    setChoiceModalOpen(false);
     setPendingBooster(null);
   };
 
@@ -170,19 +157,9 @@ export const BoosterBar: React.FC = () => {
     setPendingBooster(null);
   };
 
-  const handleWatchAd = () => {
-    setChoiceModalOpen(false);
-    setAdModalOpen(true);
-  };
-
   const handleGetDiamonds = () => {
-    setChoiceModalOpen(false);
+    setAdModalOpen(false);
     setPurchaseModalOpen(true);
-  };
-
-  const handleChoiceClose = () => {
-    setChoiceModalOpen(false);
-    setPendingBooster(null);
   };
   
   return (
@@ -227,15 +204,6 @@ export const BoosterBar: React.FC = () => {
       <DiamondPurchaseModal
         isOpen={purchaseModalOpen}
         onClose={() => setPurchaseModalOpen(false)}
-      />
-
-      <BoosterChoiceModal
-        isOpen={choiceModalOpen}
-        onClose={handleChoiceClose}
-        onWatchAd={handleWatchAd}
-        onGetDiamonds={handleGetDiamonds}
-        boosterName={pendingBooster ? BOOSTER_LABELS[pendingBooster] : ''}
-        diamondBalance={diamonds}
       />
     </>
   );
