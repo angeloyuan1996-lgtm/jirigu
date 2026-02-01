@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+// 全局事件触发器，用于跨组件同步钻石余额
+const diamondEventListeners = new Set<() => void>();
+
+export const triggerDiamondRefresh = () => {
+  diamondEventListeners.forEach(listener => listener());
+};
+
 export const useDiamonds = () => {
   const [diamonds, setDiamonds] = useState<number>(0);
   const [userId, setUserId] = useState<string | null>(null);
@@ -69,6 +76,8 @@ export const useDiamonds = () => {
       }
 
       setDiamonds(newBalance);
+      // 触发全局刷新
+      triggerDiamondRefresh();
       return true;
     } catch (err) {
       console.error('Error spending diamonds:', err);
@@ -108,6 +117,8 @@ export const useDiamonds = () => {
         });
 
       setDiamonds(newBalance);
+      // 触发全局刷新
+      triggerDiamondRefresh();
       return true;
     } catch (err) {
       console.error('Error adding diamonds:', err);
@@ -183,6 +194,22 @@ export const useDiamonds = () => {
       subscription.unsubscribe();
     };
   }, [fetchDiamonds]);
+
+  // 监听全局刷新事件
+  useEffect(() => {
+    const handleRefresh = () => {
+      if (userId) {
+        fetchDiamonds(userId).then(balance => {
+          setDiamonds(balance);
+        });
+      }
+    };
+
+    diamondEventListeners.add(handleRefresh);
+    return () => {
+      diamondEventListeners.delete(handleRefresh);
+    };
+  }, [userId, fetchDiamonds]);
 
   return {
     diamonds,

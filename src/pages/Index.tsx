@@ -9,12 +9,11 @@ import { AudioProvider } from '@/components/game/AudioProvider';
 import { GameOverModal, GameWonModal } from '@/components/game/GameModals';
 import { StartModal } from '@/components/game/StartModal';
 import { GrassDecoration } from '@/components/game/GrassDecoration';
-import { useDiamonds } from '@/hooks/useDiamonds';
+import { triggerDiamondRefresh } from '@/hooks/useDiamonds';
 import { toast } from 'sonner';
 
 const Index = () => {
   const gameStore = useGameStore();
-  const { refreshBalance } = useDiamonds();
   const [searchParams, setSearchParams] = useSearchParams();
   
   useEffect(() => {
@@ -56,7 +55,8 @@ const Index = () => {
       
       if (paymentStatus === 'success') {
         toast.success('Payment successful! Diamonds added to your account.');
-        refreshBalance();
+        // 触发全局钻石余额刷新
+        triggerDiamondRefresh();
       } else {
         toast.info('Payment was canceled.');
       }
