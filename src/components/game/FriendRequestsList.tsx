@@ -30,6 +30,7 @@ export const FriendRequestsList: React.FC<FriendRequestsListProps> = ({
       return;
     }
 
+    setLoading(true);
     try {
       // 获取发给自己的待处理好友请求
       const { data, error } = await supabase
@@ -46,6 +47,8 @@ export const FriendRequestsList: React.FC<FriendRequestsListProps> = ({
 
       if (error) {
         console.error('Error fetching requests:', error);
+        setRequests([]);
+        setLoading(false);
         return;
       }
 
@@ -57,9 +60,10 @@ export const FriendRequestsList: React.FC<FriendRequestsListProps> = ({
       }));
 
       setRequests(formattedRequests);
+      setLoading(false);
     } catch (err) {
       console.error('Error in fetchRequests:', err);
-    } finally {
+      setRequests([]);
       setLoading(false);
     }
   }, [currentUserId]);

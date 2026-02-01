@@ -134,14 +134,13 @@ export const useUsername = () => {
         if (session?.user) {
           setUserId(session.user.id);
           setIsLoggedIn(true);
-          setLoading(false); // 立即设置 loading=false，用户已登录
           
-          // 异步获取用户名，不阻塞 loading 状态
-          fetchProfile(session.user.id).then((dbUsername) => {
-            if (mounted) {
-              setUsername(dbUsername || getGuestUsername());
-            }
-          });
+          // 获取用户名
+          const dbUsername = await fetchProfile(session.user.id);
+          if (mounted) {
+            setUsername(dbUsername || getGuestUsername());
+            setLoading(false);
+          }
         } else {
           setUserId(null);
           setIsLoggedIn(false);
@@ -166,16 +165,17 @@ export const useUsername = () => {
         setUserId(session.user.id);
         setIsLoggedIn(true);
         
-        // 异步获取用户名
-        fetchProfile(session.user.id).then((dbUsername) => {
-          if (mounted) {
-            setUsername(dbUsername || getGuestUsername());
-          }
-        });
+        // 获取用户名
+        const dbUsername = await fetchProfile(session.user.id);
+        if (mounted) {
+          setUsername(dbUsername || getGuestUsername());
+          setLoading(false);
+        }
       } else {
         setUserId(null);
         setIsLoggedIn(false);
         setUsername(getGuestUsername());
+        setLoading(false);
       }
     });
 
