@@ -56,8 +56,12 @@ export interface GameState {
   // Settings
   soundEnabled: boolean;
   
+  // Game start state
+  gameStarted: boolean;
+  
   // Actions
   initLevel: (level: number) => void;
+  startGame: () => void;
   clickBlock: (blockId: string) => void;
   clickBufferBlock: (blockId: string) => void;
   clickBlindStackBlock: (position: 'left' | 'right') => void; // 点击盲盒堆顶部
