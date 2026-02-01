@@ -186,7 +186,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 </motion.button>
 
                 {/* 好友功能区域 */}
-                {user ? (
+                {authLoading ? (
+                  <div className="text-center py-4 text-sm text-[#666]">
+                    Loading...
+                  </div>
+                ) : user ? (
                   <>
                     {/* 好友请求通知 */}
                     <FriendRequestsList 
@@ -243,7 +247,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               )}
 
               {/* Login/Logout button */}
-              {user ? (
+              {authLoading ? null : user ? (
                 <div className="mt-3 space-y-2">
                   <div className="text-center text-sm text-[#22C55E] font-medium truncate">
                     ✓ Logged in: {user.email}
@@ -258,10 +262,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                       borderBottomWidth: '5px',
                       borderBottomColor: '#D1D5DB',
                     }}
-                    >
-                      <Mail className="w-5 h-5" strokeWidth={2.5} />
-                      Log Out
-                    </motion.button>
+                  >
+                    <Mail className="w-5 h-5" strokeWidth={2.5} />
+                    Log Out
+                  </motion.button>
                 </div>
               ) : (
                 <motion.button
@@ -274,10 +278,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     borderBottomWidth: '5px',
                     borderBottomColor: '#6D28D9',
                   }}
-                  >
-                    <Mail className="w-5 h-5" strokeWidth={2.5} />
-                    Email Login
-                  </motion.button>
+                >
+                  <Mail className="w-5 h-5" strokeWidth={2.5} />
+                  Email Login
+                </motion.button>
               )}
             </motion.div>
           </motion.div>
