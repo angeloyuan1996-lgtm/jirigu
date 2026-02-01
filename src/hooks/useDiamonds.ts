@@ -15,21 +15,23 @@ export const useDiamonds = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Fetch diamond balance from database
-  const fetchDiamonds = useCallback(async (uid: string) => {
+  const fetchDiamonds = useCallback(async (uid: string): Promise<number> => {
     try {
+      console.log('[useDiamonds] Fetching diamonds for:', uid);
       const { data, error } = await supabase
         .from('profiles')
         .select('diamonds')
         .eq('id', uid)
-        .single();
+        .maybeSingle();
       
       if (error) {
-        console.error('Error fetching diamonds:', error);
+        console.error('[useDiamonds] Error fetching diamonds:', error);
         return 0;
       }
+      console.log('[useDiamonds] Got diamonds:', data?.diamonds);
       return data?.diamonds || 0;
     } catch (err) {
-      console.error('Error in fetchDiamonds:', err);
+      console.error('[useDiamonds] Error in fetchDiamonds:', err);
       return 0;
     }
   }, []);
@@ -144,12 +146,19 @@ export const useDiamonds = () => {
     let mounted = true;
 
     const init = async () => {
+      console.log('[useDiamonds] Starting initialization...');
+      
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('[useDiamonds] Session error:', sessionError);
+        }
         
         if (!mounted) return;
         
         if (session?.user) {
+          console.log('[useDiamonds] User logged in:', session.user.id);
           setUserId(session.user.id);
           setIsLoggedIn(true);
           const balance = await fetchDiamonds(session.user.id);
@@ -157,14 +166,16 @@ export const useDiamonds = () => {
             setDiamonds(balance);
           }
         } else {
+          console.log('[useDiamonds] No session');
           setUserId(null);
           setIsLoggedIn(false);
           setDiamonds(0);
         }
       } catch (err) {
-        console.error('Error initializing diamonds:', err);
+        console.error('[useDiamonds] Error initializing:', err);
       } finally {
         if (mounted) {
+          console.log('[useDiamonds] Initialization complete, setting loading=false');
           setLoading(false);
         }
       }
@@ -172,7 +183,16 @@ export const useDiamonds = () => {
 
     init();
 
+    // 设置超时保护，防止永久卡住
+    const timeout = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn('[useDiamonds] Loading timeout, forcing complete');
+        setLoading(false);
+      }
+    }, 5000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[useDiamonds] Auth state changed:', event);
       if (!mounted) return;
       
       if (session?.user) {
@@ -191,6 +211,7 @@ export const useDiamonds = () => {
 
     return () => {
       mounted = false;
+      clearTimeout(timeout);
       subscription.unsubscribe();
     };
   }, [fetchDiamonds]);

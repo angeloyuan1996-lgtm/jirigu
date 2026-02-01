@@ -20,6 +20,7 @@ export const useUsername = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   // 从本地存储获取或生成游客名称
   const getGuestUsername = useCallback(() => {
@@ -32,21 +33,23 @@ export const useUsername = () => {
   }, []);
 
   // 从数据库获取用户名
-  const fetchProfile = useCallback(async (uid: string) => {
+  const fetchProfile = useCallback(async (uid: string): Promise<string | null> => {
     try {
+      console.log('[useUsername] Fetching profile for:', uid);
       const { data, error } = await supabase
         .from('profiles')
         .select('username')
         .eq('id', uid)
-        .single();
+        .maybeSingle();
       
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error('[useUsername] Error fetching profile:', error);
         return null;
       }
+      console.log('[useUsername] Got profile:', data);
       return data?.username || null;
     } catch (err) {
-      console.error('Error in fetchProfile:', err);
+      console.error('[useUsername] Error in fetchProfile:', err);
       return null;
     }
   }, []);
@@ -126,39 +129,65 @@ export const useUsername = () => {
     let mounted = true;
 
     const initUsername = async () => {
+      console.log('[useUsername] Starting initialization...');
+      
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('[useUsername] Session error:', sessionError);
+        }
         
         if (!mounted) return;
         
         if (session?.user) {
+          console.log('[useUsername] User logged in:', session.user.id);
           setUserId(session.user.id);
           setIsLoggedIn(true);
           
           // 获取用户名
           const dbUsername = await fetchProfile(session.user.id);
           if (mounted) {
-            setUsername(dbUsername || getGuestUsername());
-            setLoading(false);
+            const finalUsername = dbUsername || getGuestUsername();
+            console.log('[useUsername] Setting username:', finalUsername);
+            setUsername(finalUsername);
           }
         } else {
+          console.log('[useUsername] No session, using guest');
           setUserId(null);
           setIsLoggedIn(false);
           setUsername(getGuestUsername());
-          setLoading(false);
         }
       } catch (err) {
-        console.error('Error initializing username:', err);
+        console.error('[useUsername] Error initializing:', err);
         if (mounted) {
           setUsername(getGuestUsername());
+        }
+      } finally {
+        if (mounted) {
+          console.log('[useUsername] Initialization complete, setting loading=false');
           setLoading(false);
+          setInitialized(true);
         }
       }
     };
 
     initUsername();
 
+    // 设置超时保护，防止永久卡住
+    const timeout = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn('[useUsername] Loading timeout, forcing complete');
+        setLoading(false);
+        setInitialized(true);
+        if (!username) {
+          setUsername(getGuestUsername());
+        }
+      }
+    }, 5000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[useUsername] Auth state changed:', event);
       if (!mounted) return;
       
       if (session?.user) {
@@ -169,18 +198,17 @@ export const useUsername = () => {
         const dbUsername = await fetchProfile(session.user.id);
         if (mounted) {
           setUsername(dbUsername || getGuestUsername());
-          setLoading(false);
         }
       } else {
         setUserId(null);
         setIsLoggedIn(false);
         setUsername(getGuestUsername());
-        setLoading(false);
       }
     });
 
     return () => {
       mounted = false;
+      clearTimeout(timeout);
       subscription.unsubscribe();
     };
   }, [fetchProfile, getGuestUsername]);
@@ -190,6 +218,7 @@ export const useUsername = () => {
     userId,
     isLoggedIn,
     loading,
+    initialized,
     updateUsername,
   };
 };
