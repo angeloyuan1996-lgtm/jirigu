@@ -406,7 +406,7 @@ export const GameWonModal: React.FC = () => {
               {isLastLevel ? 'Congratulations! All Levels Cleared!' : 'Level Complete!'}
             </h2>
             <p className="text-[#166534] font-medium mb-6">
-              {isLastLevel ? 'You have conquered all challenges!' : `Level ${currentLevel} complete!`}
+              {isLastLevel ? 'You have conquered all challenges!' : "Warm-up done, now let's get serious!"}
             </p>
             
             {isLastLevel ? (
