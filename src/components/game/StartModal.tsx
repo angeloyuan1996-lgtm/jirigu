@@ -28,7 +28,7 @@ export const StartModal: React.FC = () => {
           >
             {/* Message */}
             <p className="text-white text-lg font-bold mb-6 leading-relaxed">
-              The rules are simple, you'll figure it out!
+              It's so easy, I don't even need to explain!
             </p>
             
             {/* Start Button */}
