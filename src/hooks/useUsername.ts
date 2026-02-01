@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
 
 // Random name generator for guest users
 const generateRandomUsername = (): string => {
@@ -16,11 +17,9 @@ const generateRandomUsername = (): string => {
 const LOCAL_STORAGE_KEY = 'jirigu_guest_username';
 
 export const useUsername = () => {
+  const { user, loading: authLoading } = useAuth();
   const [username, setUsername] = useState<string>('');
-  const [userId, setUserId] = useState<string | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [initialized, setInitialized] = useState(false);
 
   // 从本地存储获取或生成游客名称
   const getGuestUsername = useCallback(() => {
@@ -68,15 +67,14 @@ export const useUsername = () => {
         return false;
       }
       
-      // 如果没有找到，或者找到的是当前用户自己，则可用
-      return !data || data.id === userId;
+      return !data || data.id === user?.id;
     } catch (err) {
       console.error('Error in checkUsernameAvailable:', err);
       return false;
     }
-  }, [userId]);
+  }, [user?.id]);
 
-  // 更新用户名 - 返回 { success: boolean, error?: string }
+  // 更新用户名
   const updateUsername = useCallback(async (newName: string): Promise<{ success: boolean; error?: string }> => {
     if (!newName.trim()) {
       return { success: false, error: 'Username cannot be empty' };
@@ -84,13 +82,11 @@ export const useUsername = () => {
     
     const trimmedName = newName.trim();
     
-    // 检查长度限制
     if (trimmedName.length > 20) {
       return { success: false, error: 'Username must be 20 characters or less' };
     }
     
-    if (isLoggedIn && userId) {
-      // 登录用户：先检查唯一性，再更新数据库
+    if (user) {
       try {
         const isAvailable = await checkUsernameAvailable(trimmedName);
         if (!isAvailable) {
@@ -100,11 +96,11 @@ export const useUsername = () => {
         const { error } = await supabase
           .from('profiles')
           .update({ username: trimmedName })
-          .eq('id', userId);
+          .eq('id', user.id);
         
         if (error) {
           console.error('Error updating username:', error);
-          if (error.code === '23505') { // 唯一约束冲突
+          if (error.code === '23505') {
             return { success: false, error: 'This username is already taken' };
           }
           return { success: false, error: 'Failed to update username' };
@@ -117,108 +113,50 @@ export const useUsername = () => {
         return { success: false, error: 'Failed to update username' };
       }
     } else {
-      // 游客：更新本地存储（游客名称不检查唯一性）
       localStorage.setItem(LOCAL_STORAGE_KEY, trimmedName);
       setUsername(trimmedName);
       return { success: true };
     }
-  }, [isLoggedIn, userId, checkUsernameAvailable]);
+  }, [user, checkUsernameAvailable]);
 
-  // 初始化和监听认证状态
+  // 当 auth 状态变化时获取用户名
   useEffect(() => {
     let mounted = true;
 
-    const initUsername = async () => {
-      console.log('[useUsername] Starting initialization...');
+    const loadUsername = async () => {
+      // 等待 auth 加载完成
+      if (authLoading) {
+        return;
+      }
       
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('[useUsername] Session error:', sessionError);
-        }
-        
-        if (!mounted) return;
-        
-        if (session?.user) {
-          console.log('[useUsername] User logged in:', session.user.id);
-          setUserId(session.user.id);
-          setIsLoggedIn(true);
-          
-          // 获取用户名
-          const dbUsername = await fetchProfile(session.user.id);
-          if (mounted) {
-            const finalUsername = dbUsername || getGuestUsername();
-            console.log('[useUsername] Setting username:', finalUsername);
-            setUsername(finalUsername);
-          }
-        } else {
-          console.log('[useUsername] No session, using guest');
-          setUserId(null);
-          setIsLoggedIn(false);
-          setUsername(getGuestUsername());
-        }
-      } catch (err) {
-        console.error('[useUsername] Error initializing:', err);
+      console.log('[useUsername] Auth loaded, user:', user?.email || 'guest');
+      
+      if (user) {
+        const dbUsername = await fetchProfile(user.id);
         if (mounted) {
-          setUsername(getGuestUsername());
-        }
-      } finally {
-        if (mounted) {
-          console.log('[useUsername] Initialization complete, setting loading=false');
+          setUsername(dbUsername || getGuestUsername());
           setLoading(false);
-          setInitialized(true);
+        }
+      } else {
+        if (mounted) {
+          setUsername(getGuestUsername());
+          setLoading(false);
         }
       }
     };
 
-    initUsername();
-
-    // 设置超时保护，防止永久卡住
-    const timeout = setTimeout(() => {
-      if (mounted && loading) {
-        console.warn('[useUsername] Loading timeout, forcing complete');
-        setLoading(false);
-        setInitialized(true);
-        if (!username) {
-          setUsername(getGuestUsername());
-        }
-      }
-    }, 5000);
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[useUsername] Auth state changed:', event);
-      if (!mounted) return;
-      
-      if (session?.user) {
-        setUserId(session.user.id);
-        setIsLoggedIn(true);
-        
-        // 获取用户名
-        const dbUsername = await fetchProfile(session.user.id);
-        if (mounted) {
-          setUsername(dbUsername || getGuestUsername());
-        }
-      } else {
-        setUserId(null);
-        setIsLoggedIn(false);
-        setUsername(getGuestUsername());
-      }
-    });
+    loadUsername();
 
     return () => {
       mounted = false;
-      clearTimeout(timeout);
-      subscription.unsubscribe();
     };
-  }, [fetchProfile, getGuestUsername]);
+  }, [user, authLoading, fetchProfile, getGuestUsername]);
 
   return {
     username,
-    userId,
-    isLoggedIn,
-    loading,
-    initialized,
+    userId: user?.id || null,
+    isLoggedIn: !!user,
+    loading: loading || authLoading,
     updateUsername,
   };
 };

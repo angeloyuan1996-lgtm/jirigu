@@ -7,8 +7,8 @@ import { useDiamonds } from '@/hooks/useDiamonds';
 import { toast } from 'sonner';
 
 export const UsernameDisplay: React.FC = () => {
-  const { username, loading, updateUsername } = useUsername();
-  const { diamonds, loading: diamondsLoading, isLoggedIn } = useDiamonds();
+  const { username, loading, updateUsername, isLoggedIn } = useUsername();
+  const { diamonds, loading: diamondsLoading, isLoggedIn: hasDiamonds } = useDiamonds();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
@@ -122,7 +122,7 @@ export const UsernameDisplay: React.FC = () => {
       </AnimatePresence>
 
       {/* Diamond balance display */}
-      {isLoggedIn && (
+      {hasDiamonds && (
         <motion.div
           initial={{ opacity: 0, y: -5 }}
           animate={{ opacity: 1, y: 0 }}
