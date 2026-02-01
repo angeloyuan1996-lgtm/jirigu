@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Volume2, VolumeX, Home, Download, Mail, UserPlus, Trophy } from 'lucide-react';
+import { X, Volume2, VolumeX, Home, Mail, UserPlus, Trophy } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useGameStore } from '@/stores/gameStore';
+import { useAuth } from '@/hooks/useAuth';
 import { AuthModal } from './AuthModal';
 import { FriendSearch } from './FriendSearch';
 import { FriendRequestsList } from './FriendRequestsList';
 import { FriendsList } from './FriendsList';
 import { UsernameDisplay } from './UsernameDisplay';
 import { LeaderboardModal } from './LeaderboardModal';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -29,21 +29,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     abandonGame,
   } = useGameStore();
   
+  // 使用全局 Auth Context
+  const { user, loading: authLoading, signOut } = useAuth();
+  
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(() => 
+    window.matchMedia('(display-mode: standalone)').matches
+  );
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const [friendsRefreshTrigger, setFriendsRefreshTrigger] = useState(0);
-  const [authLoading, setAuthLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   
-  useEffect(() => {
-    // 检查是否已安装
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstalled(true);
-    }
-    
+  // PWA 安装事件监听
+  React.useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -57,48 +56,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
     
-    // 检查登录状态
-    const checkAuth = async () => {
-      console.log('[SettingsModal] Checking auth...');
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('[SettingsModal] Auth check error:', error);
-        }
-        
-        console.log('[SettingsModal] Session:', session?.user?.email || 'none');
-        setUser(session?.user ?? null);
-      } catch (err) {
-        console.error('[SettingsModal] Error checking auth:', err);
-        setUser(null);
-      } finally {
-        console.log('[SettingsModal] Auth check complete, setting authLoading=false');
-        setAuthLoading(false);
-      }
-    };
-    
-    checkAuth();
-    
-    // 超时保护
-    const timeout = setTimeout(() => {
-      if (authLoading) {
-        console.warn('[SettingsModal] Auth loading timeout, forcing complete');
-        setAuthLoading(false);
-      }
-    }, 5000);
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[SettingsModal] Auth state changed:', event, session?.user?.email);
-      setUser(session?.user ?? null);
-      setAuthLoading(false);
-    });
-    
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
-      clearTimeout(timeout);
-      subscription.unsubscribe();
     };
   }, []);
   
@@ -118,31 +78,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   };
 
   const handleLogout = useCallback(async () => {
-    if (loggingOut) return; // 防止重复点击
+    if (loggingOut) return;
     
     console.log('[SettingsModal] Logout button clicked');
     setLoggingOut(true);
     
     try {
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error('[SettingsModal] Logout error:', error);
-        toast.error('Logout failed: ' + error.message);
-        setLoggingOut(false);
-        return;
-      }
-      
-      console.log('[SettingsModal] Logout successful');
-      setUser(null);
+      await signOut();
       toast.success('Logged out successfully');
-      onClose(); // 关闭弹窗
+      onClose();
     } catch (err) {
-      console.error('[SettingsModal] Logout exception:', err);
+      console.error('[SettingsModal] Logout error:', err);
       toast.error('Logout failed');
+    } finally {
       setLoggingOut(false);
     }
-  }, [loggingOut, onClose]);
+  }, [loggingOut, signOut, onClose]);
 
   const handleFriendRequestHandled = () => {
     setFriendsRefreshTrigger(prev => prev + 1);

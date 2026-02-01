@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
 
 // 全局事件触发器，用于跨组件同步钻石余额
 const diamondEventListeners = new Set<() => void>();
@@ -9,10 +10,9 @@ export const triggerDiamondRefresh = () => {
 };
 
 export const useDiamonds = () => {
+  const { user, loading: authLoading } = useAuth();
   const [diamonds, setDiamonds] = useState<number>(0);
-  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Fetch diamond balance from database
   const fetchDiamonds = useCallback(async (uid: string): Promise<number> => {
@@ -38,7 +38,7 @@ export const useDiamonds = () => {
 
   // Spend diamonds (deduct from balance)
   const spendDiamonds = useCallback(async (amount: number, description: string): Promise<boolean> => {
-    if (!userId || !isLoggedIn) {
+    if (!user) {
       console.warn('Cannot spend diamonds: user not logged in');
       return false;
     }
@@ -55,7 +55,7 @@ export const useDiamonds = () => {
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ diamonds: newBalance })
-        .eq('id', userId);
+        .eq('id', user.id);
 
       if (updateError) {
         console.error('Error updating diamonds:', updateError);
@@ -66,7 +66,7 @@ export const useDiamonds = () => {
       const { error: transactionError } = await supabase
         .from('diamond_transactions')
         .insert({
-          user_id: userId,
+          user_id: user.id,
           amount: -amount,
           type: 'spend',
           description,
@@ -74,22 +74,20 @@ export const useDiamonds = () => {
 
       if (transactionError) {
         console.error('Error recording transaction:', transactionError);
-        // Don't fail, balance was already updated
       }
 
       setDiamonds(newBalance);
-      // 触发全局刷新
       triggerDiamondRefresh();
       return true;
     } catch (err) {
       console.error('Error spending diamonds:', err);
       return false;
     }
-  }, [userId, isLoggedIn, diamonds]);
+  }, [user, diamonds]);
 
   // Add diamonds (for rewards, etc.)
   const addDiamonds = useCallback(async (amount: number, description: string): Promise<boolean> => {
-    if (!userId || !isLoggedIn) {
+    if (!user) {
       console.warn('Cannot add diamonds: user not logged in');
       return false;
     }
@@ -101,7 +99,7 @@ export const useDiamonds = () => {
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ diamonds: newBalance })
-        .eq('id', userId);
+        .eq('id', user.id);
 
       if (updateError) {
         console.error('Error updating diamonds:', updateError);
@@ -112,115 +110,71 @@ export const useDiamonds = () => {
       await supabase
         .from('diamond_transactions')
         .insert({
-          user_id: userId,
+          user_id: user.id,
           amount: amount,
           type: 'reward',
           description,
         });
 
       setDiamonds(newBalance);
-      // 触发全局刷新
       triggerDiamondRefresh();
       return true;
     } catch (err) {
       console.error('Error adding diamonds:', err);
       return false;
     }
-  }, [userId, isLoggedIn, diamonds]);
+  }, [user, diamonds]);
 
   // Refresh balance from database
   const refreshBalance = useCallback(async () => {
-    if (userId) {
-      const balance = await fetchDiamonds(userId);
+    if (user) {
+      const balance = await fetchDiamonds(user.id);
       setDiamonds(balance);
     }
-  }, [userId, fetchDiamonds]);
+  }, [user, fetchDiamonds]);
 
   // Check if user has enough diamonds
   const canAfford = useCallback((amount: number): boolean => {
-    return isLoggedIn && diamonds >= amount;
-  }, [isLoggedIn, diamonds]);
+    return !!user && diamonds >= amount;
+  }, [user, diamonds]);
 
-  // Initialize and listen for auth changes
+  // 当 auth 状态变化时获取钻石数量
   useEffect(() => {
     let mounted = true;
 
-    const init = async () => {
-      console.log('[useDiamonds] Starting initialization...');
+    const loadDiamonds = async () => {
+      if (authLoading) {
+        return;
+      }
       
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('[useDiamonds] Session error:', sessionError);
-        }
-        
-        if (!mounted) return;
-        
-        if (session?.user) {
-          console.log('[useDiamonds] User logged in:', session.user.id);
-          setUserId(session.user.id);
-          setIsLoggedIn(true);
-          const balance = await fetchDiamonds(session.user.id);
-          if (mounted) {
-            setDiamonds(balance);
-          }
-        } else {
-          console.log('[useDiamonds] No session');
-          setUserId(null);
-          setIsLoggedIn(false);
-          setDiamonds(0);
-        }
-      } catch (err) {
-        console.error('[useDiamonds] Error initializing:', err);
-      } finally {
+      console.log('[useDiamonds] Auth loaded, user:', user?.email || 'guest');
+      
+      if (user) {
+        const balance = await fetchDiamonds(user.id);
         if (mounted) {
-          console.log('[useDiamonds] Initialization complete, setting loading=false');
+          setDiamonds(balance);
+          setLoading(false);
+        }
+      } else {
+        if (mounted) {
+          setDiamonds(0);
           setLoading(false);
         }
       }
     };
 
-    init();
-
-    // 设置超时保护，防止永久卡住
-    const timeout = setTimeout(() => {
-      if (mounted && loading) {
-        console.warn('[useDiamonds] Loading timeout, forcing complete');
-        setLoading(false);
-      }
-    }, 5000);
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[useDiamonds] Auth state changed:', event);
-      if (!mounted) return;
-      
-      if (session?.user) {
-        setUserId(session.user.id);
-        setIsLoggedIn(true);
-        const balance = await fetchDiamonds(session.user.id);
-        if (mounted) {
-          setDiamonds(balance);
-        }
-      } else {
-        setUserId(null);
-        setIsLoggedIn(false);
-        setDiamonds(0);
-      }
-    });
+    loadDiamonds();
 
     return () => {
       mounted = false;
-      clearTimeout(timeout);
-      subscription.unsubscribe();
     };
-  }, [fetchDiamonds]);
+  }, [user, authLoading, fetchDiamonds]);
 
   // 监听全局刷新事件
   useEffect(() => {
     const handleRefresh = () => {
-      if (userId) {
-        fetchDiamonds(userId).then(balance => {
+      if (user) {
+        fetchDiamonds(user.id).then(balance => {
           setDiamonds(balance);
         });
       }
@@ -230,13 +184,13 @@ export const useDiamonds = () => {
     return () => {
       diamondEventListeners.delete(handleRefresh);
     };
-  }, [userId, fetchDiamonds]);
+  }, [user, fetchDiamonds]);
 
   return {
     diamonds,
-    loading,
-    isLoggedIn,
-    userId,
+    loading: loading || authLoading,
+    isLoggedIn: !!user,
+    userId: user?.id || null,
     spendDiamonds,
     addDiamonds,
     refreshBalance,
