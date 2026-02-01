@@ -19,14 +19,21 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
   onNeedLogin,
 }) => {
   const [loading, setLoading] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   // Check login status when modal opens
   useEffect(() => {
     if (isOpen) {
+      setCheckingAuth(true);
       supabase.auth.getSession().then(({ data: { session } }) => {
+        console.log('[DiamondPurchaseModal] Session check:', !!session?.user);
         setIsLoggedIn(!!session?.user);
+        setCheckingAuth(false);
       });
+    } else {
+      // Reset state when modal closes
+      setCheckingAuth(true);
     }
   }, [isOpen]);
 
@@ -148,7 +155,20 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
             </div>
 
             {/* Login prompt or Purchase button */}
-            {isLoggedIn === false ? (
+            {checkingAuth ? (
+              <button
+                disabled
+                className="w-full py-3 px-6 rounded-xl text-white font-bold text-lg border-[3px] border-[#333] flex items-center justify-center gap-2"
+                style={{
+                  backgroundColor: '#9CA3AF',
+                  borderBottomWidth: '3px',
+                  borderBottomColor: '#6B7280',
+                }}
+              >
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Checking...
+              </button>
+            ) : !isLoggedIn ? (
               <>
                 <div className="text-center text-amber-600 text-sm mb-3">
                   ⚠️ Please login to purchase diamonds
@@ -169,7 +189,7 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
             ) : (
               <button
                 onClick={handlePurchase}
-                disabled={loading || isLoggedIn === null}
+                disabled={loading}
                 className="w-full py-3 px-6 rounded-xl text-white font-bold text-lg border-[3px] border-[#333] transition-all active:translate-y-[2px] flex items-center justify-center gap-2"
                 style={{
                   backgroundColor: loading ? '#9CA3AF' : '#22C55E',
