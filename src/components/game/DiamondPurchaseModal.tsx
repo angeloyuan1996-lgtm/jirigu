@@ -50,9 +50,8 @@ export const DiamondPurchaseModal: React.FC<DiamondPurchaseModalProps> = ({
       }
 
       if (data?.url) {
-        window.open(data.url, '_blank');
-        onClose();
-        onPurchaseComplete?.();
+        // 在当前窗口打开，支付成功后会重定向回来
+        window.location.href = data.url;
       } else {
         toast.error('Failed to create checkout session');
         setLoading(false);
