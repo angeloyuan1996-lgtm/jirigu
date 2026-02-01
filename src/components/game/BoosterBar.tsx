@@ -6,6 +6,7 @@ import { useDiamonds } from '@/hooks/useDiamonds';
 import { cn } from '@/lib/utils';
 import { RewardedAdModal } from './RewardedAdModal';
 import { DiamondPurchaseModal } from './DiamondPurchaseModal';
+import { AuthModal } from './AuthModal';
 
 const DIAMOND_COST = 2;
 
@@ -104,6 +105,7 @@ export const BoosterBar: React.FC = () => {
   const [adModalOpen, setAdModalOpen] = useState(false);
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
   const [pendingBooster, setPendingBooster] = useState<BoosterType | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const handleBoosterClick = async (booster: BoosterType) => {
     if (boostersUsed[booster]) return;
@@ -204,6 +206,12 @@ export const BoosterBar: React.FC = () => {
       <DiamondPurchaseModal
         isOpen={purchaseModalOpen}
         onClose={() => setPurchaseModalOpen(false)}
+        onNeedLogin={() => setShowAuthModal(true)}
+      />
+
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
       />
     </>
   );
