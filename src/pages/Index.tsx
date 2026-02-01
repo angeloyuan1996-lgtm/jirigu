@@ -7,6 +7,7 @@ import { BoosterBar } from '@/components/game/BoosterBar';
 import { GameHeader } from '@/components/game/GameHeader';
 import { AudioProvider } from '@/components/game/AudioProvider';
 import { GameOverModal, GameWonModal } from '@/components/game/GameModals';
+import { StartModal } from '@/components/game/StartModal';
 import { GrassDecoration } from '@/components/game/GrassDecoration';
 import { useDiamonds } from '@/hooks/useDiamonds';
 import { toast } from 'sonner';
@@ -79,6 +80,7 @@ const Index = () => {
         {/* Modals */}
         <GameOverModal />
         <GameWonModal />
+        <StartModal />
       </div>
     </AudioProvider>
   );
