@@ -225,7 +225,7 @@ export const GameOverModal: React.FC = () => {
                       }}
                     >
                       <Gem className="w-5 h-5" strokeWidth={2.5} />
-                      {isDiamondReviving ? 'Reviving...' : `2 💎 to Revive`}
+                      {isDiamondReviving ? 'Reviving...' : `💎 to Revive`}
                     </motion.button>
                   </>
                 )}
