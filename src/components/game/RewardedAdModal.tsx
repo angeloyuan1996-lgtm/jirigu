@@ -48,16 +48,30 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
     }
   }, [phase, countdown, onComplete]);
 
-  // Start watching ad - SIMULATION MODE (3 seconds)
-  const handleStartWatching = useCallback(() => {
+  // Start watching ad - PRODUCTION MODE with real SDK
+  const handleStartWatching = useCallback(async () => {
     setPhase('loading');
-    console.log('[RewardedAdModal] Starting 3-second ad simulation...');
     
-    // Brief loading then start countdown
-    setTimeout(() => {
-      setPhase('watching');
-    }, 500);
-  }, []);
+    console.log('[RewardedAdModal] Loading real ad from GameDistribution SDK...');
+    
+    try {
+      const success = await showRewardedAd();
+      
+      if (success) {
+        // Ad completed successfully
+        setPhase('complete');
+        setTimeout(() => {
+          onComplete();
+        }, 800);
+      } else {
+        // Ad failed or was skipped
+        setPhase('failed');
+      }
+    } catch (err) {
+      console.error('[RewardedAdModal] Ad error:', err);
+      setPhase('failed');
+    }
+  }, [showRewardedAd, onComplete]);
 
   // Retry
   const handleRetry = useCallback(() => {
