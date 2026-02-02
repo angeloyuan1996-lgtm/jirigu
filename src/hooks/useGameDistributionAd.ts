@@ -118,41 +118,20 @@ export const useGameDistributionAd = (): UseGameDistributionAdReturn => {
     }
   }, []);
 
-  // 显示激励广告
+  // 显示激励广告 - 3秒模拟模式（预览环境测试用）
   const showRewardedAd = useCallback(async (): Promise<boolean> => {
-    return new Promise(async (resolve) => {
+    return new Promise((resolve) => {
       setAdState('showing');
       setError(null);
 
-      try {
-        // 按需加载 SDK
-        await loadSDK();
-        
-        // 如果 SDK 加载失败或不可用，直接失败（不给奖励）
-        if (!window.gdsdk) {
-          console.warn('[GameDistribution] SDK not available - no reward');
-          setError('Ad service unavailable. Please check your connection.');
-          setAdState('failed');
-          resolve(false);
-          return;
-        }
-
-        await window.gdsdk.showAd('rewarded');
-        
-        // 广告成功完成
+      console.log('[GameDistribution] 🎬 Simulating 3-second ad (preview mode)...');
+      
+      // 3秒模拟广告
+      setTimeout(() => {
         setAdState('completed');
-        console.log('[GameDistribution] Rewarded ad completed');
+        console.log('[GameDistribution] ✅ Simulated ad completed');
         resolve(true);
-      } catch (err: any) {
-        // 广告失败（用户跳过、加载失败等）- 一律不给奖励
-        const errorMsg = err?.message || 'Ad failed or was skipped';
-        console.warn('[GameDistribution] Ad error:', errorMsg);
-        
-        // 所有错误情况都不给奖励
-        setError(errorMsg);
-        setAdState('failed');
-        resolve(false);
-      }
+      }, 3000);
     });
   }, []);
 
