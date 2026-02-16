@@ -278,7 +278,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               {/* Terms & Privacy */}
               <div className="mt-4 text-center text-xs text-[#999] space-x-2">
                 <a 
-                  href="https://jirigu.github.io/legal/terms" 
+                  href="https://angeloyuan1996-lgtm.github.io/Jirigu-legal/terms" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="underline hover:text-[#666]"
@@ -287,7 +287,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 </a>
                 <span>·</span>
                 <a 
-                  href="https://jirigu.github.io/legal/privacy" 
+                  href="https://angeloyuan1996-lgtm.github.io/Jirigu-legal/privacy" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="underline hover:text-[#666]"
