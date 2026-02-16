@@ -274,6 +274,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   Email Login
                 </motion.button>
               )}
+
+              {/* Terms & Privacy */}
+              <div className="mt-4 text-center text-xs text-[#999] space-x-2">
+                <a 
+                  href="https://jirigu.github.io/legal/terms" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="underline hover:text-[#666]"
+                >
+                  Terms of Use
+                </a>
+                <span>·</span>
+                <a 
+                  href="https://jirigu.github.io/legal/privacy" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="underline hover:text-[#666]"
+                >
+                  Privacy Policy
+                </a>
+              </div>
             </motion.div>
           </motion.div>
         )}
