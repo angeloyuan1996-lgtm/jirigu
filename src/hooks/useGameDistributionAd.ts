@@ -129,11 +129,10 @@ export const useGameDistributionAd = (): UseGameDistributionAdReturn => {
         await loadSDK();
 
         if (!window.gdsdk) {
-          console.warn('[GameDistribution] SDK not available, falling back to simulation');
-          setTimeout(() => {
-            setAdState('completed');
-            resolve(true);
-          }, 3000);
+          console.error('[GameDistribution] SDK not available');
+          setError('SDK not available');
+          setAdState('failed');
+          resolve(false);
           return;
         }
 
