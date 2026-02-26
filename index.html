@@ -24,11 +24,34 @@
     
     <link rel="icon" href="/logo.png" type="image/png" />
     
-    <!-- GameMonetize SDK - Loaded on-demand via useGameDistributionAd hook -->
   </head>
 
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- GameMonetize SDK - Must be in HTML per official docs -->
+    <script type="text/javascript">
+      window.SDK_OPTIONS = {
+        gameId: "nhmbbl0lv98kuf7w2sr5das20vkz3lkd",
+        onEvent: function(a) {
+          switch(a.name) {
+            case "SDK_GAME_PAUSE":
+              window.dispatchEvent(new CustomEvent('gm-ad-pause'));
+              break;
+            case "SDK_GAME_START":
+              window.dispatchEvent(new CustomEvent('gm-ad-resume'));
+              break;
+            case "SDK_READY":
+              console.log('[GameMonetize] SDK Ready');
+              break;
+            case "SDK_ERROR":
+              console.error('[GameMonetize] SDK Error');
+              break;
+          }
+        }
+      };
+    </script>
+    <script src="https://api.gamemonetize.com/sdk.js"></script>
   </body>
 </html>
