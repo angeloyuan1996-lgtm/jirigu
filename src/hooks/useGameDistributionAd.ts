@@ -25,7 +25,7 @@ interface UseGameDistributionAdReturn {
 }
 
 // GameMonetize Game ID
-const GAME_ID = '8619a854c679413d84547ed1716d1df2';
+const GAME_ID = 'nhmbbl0lv98kuf7w2sr5das20vkz3lkd';
 
 // SDK 加载状态
 let sdkLoaded = false;
